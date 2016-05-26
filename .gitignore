@@ -54,3 +54,11 @@ platform/android/*/.classpath
 platform/android/*/.project
 platform/android/*/.settings
 *.filters
+*.obj
+*.suo
+*.htm
+*.out
+*.opendb
+*.db
+*.exe
+*.log

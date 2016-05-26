@@ -43,11 +43,11 @@ int muaddimage_main(int argc, char *argv[])
 		outfile = new_unique_string(ctx, "./", ".pdf");
 		int code = pdf_page_add_image_file(ctx, infile, imgfile, outfile, n, x, y, w, h);
 		fz_free(ctx, outfile);
-		fz_drop_context(ctx);
 	}
 	fz_catch(ctx) {
 		retcode = 1;
 	}
+	fz_drop_context(ctx);
 	stderr_restore();
 	return retcode;
 } 

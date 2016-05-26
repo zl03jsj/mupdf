@@ -222,7 +222,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\source\pdf\extension_zl.c" />
+    <ClCompile Include="..\..\source\pdf\pdf_extension.c" />
     <ClCompile Include="..\..\source\tools\muconvert.c" />
     <ClCompile Include="..\..\source\tools\mudraw.c" />
     <ClCompile Include="..\..\source\tools\murun.c" />
