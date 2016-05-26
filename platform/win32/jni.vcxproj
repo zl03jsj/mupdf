@@ -1,0 +1,147 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{05A1CA5B-9807-4B3A-9954-EFAB8ADE7757}</ProjectGuid>
+    <RootNamespace>jni</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>14.0.25123.0</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader />
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader />
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="..\android\src\com\artifex\mupdfdemo\Annotation.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\ArrayDeque.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\AsyncTask.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\ChoosePDFActivity.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\ChoosePDFAdapter.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\ChoosePDFItem.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\Deque.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\FilePicker.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\LinkInfo.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\LinkInfoExternal.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\LinkInfoInternal.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\LinkInfoRemote.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\LinkInfoVisitor.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\MuPDFActivity.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\MuPDFAlert.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\MuPDFAlertInternal.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\MuPDFCore.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\MuPDFPageAdapter.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\MuPDFPageView.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\MuPDFReaderView.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\MuPDFReflowAdapter.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\MuPDFReflowView.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\MuPDFView.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\OutlineActivity.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\OutlineActivityData.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\OutlineAdapter.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\OutlineItem.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\PageView.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\PrintDialogActivity.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\ReaderView.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\SafeAnimatorInflater.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\SearchTask.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\SearchTaskResult.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\TextChar.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\TextWord.java" />
+    <None Include="..\android\src\com\artifex\mupdfdemo\WidgetType.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\AndroidDrawDevice.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\Annotation.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\AwtDrawDevice.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\CDevice.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\ColorSpace.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\Context.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\Cookie.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\Device.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\DisplayList.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\DisplayListDevice.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\Document.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\Font.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\Image.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\Link.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\Matrix.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\Outline.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\Page.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\Path.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\PathProcessor.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\Point.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\Rect.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\RectI.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\Shade.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\StrokeState.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\Text.java" />
+    <None Include="..\android\src\com\artifex\mupdf\fitz\TryLaterException.java" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\android\jni\mupdf.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\android\jni\mupdf_native.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
