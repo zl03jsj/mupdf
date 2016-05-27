@@ -96,7 +96,9 @@ public class MuPDFCore
 	private native int getNumSepsOnPageInternal(int page);
 	private native int controlSepOnPageInternal(int page, int sep, boolean disable);
 	private native Separation getSepInternal(int page, int sep);
-
+	// for add image to document on android
+	// 2016/5/27 by zl03jsj
+	private native boolean addPdfImage(int pageno, int x, int y, int w, int h, byte[] imgdata);
 	public native boolean javascriptSupported();
 
 	public class Cookie
@@ -398,5 +400,11 @@ public class MuPDFCore
 
 	public synchronized Separation getSep(int page, int sep) {
 		return getSepInternal(page, sep);
+	}
+
+	// for add image to document on android
+	// 2016/5/27 by zl03jsj
+	public synchronized boolean addImage(int page, int x, int y, int w, int h, byte[] image){
+		return addPdfImage(page, x, y, w, h, image);
 	}
 }

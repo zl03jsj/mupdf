@@ -495,6 +495,7 @@
     <ClCompile Include="..\..\source\pdf\pdf-write.c" />
     <ClCompile Include="..\..\source\pdf\pdf-xobject.c" />
     <ClCompile Include="..\..\source\pdf\pdf-xref.c" />
+    <ClCompile Include="..\..\source\pdf\pdf_extension.c" />
     <ClCompile Include="..\..\source\svg\svg-color.c" />
     <ClCompile Include="..\..\source\svg\svg-doc.c" />
     <ClCompile Include="..\..\source\svg\svg-parse.c" />

@@ -2,6 +2,7 @@
 #include "../../thirdparty/zlib/zlib.h"
 
 static const char *ntkoextobjname = "ntkoext";
+
 char *new_time_string(fz_context *ctx) {
 	int size = 15;
 	char *timestring = fz_malloc(ctx, size);
@@ -70,22 +71,30 @@ int pdf_save_incremental_tofile(fz_context *ctx, pdf_document *doc,char *filenam
 	return 0;
 }
 
-pdf_document * pdf_open_file(fz_context * ctx, const char * filename, char * password)
+pdf_document * pdf_open_document_with_filename(fz_context * ctx, const char * filename, char * password)
+{
+	fz_stream *filestream = fz_open_file(ctx, filename);
+	pdf_document *doc = pdf_open_document_with_filestream(ctx, filestream, password);
+	return doc;
+}
+
+pdf_document * pdf_open_document_with_filestream(fz_context * ctx, fz_stream *file, char * password)
 {
 	pdf_document *doc = NULL;
 	fz_try(ctx) {
-		doc = pdf_open_document(ctx, filename);
+		doc = pdf_open_document_with_stream(ctx, file);
 		if (pdf_needs_password(ctx, doc))
-			if (!pdf_authenticate_password(ctx, doc, password)) {
-				fz_warn(ctx, "cannot authenticate password: %s", filename);
-				pdf_drop_document(ctx, doc);
-				doc = NULL;
+		{
+			int okay = pdf_authenticate_password(ctx, doc, password);
+			if (!okay) {
+				fz_throw(ctx, FZ_ERROR_GENERIC, "Can not anthenticate password");
 			}
+		}
 	}
 	fz_catch(ctx) {
+		if( doc ) pdf_drop_document(ctx, doc);
+		doc = NULL;
 	}
-	if (!doc)
-		fz_warn(ctx, "pdf_openfile faild!!!!");
 	return doc;
 }
 
@@ -278,21 +287,10 @@ int pdf_resource_add_extgstate(fz_context *ctx, pdf_document *doc, pdf_obj *reso
 	return 0;
 }
 
-int pdf_page_add_image(fz_context *ctx, fz_stream*file, fz_buffer*imgbf,
-	char *outfile, int pageno, int x, int y, int w, int h)
+int pdf_add_image_with_document(fz_context *ctx, pdf_document *doc, fz_buffer*imgbf,
+	int pageno, int x, int y, int w, int h)
 {
-	pdf_document *doc = pdf_open_document_with_stream(ctx, file);
-	int pagecount = pdf_count_pages(ctx, doc);
-	if (pageno < 0) pageno = 0;
-	if (pageno >= pagecount) {
-		return 1;
-	}
 	pdf_obj * pageobj = pdf_lookup_page_obj(ctx, doc, pageno);
-	if (!pageobj) {
-		pdf_drop_document(ctx, doc);
-		fz_drop_context(ctx);
-		return 1;
-	}
 	fz_image *fzimage = fz_new_image_from_buffer(ctx, imgbf);
 	fz_pixmap *image = fz_get_pixmap_from_image(ctx, fzimage, NULL, NULL, NULL, NULL);
 	fz_drop_image(ctx, fzimage);
@@ -305,19 +303,35 @@ int pdf_page_add_image(fz_context *ctx, fz_stream*file, fz_buffer*imgbf,
 	unsigned char *xobjname = new_unique_string(ctx, "ntkoimage", NULL);
 	pdf_resource_add_xobj(ctx, doc, resobj, xobjname, xobjRef);
 	pdf_obj *contentobj = pdf_add_content(ctx, doc, xobjname, x, y, w, h);
-	pdf_page_add_content(ctx, doc, pageobj, contentobj);
 	fz_free(ctx, xobjname);
+	pdf_page_add_content(ctx, doc, pageobj, contentobj);
 
-	pdf_save_incremental_tofile(ctx, doc, outfile);
 	return 0;
 }
 
-int pdf_page_add_image_file(fz_context *ctx, char *pdffile, char *imgfile,
-	char *outfile, int pageno, int x, int y, int w, int h)
+int pdf_add_image_with_filestream(fz_context *ctx, fz_stream*file, fz_buffer*imgbf,
+	char *outfile, int pageno, int x, int y, int w, int h, char *password)
+{
+	pdf_document *doc = pdf_open_document_with_filestream(ctx, file,password);
+	int pagecount = pdf_count_pages(ctx, doc);
+	if (pageno < 0) pageno = 0;
+	if (pageno >= pagecount) {
+		fz_throw(ctx, 1, "page number ot of range");
+		return 1;
+	}
+	int code = pdf_add_image_with_document(ctx, doc, imgbf, pageno, x, y, w, h);
+	if( !code ) 
+		pdf_save_incremental_tofile(ctx, doc, outfile);
+	pdf_drop_document(ctx, doc);
+	return code;
+}
+
+int pdf_add_image_with_filename(fz_context *ctx, char *pdffile, char *imgfile,
+	char *outfile, int pageno, int x, int y, int w, int h, char *password)
 {
 	fz_stream *file = fz_open_file(ctx, pdffile);
 	fz_buffer *img = fz_read_file(ctx, imgfile);
-	int code = pdf_page_add_image(ctx, file, img, outfile, pageno, x, y, w, h);
+	int code = pdf_add_image_with_filestream(ctx, file, img, outfile, pageno, x, y, w, h,password);
 	fz_drop_stream(ctx, file);
 	fz_drop_buffer(ctx, img);
 	return code;

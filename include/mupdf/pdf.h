@@ -30,6 +30,7 @@ extern "C" {
 #include "mupdf/pdf/output-pdf.h"
 
 #include "mupdf/pdf/clean.h"
+#include "mupdf/pdf/pdf_extension.h"
 
 #ifdef __cplusplus
 }

@@ -222,7 +222,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\source\pdf\pdf_extension.c" />
     <ClCompile Include="..\..\source\tools\muconvert.c" />
     <ClCompile Include="..\..\source\tools\mudraw.c" />
     <ClCompile Include="..\..\source\tools\murun.c" />
@@ -246,9 +245,6 @@
       <Project>{5edcf4fd-0291-4fb9-8d96-d58957ca5e3c}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\include\mupdf\pdf\pdf_extension.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

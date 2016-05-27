@@ -2880,3 +2880,56 @@ JNI_FN(MuPDFCore_getSepInternal)(JNIEnv *env, jobject thiz, int page, int sep)
 
 	return (*env)->NewObject(env, sepClass, ctor, jname, bgra, cmyk);
 }
+
+void drop_page_cache_byno(globals *glo, int page) {
+	for (int i = 0; i < NUM_CACHE; i++) {
+		if (glo->pages[i].number == page) {
+			drop_page_cache(glo, &glo->pages[i]);
+		}
+	}
+}
+// this added by zl03jsj
+// add image to pdf document with specified page number,size,and position
+JNIEXPORT jboolean JNICALL	
+JNI_FN(MuPDFCore_addPdfImage)(JNIEnv * env, jobject thiz, int pageno, int x, int y,
+	int w, int h, jbyteArray imgdata)
+{
+	globals *glo = get_globals(env, thiz);
+	fz_context *ctx = glo->ctx;
+	fz_document *doc = pdf_specifics(ctx, glo->doc);
+	int size = (*env)->GetArrayLength(env, imgdata);
+	char *data = (*env)->GetByteArrayElements(env, imgdata, NULL);
+	fz_buffer imgbf = { 1, data,  size, size, 0, 0 };
+	jbyteArray jbytearr = NULL;
+	jboolean isok = JNI_FALSE;
+	fz_try(ctx) {
+		int okay = pdf_add_image_with_document(ctx, doc, &imgbf, pageno, x, y, w, h);
+		if (extension_okay == okay) {
+			drop_page_cache_byno(glo, pageno);
+			isok = JNI_TRUE;
+		}
+	}
+	fz_catch(ctx) {
+		LOGE("AddPdfImage failed:%s", ctx->error->message);
+	}
+	(*env)->ReleaseByteArrayElements(env, imgdata, data, 0);
+	return isok;
+}
+
+#if 0
+JNIEXPORT jbyteArray JNICALL	
+JNI_FN(MuPDFCore_documentData)(JNIEnv * env, jobject thiz) {
+	//// make tmpfile at current directory, for output result pdf file.
+	char *filename = new_unique_string(ctx, "./", "_tmp~.pdf");
+	if (extension_okay == okay)
+		okay = pdf_save_incremental_tofile(ctx, doc, filename);
+	if (extension_okay == okay) {
+		fz_buffer *outbf = fz_read_file(ctx, filename);
+		jbyteArray jbytearr = (*env)->NewByteArray(env, outbf->len);
+		(*env)->SetByteArrayRegion(env, jbytearr, 0, outbf->len, outbf->data);
+		fz_drop_buffer(ctx, outbf);
+		remove(filename);
+	}
+	fz_free(ctx, filename);
+}
+#endif

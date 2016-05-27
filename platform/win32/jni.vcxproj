@@ -58,6 +58,7 @@
       <PrecompiledHeader />
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <AdditionalIncludeDirectories>..\..\include;D:\downloads\android-ndk-r11c\platforms\android-24\arch-x86\usr\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -134,12 +135,8 @@
     <None Include="..\android\src\com\artifex\mupdf\fitz\TryLaterException.java" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\android\jni\mupdf.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </CustomBuild>
-    <CustomBuild Include="..\android\jni\mupdf_native.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </CustomBuild>
+    <ClCompile Include="..\android\viewer\jni\mupdf.c" />
+    <ClCompile Include="..\java\mupdf_native.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
