@@ -2881,10 +2881,11 @@ JNI_FN(MuPDFCore_getSepInternal)(JNIEnv *env, jobject thiz, int page, int sep)
 	return (*env)->NewObject(env, sepClass, ctor, jname, bgra, cmyk);
 }
 
-void drop_page_cache_byno(globals *glo, int page) {
+static void drop_page_cache_byno(globals *glo, int page) {
 	for (int i = 0; i < NUM_CACHE; i++) {
 		if (glo->pages[i].number == page) {
 			drop_page_cache(glo, &glo->pages[i]);
+			break;
 		}
 	}
 }
@@ -2911,6 +2912,10 @@ JNI_FN(MuPDFCore_addPdfImage)(JNIEnv * env, jobject thiz, int pageno, int x, int
 	}
 	fz_catch(ctx) {
 		LOGE("AddPdfImage failed:%s", ctx->error->message);
+		jclass cls = (*env)->FindClass(env, "java/lang/Exception");
+		if (cls != NULL)
+			(*env)->ThrowNew(env, cls, ctx->error->message);
+		(*env)->DeleteLocalRef(env, cls);
 	}
 	(*env)->ReleaseByteArrayElements(env, imgdata, data, 0);
 	return isok;

@@ -402,7 +402,7 @@ public class MuPDFCore
 		return getSepInternal(page, sep);
 	}
 
-	// for add image to document on android
+	// add image to pdf on android
 	// 2016/5/27 by zl03jsj
 	public synchronized boolean addImage(int page, int x, int y, int w, int h, byte[] image){
 		return addPdfImage(page, x, y, w, h, image);
