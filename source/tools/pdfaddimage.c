@@ -36,7 +36,7 @@ int muaddimage_main(int argc, char *argv[])
 	fz_context *ctx = fz_new_context(NULL, NULL, FZ_STORE_DEFAULT);
 	int retcode = 0;
 	fz_try(ctx) {
-		stderr_tofile("err.lgo");
+		stderr_tofile("err.log");
 		outfile = new_unique_string(ctx, "./", ".pdf");
 		pdf_add_image_with_filename(ctx, infile, imgfile, outfile, n, x, y, w, h, NULL);
 		fz_free(ctx, outfile);
