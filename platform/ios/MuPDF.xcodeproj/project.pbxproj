@@ -306,7 +306,7 @@
 				ORGANIZATIONNAME = "Artifex Software, Inc";
 				TargetAttributes = {
 					968E1E3C1779A54F0050CEA3 = {
-						DevelopmentTeam = 7M9658FA5G;
+						DevelopmentTeam = C4W745U45Q;
 					};
 				};
 			};
@@ -513,7 +513,7 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 6.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.artifex.mupdf;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zl.mupdf;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				SDKROOT = iphoneos;
@@ -532,7 +532,7 @@
 				GCC_OPTIMIZATION_LEVEL = s;
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 6.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.artifex.mupdf;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zl.mupdf;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				SDKROOT = iphoneos;

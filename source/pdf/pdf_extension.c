@@ -353,3 +353,21 @@ void stderr_restore() {
 	_dup2(oldfd, 2);
 }
 
+fz_rect pdf_page_box(fz_context *ctx, pdf_document *doc, int pageno)
+{
+	pdf_obj *pageobj = pdf_lookup_page_obj(ctx, doc, pageno);
+    if(!pageobj) return fz_empty_rect;
+	fz_rect bbox = fz_empty_irect;
+
+	fz_try(ctx)
+	{
+		obj = pdf_dict_get(ctx, page,PDF_NAME_MediaBox);
+		if (!pdf_is_array(ctx, obj))
+			break;
+		pdf_to_rect(ctx, obj, &bbox);
+	}
+	fz_catch(ctx)
+	{
+	}
+	return bbox;
+}
