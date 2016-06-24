@@ -85,7 +85,6 @@ int z_points_add(z_point_array *points, float x, float y, float w){
     if(!points) {
         return z_error;
     }
-
     if( points->count==points->cap && 
         z_error==z_points_resize(points, points->cap+10) {
         return z_error; 
@@ -101,6 +100,10 @@ int z_points_add(z_point_array *points, z_point point){
     return z_point_add(points, point.x, point.y, point.l);
 }
 
+int z_points_add_differentation(z_point_array *points, z_point point){
+    // here!!!
+}
+
 void z_points_time_to_width(z_points_time *points) {
     if(!points || points->count<=1)  return;
     const float max_s = 16;
@@ -109,21 +112,24 @@ void z_points_time_to_width(z_points_time *points) {
     for(int i=1; i<points->count-1; i++) {
         z_point *b = points->data + (i-1);
         z_point *e = points->data + i;
-
         float d = z_distance(b, e);
         float s = d / (e->l - b->l);
         if( s<min_s ) s = min_s;
         if( s>max_s ) s = max_s;
-        int w = 255 * (max_s/s);
-
-        int w_dif = w - b->l;
+        int w = (256 * (max_s / s)) - 1;
         if( i>4 ) {
             step = 0x20;
         }
-        // here!!!
+        float dif_max = d * step - 1;
+        if( abs( (w-b->l) ) > dif_max ){
+            w = (w > b->l) : (b->l + dif_max):(b->l - dif_max);
+        }
+        e->l = w;
+        printf("set width = %d\n", (int)e->l);
     } 
     points->data[0].l = 0x20;
 }
+
 // use point as control point
 // b(t) = (1-t)^2*p0 + 2t(1-t)*p1 + t^2*p2
 z_point_array* z_points_to_smoothpoints_0(z_point_array *points) {
@@ -175,40 +181,46 @@ void z_bezier_points(z_points* outp_points, z_point b,
     float f = z_bezier_split_factor;
     int count = 1.0 / f;
     z_point_array *out_points = z_points_new(count);
+
+    int dif_w = b.l - e.l;
     for(float t=f; t<=1.0; t+=f) {
         z_point curpoint = z_point_get_split(b, e, b_c, e_c, t);
+        curpoint.l = dif_w * f;
         z_points_add(out_points, curpoint); 
     }
 } 
 z_point_array* z_points_to_smoothpoints_1(z_point_array *points) {
 	z_point b, e, n, b_c, e_c, c;
+    z_point_array *out_points = NULL;
     int count = points->count;
+    if( count<=2 ) 
+        return NULL;
+
     float w = 1.0f;
     z_point *ps = points->data;
 
-    z_point_array *out_points = z_points_new(count * (1.0 / z_bezier_split_factor) );
+    out_points = z_points_new(count * (1.0 / z_bezier_split_factor) );
+    
     if( !out_points ){ return NULL; } 
 
     z_points_add(out_points, ps[0].x, ps[0].y, w);
     c = ps[0];
-    for(int i=0; i<count-1; i++) {
+    for(int i=0; i<(count-1); i++) {
 		b = ps[i+0]; 
         e = ps[i+1];
-        while( z_point_pos_equals(&b, &e) ) {
-            if( i>=(count-2) ) {
-                break;
-            }
+        while( i<(count-1) && z_point_pos_equals(&b, &e) ) {
             i ++; 
             e = ps[i+1];
         }
-		n = ps[i+2];
-        while( z_point_pos_equals(&e, &n) ) {
-            if( i>=(count-1) ) {
-                break;
-            }
-            i ++;
+
+        if( i >= (count-2) ) n = e;
+        else{
             n = ps[i+2];
-        }
+            while( (i<(count-3)) && z_point_pos_equals(&e, &n) ) {
+                i ++;
+                n = ps[i+2];
+            }
+        } 
 		b_c = c;
 		e_c = z_bezier_control_point(b, e, n, &c, f);
         z_bezier_points(out_points, b, e, b_c, e_c);

@@ -62,3 +62,4 @@ platform/android/*/.settings
 *.db
 *.exe
 *.log
+tags_stl

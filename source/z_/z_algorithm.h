@@ -21,7 +21,6 @@
 //ctags -R --c++-kinds=+p --fields=+ias --extra=+q --language-force=c++ cpp_src 
 //sudo ctags -R --c++-kinds=+p --fields=+ias --extra=+q --language-force=c++ ./
 //================================= */
-#include "../../include/mupdf/fitz.h"
 typedef struct {
     float x;
     float y;

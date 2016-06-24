@@ -23,7 +23,7 @@
 {
 	NSString *filename;
 
-	queue = dispatch_queue_create("com.artifex.mupdf.queue", NULL);
+	queue = dispatch_queue_create("com.zl.mupdf.queue", NULL);
 
 	ctx = fz_new_context(NULL, NULL, ResourceCacheMaxSize);
 	fz_register_document_handlers(ctx);
