@@ -100,8 +100,24 @@ int z_points_add(z_point_array *points, z_point point){
     return z_point_add(points, point.x, point.y, point.l);
 }
 
-int z_points_add_differentation(z_point_array *points, z_point point){
-    // here!!!
+int z_points_add_differentation(z_point_array *points, z_point *point){
+    if( !points ) return z_error;
+    if( points->count==0 ) {
+        z_points_add(points, point);
+        return z_ok;
+    }
+    const int max_diff = 0x20;
+    z_point *lastpoint = points->data[points->count -1];
+    int n = ((point->l - lastPoint->l) / max_diff) + 1;
+    int x_step = (point->x - lastpoint->x) / n;
+    int y_step = (point->y - lastpoint->y) / n;
+    int l_step = (point->l - lastpoint->l) / n;
+    for( int i=0; i<(n-1); i++ ){
+        z_points_add(points, lastpoint->x + x_step,
+            lastpoint->y + y_step,
+            lastpoint->l + l_step };
+    }
+    return z_poinst_add(points, point); 
 }
 
 void z_points_time_to_width(z_points_time *points) {
