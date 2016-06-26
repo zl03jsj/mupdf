@@ -17,7 +17,7 @@
                BlueprintIdentifier = "963AD8CB17D5FFD9000B0779"
                BuildableName = "Generate"
                BlueprintName = "Generate"
-               ReferencedContainer = "container:MuPDF.xcodeproj">
+               ReferencedContainer = "container:MxPDF.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -48,7 +48,7 @@
             BlueprintIdentifier = "963AD8CB17D5FFD9000B0779"
             BuildableName = "Generate"
             BlueprintName = "Generate"
-            ReferencedContainer = "container:MuPDF.xcodeproj">
+            ReferencedContainer = "container:MxPDF.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <AdditionalOptions>

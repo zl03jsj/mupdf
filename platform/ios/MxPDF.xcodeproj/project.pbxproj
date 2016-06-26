@@ -67,7 +67,7 @@
 /* Begin PBXFileReference section */
 		7C6152E719DDD6A90095ECAC /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = MuPDF/Images.xcassets; sourceTree = "<group>"; };
 		7C6152E919DDF05B0095ECAC /* Launch Screen.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = "Launch Screen.xib"; path = "MuPDF/Launch Screen.xib"; sourceTree = "<group>"; };
-		968E1E3D1779A54F0050CEA3 /* MuPDF.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MuPDF.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		968E1E3D1779A54F0050CEA3 /* MxPDF.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MxPDF.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		968E1E481779A54F0050CEA3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		96C8ED001779A88E00A30AF4 /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		96C8ED141779A9AE00A30AF4 /* libmupdfthird.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libmupdfthird.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -166,7 +166,7 @@
 		968E1E3E1779A54F0050CEA3 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				968E1E3D1779A54F0050CEA3 /* MuPDF.app */,
+				968E1E3D1779A54F0050CEA3 /* MxPDF.app */,
 				96C8ED151779A9AE00A30AF4 /* libmupdf.a */,
 				96C8ED141779A9AE00A30AF4 /* libmupdfthird.a */,
 			);
@@ -275,9 +275,9 @@
 /* End PBXLegacyTarget section */
 
 /* Begin PBXNativeTarget section */
-		968E1E3C1779A54F0050CEA3 /* MuPDF */ = {
+		968E1E3C1779A54F0050CEA3 /* MxPDF */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 968E1E5A1779A54F0050CEA3 /* Build configuration list for PBXNativeTarget "MuPDF" */;
+			buildConfigurationList = 968E1E5A1779A54F0050CEA3 /* Build configuration list for PBXNativeTarget "MxPDF" */;
 			buildPhases = (
 				9614D56A1779A81D00F1879E /* ShellScript */,
 				968E1E391779A54F0050CEA3 /* Sources */,
@@ -290,9 +290,9 @@
 			dependencies = (
 				963AD8D017D60084000B0779 /* PBXTargetDependency */,
 			);
-			name = MuPDF;
+			name = MxPDF;
 			productName = MuPDF;
-			productReference = 968E1E3D1779A54F0050CEA3 /* MuPDF.app */;
+			productReference = 968E1E3D1779A54F0050CEA3 /* MxPDF.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -310,7 +310,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 968E1E381779A54F0050CEA3 /* Build configuration list for PBXProject "MuPDF" */;
+			buildConfigurationList = 968E1E381779A54F0050CEA3 /* Build configuration list for PBXProject "MxPDF" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
@@ -323,7 +323,7 @@
 			projectRoot = "";
 			targets = (
 				963AD8CB17D5FFD9000B0779 /* Generate */,
-				968E1E3C1779A54F0050CEA3 /* MuPDF */,
+				968E1E3C1779A54F0050CEA3 /* MxPDF */,
 			);
 		};
 /* End PBXProject section */
@@ -513,8 +513,8 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 6.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.zl.mupdf;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.zl.mxpdf;
+				PRODUCT_NAME = MxPDF;
 				PROVISIONING_PROFILE = "";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -532,8 +532,8 @@
 				GCC_OPTIMIZATION_LEVEL = s;
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 6.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.zl.mupdf;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.zl.mxpdf;
+				PRODUCT_NAME = MxPDF;
 				PROVISIONING_PROFILE = "";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -553,7 +553,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		968E1E381779A54F0050CEA3 /* Build configuration list for PBXProject "MuPDF" */ = {
+		968E1E381779A54F0050CEA3 /* Build configuration list for PBXProject "MxPDF" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				968E1E581779A54F0050CEA3 /* Debug */,
@@ -562,7 +562,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		968E1E5A1779A54F0050CEA3 /* Build configuration list for PBXNativeTarget "MuPDF" */ = {
+		968E1E5A1779A54F0050CEA3 /* Build configuration list for PBXNativeTarget "MxPDF" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				968E1E5B1779A54F0050CEA3 /* Debug */,
