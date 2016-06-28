@@ -1,11 +1,13 @@
+#include "mupdf/_z/z_algorithm.h"
 #include "common.h"
-#import "MuInkView.h"
+#import  "MuInkView.h"
 
 @implementation MuInkView
 {
 	CGSize pageSize;
 	NSMutableArray *curves;
 	UIColor *color;
+	z_point lastpoint;
 }
 
 - (id) initWithPageSize:(CGSize)_pageSize
@@ -38,13 +40,39 @@
 	CGPoint p = [rec locationInView:self];
 	p.x /= scale.width;
 	p.y /= scale.height;
-
-	if (rec.state == UIGestureRecognizerStateBegan)
+	UInt64 ms = [[NSDate date] timeIntervalSince1970]*1000;
+	// line begin with is thin!!!
+	z_point point = {p.x, p.y, ms};
+	NSMutableArray *curve = nil;
+	if (rec.state == UIGestureRecognizerStateBegan) {
+		lastpoint = point;
+		point.l = 0x20;
 		[curves addObject:[NSMutableArray array]];
-
-	NSMutableArray *curve = [curves lastObject];
-	[curve addObject:[NSValue valueWithCGPoint:p]];
-
+		curve = [curves lastObject];
+		[curve addObject:[NSValue valueWithBytes:&point objCType:@encode(z_point)]];
+		return;
+	}
+	curve = [curves lastObject];
+	int count = (int)[curve count];
+	int step = count>4 ? 0x40: 0x20;
+	int w = z_get_point_width(lastpoint, point, step);
+	z_point m = z_point_center(lastpoint, point, step);
+	
+	if( 1==count ) {
+		m.l = w +
+		[curve addObject:[NSValue valueWithBytes:&point objCType:@encode(z_point)]];
+		lastpoint = point;
+	}
+	else {
+		
+	}
+	
+	
+	
+	
+	
+	
+	
 	[self setNeedsDisplay];
 }
 

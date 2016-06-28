@@ -13,7 +13,8 @@ fi
 
 export OS=ios
 export build=$(echo $CONFIGURATION | tr A-Z a-z)
-
+echo 'configuration:'$CONFIGURATION 
+echo 'build':$build
 FLAGS="-Wno-unused-function -Wno-empty-body -Wno-implicit-function-declaration"
 for A in $ARCHS
 do
