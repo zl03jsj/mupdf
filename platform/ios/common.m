@@ -1,4 +1,5 @@
 #include "common.h"
+#include "mupdf/_z/z_algorithm.h"
 
 fz_context *ctx;
 dispatch_queue_t queue;
@@ -70,3 +71,46 @@ CGImageRef CreateCGImageWithPixmap(fz_pixmap *pix, CGDataProviderRef cgdata)
 	CGColorSpaceRelease(cgcolor);
 	return cgimage;
 }
+
+z_point_width CreateZPointWidth(float x, float y, float w) {
+	z_point_width p = {{x,y}, w};
+	return p;
+}
+
+float InsertPoint(NSMutableArray *arr, CGPoint lastpoint, UInt64 lastms,
+	float lastwidth, CGPoint point, UInt64 ms) {
+	if(!arr) return 0;
+	long count = [arr count];
+	z_point zp = {point.x, point.y};
+	if( 0==count ){
+		z_point_width p = {zp, 0.1};
+		[arr addObject:[NSValue valueWithBytes:&p objCType:@encode(z_point_width)]];
+		return 0.1;
+	}
+	
+	float step = count > 4 ? 0.1: 0.2;
+	z_point_time bt = { {lastpoint.x,lastpoint.y}, lastms};
+	z_point_time et = { zp, ms};
+	float w = z_get_width(bt, et, lastwidth, step);
+	if( 1==count ) {
+		z_point_width p = { {(bt.p.x + et.p.x + 1) / 2, (bt.p.y + et.p.y +1) / 2},
+			(w + lastwidth) / 2};
+		[arr addObject:[NSValue valueWithBytes:&p objCType:@encode(z_point_width)]];
+		return w;
+	}
+	
+	z_point_width bw = { {lastpoint.x,lastpoint.y},lastwidth};
+	z_point_width ew = { zp, w};
+	z_point_width cw;
+	[[arr lastObject] getValue:&cw];
+	
+	
+	return w;
+}
+
+
+
+
+
+
+

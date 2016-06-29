@@ -1,4 +1,3 @@
-#include "mupdf/_z/z_algorithm.h"
 #include "common.h"
 #import  "MuInkView.h"
 
@@ -7,7 +6,12 @@
 	CGSize pageSize;
 	NSMutableArray *curves;
 	UIColor *color;
-	z_point lastpoint;
+	
+	CGPoint lastpoint;
+	int64_t lastms;
+	float   lastwidth;
+	
+	float penWidth;
 }
 
 - (id) initWithPageSize:(CGSize)_pageSize
@@ -37,41 +41,19 @@
 -(void) onDrag:(UIPanGestureRecognizer *)rec
 {
 	CGSize scale = fitPageToScreen(pageSize, self.bounds.size);
-	CGPoint p = [rec locationInView:self];
-	p.x /= scale.width;
-	p.y /= scale.height;
-	UInt64 ms = [[NSDate date] timeIntervalSince1970]*1000;
-	// line begin with is thin!!!
-	z_point point = {p.x, p.y, ms};
+	CGPoint point = [rec locationInView:self];
+	point.x /= scale.width;
+	point.y /= scale.height;
+	int64_t ms = [[NSDate date] timeIntervalSince1970]*1000;
+	
 	NSMutableArray *curve = nil;
 	if (rec.state == UIGestureRecognizerStateBegan) {
-		lastpoint = point;
-		point.l = 0x20;
 		[curves addObject:[NSMutableArray array]];
 		curve = [curves lastObject];
-		[curve addObject:[NSValue valueWithBytes:&point objCType:@encode(z_point)]];
-		return;
 	}
-	curve = [curves lastObject];
-	int count = (int)[curve count];
-	int step = count>4 ? 0x40: 0x20;
-	int w = z_get_point_width(lastpoint, point, step);
-	z_point m = z_point_center(lastpoint, point, step);
-	
-	if( 1==count ) {
-		m.l = w +
-		[curve addObject:[NSValue valueWithBytes:&point objCType:@encode(z_point)]];
-		lastpoint = point;
-	}
-	else {
-		
-	}
-	
-	
-	
-	
-	
-	
+	InsertPoint(curves, lastpoint, lastms, lastwidth, point, ms);
+	lastpoint = point;
+	lastms = ms;
 	
 	[self setNeedsDisplay];
 }

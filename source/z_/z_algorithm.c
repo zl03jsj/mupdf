@@ -15,6 +15,10 @@
 #include <cmath>
 #define z_ok        1
 #define z_error     0
+
+
+int z_points_add_differentation(z_points *points, z_point_width p);
+
 static float z_bezier_split_factor = 0.05;
 static float z_square(float f){ return (float)f*f; };
 static float z_cubic_(float f){ return (float)powf(f, 3); };
@@ -29,12 +33,13 @@ static int z_point_pos_equals(z_point *p1, z_point *p2) {
     return z_error;
 }
 
-int z_points_addref(z_point_array *points){
+
+void z_points_addref (z_points *points){
     if(!points) return 0;
     return points->ref++;
 }
 
-int z_points_release(z_point_array *points){
+void z_points_release(z_points *points){
     if(!points) return 0;
     int ref = points->ref--;
     if(points->ref==0) {
@@ -46,12 +51,15 @@ int z_points_release(z_point_array *points){
     return ref;
 }
 
-z_point_array* z_points_new(int initsize){
-    z_point_array *points = malloc(sizeof(z_points_array));
-    memset((void*)points, 0, sizeof(z_point_array));
-
-    points->data = (z_point*)malloc( sizeof(z_point) * initsize );
-    memset((void*)(points->data), 0, sizeof(z_point) * initsize );
+z_points* z_points_new(int initsize) {
+	if( 0==initsize) return NULL;
+	
+	z_points *points = (z_points*)malloc( sizeof(z_points) );
+	memset(points, 0, sizeof(z_points) );
+	
+	int blocksize = sizeof(z_point_width) * initsize;
+	points->data = (z_point_width*)malloc( blocksize );
+    memset((void*)points->data, 0, blocksize);
 
     points->count = 0;
     points->ref = 1;
@@ -59,83 +67,100 @@ z_point_array* z_points_new(int initsize){
     return points;
 }
 
-int z_points_resize(z_point_array *points, int count){
+int z_points_increasesize(z_points *points, int count){
     if(!points || count<0 ){ 
         return z_error;
     }
-    int bytesize = count * sizeof(z_point);
-    if( bytesize==0 ) {
-        free(points->data);
-        points->count = 0;
-        points->cap = 0;
-        points->data = NULL;
-        return z_ok;
-    }
-
-    z_points* newdata = realloc(points->data, bytesize);
-    if( !newdata ){
-        return z_error;
-    }
-    points->cap = count;
-    points->count = points->count<count ? points->count:count;
-    roints->data = newdata; 
+	int newcount = points->count + count;
+	int bytesize = newcount * sizeof(z_point_width);
+	z_point_width *newdata = (z_point_width*)realloc(points->data, bytesize);
+    if( !newdata ) return z_error;
+	
+	points->cap = newcount;
+    roints->data = newdata;
     return z_ok;
 }
 
-int z_points_add_xyl(z_point_array *points, float x, float y, float w){
+float z_get_width(z_point_time b, z_point_time e,
+				  float bw, float step){
+	if( step > 0.25 ) { step = 0.25; }
+	if( step < 0.05 ) { step = 0.05; }
+	
+	float d = z_distance(&b.p, &e.p);
+	float s = (d * 100) / (e.time - b.time);
+	printf("the speed is %.4f\n", s);
+	float max_s = 100;
+	int w = (max_s - s) / max_s;
+	
+	if( abs(bw-w) > (d*step) ) {
+		if( bw > w ) w = bw - (d*step);
+		else w = bw + (d*step);
+	}
+	return w;
+}
+
+void z_quare_bezier(z_points *out, z_point_width b, z_point c, z_point_width e)
+{
+	if(!out) return;
+	float d = z_distance(&(b.p), &(c.p)) + z_distance(&(c.p), &(e.p));
+	float f = 1.0 / (d + 1);
+	int count = (int)(f/0.02) * 0.02;
+	float t = 1.0/count;
+	for(float t=0; t<=1.0; t+=f ) {
+		float x1 = z_square(1-t)*bx + 2*t*(1-t)*cx + z_square(t)*ex;
+		float y1 = z_square(1-t)*by + 2*t*(1-t)*cy + z_square(t)*ey;
+		int w = b.w + (t* (e.w-b.w));
+		z_point_width pw = { {x1, y1}, w};
+		z_points_add_differentation(out, pw);
+	}
+}
+
+int z_points_add_differentation(z_points *points, z_point_width p){
+    if( !points ) return z_error;
+    if( points->count==0 ) {
+        z_points_add(points, p);
+        return z_ok;
+    }
+	float max_diff = 0.05;
+    z_point_width *last = points->data[points->count -1];
+	z_point bp = last->p;
+	float bw = last->w;
+	
+    int n = ((p.w - last->w) / max_diff) + 1;
+    int x_step = (p.p.x - bp.x) / n;
+    int y_step = (p.p.y - bp.y) / n;
+    int w_step = (p.w - bw) / n;
+	
+    for( int i=0; i<(n-1); i++ ){
+		bp.x += x_step;
+		bp.y += y_step;
+		bw += w_step;
+		z_points_add_xyw(points, bp.x, bp.y, bw);
+    }
+	
+    return z_points_add(points, p);
+}
+
+int z_points_add_xyw(z_points *points, float x, float y, float w){
     if(!points) {
         return z_error;
     }
     if( points->count==points->cap && 
-        z_error==z_points_resize(points, points->cap/4 ) {
+        z_error==z_points_increasesize(points, (points->cap/4 + 1) ) {
         return z_error; 
     }
-    z_point *point = points->data + points->count;
-    point->x = x;
-    point->y = y;
-    point->l = w;
+	   
+    z_point_width *point = points->data + points->count;
+    point->p.x = x;
+    point->p.y = y;
+    point->w = w;
     return z_ok;
 }
 
-int z_points_add(z_point_array *points, z_point point){
-    return z_points_add_xyl(points, point.x, point.y, point.l);
+int z_points_add(z_points *points, z_point_width p){
+    return z_points_add_xyw(points, p.p.x, p.p.y, p.w);
 }
-
-int z_points_add_differentation(z_point_array *points, z_point *point){
-    if( !points ) return z_error;
-    if( points->count==0 ) {
-        z_points_add(points, point);
-        return z_ok;
-    }
-    const int max_diff = 0x20;
-    z_point *lastpoint = points->data[points->count -1];
-    int n = ((point->l - lastPoint->l) / max_diff) + 1;
-    int x_step = (point->x - lastpoint->x) / n;
-    int y_step = (point->y - lastpoint->y) / n;
-    int l_step = (point->l - lastpoint->l) / n;
-    for( int i=0; i<(n-1); i++ ){
-        z_points_add_xyl(points, lastpoint->x + x_step,
-            lastpoint->y + y_step,
-            lastpoint->l + l_step };
-    }
-    return z_poinst_add(points, point);
-}
-
-int z_get_point_width(z_point b, z_point e, int step){
-    const float max_s = 16;
-    const float min_s = 1;
-	float d = z_distance(&b, &e);
-	float s = d / (e->l - b->l);
-	if( s<min_s ) s = min_s;
-	if( s>max_s ) s = max_s;
-	int w = (256 * (max_s / s)) - 1;
-	float dif_max = d * step - 1;
-	if( abs( (w-b->l) ) > dif_max ){
-		w = (w > b->l) : (b->l + dif_max):(b->l - dif_max);
-	}
-	return w;
-}
-						 
+/*
 void z_points_time_to_width(z_points_array *points) {
     if(!points || points->count<=1)  return;
 	points->data[0].l = 0x20;
@@ -290,25 +315,12 @@ z_point z_bezier_control_point(z_point b,z_point e,z_point n,z_point *c,float f)
 }
 
 
-void z_quare_bezier(z_point_array *out, z_point b, z_point c, z_point e) {
-	if( !out) return;
-	float d = z_distance(&b, &c) + z_distance(&c, &e);
-	float f = 1.0 / (d+1);
-	int count = (int)(f/0.02) * 0.02;
-	for(float t=0; t<=1.0; t+=f ) {
-		float x1 = z_square(1-t)*bx + 2*t*(1-t)*cx + z_square(t)*ex;
-		float y1 = z_square(1-t)*by + 2*t*(1-t)*cy + z_square(t)*ey;
-		int w = b.l + (t * (e.l - b.l));
-		z_points_add_differentation(out, x1, y1, w);
-	}
-	return points;
-}
 
 
-z_point z_point_center(z_point b, z_point e){
+z_point z_point_middle(z_point b, z_point e){
 	z_point point = { (b.x + e.x + 1)/2, (b.y + e.y +1)/2, (b.l + e.l + 1)/2};
 }
-
+*/
 
 
 
