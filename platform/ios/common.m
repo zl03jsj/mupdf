@@ -77,7 +77,7 @@ z_point_width CreateZPointWidth(float x, float y, float w) {
 	return p;
 }
 
-float InsertPoint(NSMutableArray *arr, CGPoint lastpoint, UInt64 lastms,
+float z_insertPoint(NSMutableArray *arr, CGPoint lastpoint, UInt64 lastms,
 	float lastwidth, CGPoint point, UInt64 ms) {
 	if(!arr) return 0;
 	long count = [arr count];
@@ -92,23 +92,45 @@ float InsertPoint(NSMutableArray *arr, CGPoint lastpoint, UInt64 lastms,
 	z_point_time bt = { {lastpoint.x,lastpoint.y}, lastms};
 	z_point_time et = { zp, ms};
 	float w = z_get_width(bt, et, lastwidth, step);
+	
+	z_points *points = z_points_new(51);
 	if( 1==count ) {
 		z_point_width p = { {(bt.p.x + et.p.x + 1) / 2, (bt.p.y + et.p.y +1) / 2},
 			(w + lastwidth) / 2};
-		[arr addObject:[NSValue valueWithBytes:&p objCType:@encode(z_point_width)]];
-		return w;
+		z_points_add_differentation(points, p);
+	}
+	else {
+		z_point_width bw;
+		[[arr lastObject] getValue:&bw];
+		z_point c =  {lastpoint.x,lastpoint.y};
+		z_point_width ew = {{(lastpoint.x + point.x)/2, (lastpoint.y + point.y)/2},
+			(lastwidth + w) / 2};
+		z_quare_bezier(points, bw, c, ew);
 	}
 	
-	z_point_width bw = { {lastpoint.x,lastpoint.y},lastwidth};
-	z_point_width ew = { zp, w};
-	z_point_width cw;
-	[[arr lastObject] getValue:&cw];
-	
-	
+	for(int i=0; i<points->count; i++) {
+		[arr addObject:[NSValue valueWithBytes:(points->data+i) objCType:@encode(z_point_width)]];
+	}
+	z_points_release(points);
 	return w;
 }
 
+z_point_width z_stored_point(NSArray *arr, int index) {
+	z_point_width pt;
+	[[arr objectAtIndex:index] getValue:&pt];
+	return pt;
+}
 
+CGPoint z_get_stored_CGPoint(NSArray *arr, int index) {
+	z_point_width pt = z_stored_point(arr, index);
+	CGPoint p = {pt.p.x, pt.p.y};
+	return p;
+}
+
+float z_get_stored_Width(NSArray *arr, int index){
+	z_point_width pt = z_stored_point(arr, index);
+	return pt.w;
+}
 
 
 

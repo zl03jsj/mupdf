@@ -10,7 +10,6 @@
 	CGPoint lastpoint;
 	int64_t lastms;
 	float   lastwidth;
-	
 	float penWidth;
 }
 
@@ -51,7 +50,7 @@
 		[curves addObject:[NSMutableArray array]];
 		curve = [curves lastObject];
 	}
-	InsertPoint(curves, lastpoint, lastms, lastwidth, point, ms);
+	lastwidth = z_insertPoint(curve, lastpoint, lastms, lastwidth, point, ms);
 	lastpoint = point;
 	lastms = ms;
 	
@@ -66,24 +65,21 @@
 
 	[color set];
 	CGContextSetLineWidth(cref, 5.0);
-
+	float max_width = 5.0f;
 	for (NSArray *curve in curves)
 	{
-		if (curve.count >= 2)
-		{
-			CGPoint pt = [[curve objectAtIndex:0] CGPointValue];
+		if (curve.count >= 2) {
+			CGPoint pt= z_get_stored_CGPoint(curve, 0);
+			float w = max_width * z_get_stored_Width(curve, 0);
+			CGContextSetLineWidth(cref, w);
 			CGContextBeginPath(cref);
 			CGContextMoveToPoint(cref, pt.x, pt.y);
-			CGPoint lpt = pt;
-
-			for (int i = 1; i < curve.count; i++)
-			{
-				pt = [[curve objectAtIndex:i] CGPointValue];
-				CGContextAddQuadCurveToPoint(cref, lpt.x, lpt.y, (pt.x + lpt.x)/2, (pt.y + lpt.y)/2);
-				lpt = pt;
+			for( int i=1; i<curve.count; i++) {
+				pt = z_get_stored_CGPoint(curve, i);
+				w = max_width * z_get_stored_Width(curve, 0);
+				CGContextSetLineWidth(cref, w);
+				CGContextAddLineToPoint(cref, pt.x, pt.y);
 			}
-
-			CGContextAddLineToPoint(cref, pt.x, pt.y);
 			CGContextStrokePath(cref);
 		}
 	}

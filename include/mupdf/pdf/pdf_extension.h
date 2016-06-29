@@ -3,6 +3,10 @@
 
 #include "mupdf/pdf.h"
 
+#ifdef cplusplus
+extern "C" {
+#endif
+
 typedef enum {
 	image_type_unkown = -1,
 	image_type_jpg,
@@ -44,5 +48,7 @@ int pdf_add_image_with_document(fz_context *ctx, pdf_document *doc, fz_buffer*im
 
 void stderr_tofile(char *filename);
 void stderr_restore();
-
+#ifdef cplusplus
+}
+#endif
 #endif
