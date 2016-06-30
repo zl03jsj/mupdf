@@ -54,11 +54,12 @@ int z_points_addref (z_points *points);
 int z_points_release(z_points *points);
 z_points* z_points_new(int initsize);
 int z_points_increasesize(z_points *points, int count);
-float z_get_width(z_point_time b, z_point_time e, float bw, float step);
+float z_point_movespeed(z_point_time b, z_point_time e);
+float z_distance(z_point b, z_point e);
 int z_points_add_xyw(z_points *points, float x, float y, float w);
 int z_points_add(z_points *points, z_point_width p);
 int z_points_add_differentation(z_points *points, z_point_width p);
-void z_quare_bezier(z_points *out, z_point_width b, z_point c, z_point_width e);
+void z_square_bezier(z_points *out, z_point_width b, z_point c, z_point_width e);
 
 #ifdef __cplusplus
 }

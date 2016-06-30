@@ -25,6 +25,7 @@ CGImageRef CreateCGImageWithPixmap(fz_pixmap *pix, CGDataProviderRef cgdata);
 
 float z_insertPoint(NSMutableArray *arr, CGPoint lastpoint, UInt64 lastms,
 	float lastwidth, CGPoint point, UInt64 ms);
+void z_insertLastPoint(NSMutableArray *arr, CGPoint e);
 CGPoint z_get_stored_CGPoint(NSArray *arr, int index);
 float   z_get_stored_Width  (NSArray *arr, int index);
 #endif

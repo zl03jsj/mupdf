@@ -65,8 +65,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		7B4EF8C01D24166A00177938 /* z_algorithm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = z_algorithm.h; path = ../../include/mupdf/_z/z_algorithm.h; sourceTree = "<group>"; };
-		7B4EF8C21D241BC800177938 /* z_algorithm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = z_algorithm.c; path = ../../source/z_/z_algorithm.c; sourceTree = "<group>"; };
+		68B07AA31D24BF720038B738 /* z_algorithm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = z_algorithm.h; path = ../../include/mupdf/_z/z_algorithm.h; sourceTree = "<group>"; };
+		68B07AA41D24BF830038B738 /* z_algorithm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = z_algorithm.c; path = ../../source/z_/z_algorithm.c; sourceTree = "<group>"; };
 		7C6152E719DDD6A90095ECAC /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = MuPDF/Images.xcassets; sourceTree = "<group>"; };
 		7C6152E919DDF05B0095ECAC /* Launch Screen.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = "Launch Screen.xib"; path = "MuPDF/Launch Screen.xib"; sourceTree = "<group>"; };
 		968E1E3D1779A54F0050CEA3 /* MxPDF.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MxPDF.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -150,11 +150,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		68B07AA51D24BF950038B738 /* z_ */ = {
+			isa = PBXGroup;
+			children = (
+				68B07AA41D24BF830038B738 /* z_algorithm.c */,
+				68B07AA31D24BF720038B738 /* z_algorithm.h */,
+			);
+			name = z_;
+			sourceTree = "<group>";
+		};
 		968E1E341779A54F0050CEA3 = {
 			isa = PBXGroup;
 			children = (
-				7B4EF8C01D24166A00177938 /* z_algorithm.h */,
-				7B4EF8C21D241BC800177938 /* z_algorithm.c */,
+				68B07AA51D24BF950038B738 /* z_ */,
 				E845CC6D1C20C09B00474C19 /* Default-568h@2x.png */,
 				DA1C68C317E8969C0061F586 /* common.m */,
 				DA1C68C217E8968C0061F586 /* common.h */,

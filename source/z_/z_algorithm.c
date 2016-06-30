@@ -21,17 +21,17 @@ Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SD
 static float z_bezier_split_factor = 0.05;
 static float z_square(float f){ return (float)f*f; };
 static float z_cubic_(float f){ return (float)powf(f, 3); };
-static float z_distance(z_point *p1, z_point *p2){
-    return (float)sqrtf( z_square(p1->x-p2->x) + z_square(p1->y-p2->y) );
+
+float z_distance(z_point b, z_point e){
+    return (float)sqrtf( z_square(e.x-b.x) + z_square(e.y-b.y) );
 }
 
-static int z_point_pos_equals(z_point *p1, z_point *p2) {
+int z_point_pos_equals(z_point *p1, z_point *p2) {
     if( (p1->x==p2->x && p1->y==p2->y) ){
         return z_ok;
     }
     return z_error;
 }
-
 
 int z_points_addref (z_points *points){
     if(!points) return 0;
@@ -80,28 +80,16 @@ int z_points_increasesize(z_points *points, int count){
     return z_ok;
 }
 
-float z_get_width(z_point_time b, z_point_time e,
-				  float bw, float step){
-	if( step > 0.25 ) { step = 0.25; }
-	if( step < 0.05 ) { step = 0.05; }
-	
-	float d = z_distance(&b.p, &e.p);
-	float s = (d * 100) / (e.t- b.t);
-	printf("the speed is %.4f\n", s);
-	float max_s = 100;
-	int w = (max_s - s) / max_s;
-	
-	if( abs(bw-w) > (d*step) ) {
-		if( bw > w ) w = bw - (d*step);
-		else w = bw + (d*step);
-	}
-	return w;
+float z_point_movespeed(z_point_time b, z_point_time e){
+	float d = z_distance(b.p, e.p);
+	float s = d / (e.t- b.t);
+    return s;
 }
 
-void z_quare_bezier(z_points *out, z_point_width b, z_point c, z_point_width e)
+void z_square_bezier(z_points *out, z_point_width b, z_point c, z_point_width e)
 {
 	if(!out) return;
-	float d = z_distance(&(b.p), &c) + z_distance(&c, &(e.p));
+	float d = z_distance(b.p, c) + z_distance(c, e.p);
 	float f = 1.0 / (d + 1);
 	int count = (int)(f/0.02) * 0.02;
 	float t = 1.0/count;
@@ -109,7 +97,7 @@ void z_quare_bezier(z_points *out, z_point_width b, z_point c, z_point_width e)
 	for(float t=0; t<=1.0; t+=f ) {
 		float x1 = z_square(1-t)*b.p.x + 2*t*(1-t)*c.x + z_square(t)*e.p.x;
 		float y1 = z_square(1-t)*b.p.y + 2*t*(1-t)*c.y + z_square(t)*e.p.y;
-		int w = b.w + (t* (e.w-b.w));
+		float w = b.w + (t* (e.w-b.w));
 		z_point_width pw = { {x1, y1}, w};
 		z_points_add_differentation(out, pw);
 	}
@@ -127,9 +115,9 @@ int z_points_add_differentation(z_points *points, z_point_width p){
 	float bw = last->w;
 	
     int n = ((p.w - last->w) / max_diff) + 1;
-    int x_step = (p.p.x - bp.x) / n;
-    int y_step = (p.p.y - bp.y) / n;
-    int w_step = (p.w - bw) / n;
+    float x_step = (p.p.x - bp.x) / n;
+    float y_step = (p.p.y - bp.y) / n;
+    float w_step = (p.w - bw)	  / n;
 	
     for( int i=0; i<(n-1); i++ ){
 		bp.x += x_step;
@@ -151,9 +139,12 @@ int z_points_add_xyw(z_points *points, float x, float y, float w){
     }
 	   
     z_point_width *point = points->data + points->count;
+	
     point->p.x = x;
     point->p.y = y;
     point->w = w;
+	
+	points->count++;
     return z_ok;
 }
 

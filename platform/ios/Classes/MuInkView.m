@@ -43,46 +43,59 @@
 	CGPoint point = [rec locationInView:self];
 	point.x /= scale.width;
 	point.y /= scale.height;
-	int64_t ms = [[NSDate date] timeIntervalSince1970]*1000;
 	
+	if( point.x==lastpoint.x && point.y==lastpoint.y){
+		return;
+	}
+	int64_t ms = [[NSDate date] timeIntervalSince1970]*1000;
 	NSMutableArray *curve = nil;
 	if (rec.state == UIGestureRecognizerStateBegan) {
 		[curves addObject:[NSMutableArray array]];
-		curve = [curves lastObject];
 	}
-	lastwidth = z_insertPoint(curve, lastpoint, lastms, lastwidth, point, ms);
-	lastpoint = point;
-	lastms = ms;
-	
+	else{
+		curve = [curves lastObject];
+		if( rec.state == UIGestureRecognizerStateEnded){
+			z_insertLastPoint(curve, lastpoint);
+		}
+		else {
+			lastwidth = z_insertPoint(curve, lastpoint, lastms, lastwidth, point, ms);
+			lastpoint = point;
+			lastms = ms;
+		}
+	}
 	[self setNeedsDisplay];
 }
 
 - (void)drawRect:(CGRect)rect
 {
-	CGSize scale = fitPageToScreen(pageSize, self.bounds.size);
 	CGContextRef cref = UIGraphicsGetCurrentContext();
-	CGContextScaleCTM(cref, scale.width, scale.height);
-
-	[color set];
-	CGContextSetLineWidth(cref, 5.0);
+	CGContextSetRGBStrokeColor(cref,1.0,0,0,1.0);
 	float max_width = 5.0f;
-	for (NSArray *curve in curves)
-	{
+	float min_width = 1.0f;
+	CGSize scale = fitPageToScreen(pageSize, self.bounds.size);
+	CGContextScaleCTM(cref, scale.width, scale.height);
+	[color set];
+	CGContextSetLineCap(cref,  kCGLineCapRound);
+	CGContextSetLineJoin(cref, kCGLineJoinRound);
+	for (NSArray *curve in curves) {
 		if (curve.count >= 2) {
 			CGPoint pt= z_get_stored_CGPoint(curve, 0);
 			float w = max_width * z_get_stored_Width(curve, 0);
+			if( w<min_width ) w = min_width;
 			CGContextSetLineWidth(cref, w);
-			CGContextBeginPath(cref);
-			CGContextMoveToPoint(cref, pt.x, pt.y);
+			CGContextMoveToPoint (cref, pt.x, pt.y);
 			for( int i=1; i<curve.count; i++) {
 				pt = z_get_stored_CGPoint(curve, i);
-				w = max_width * z_get_stored_Width(curve, 0);
-				CGContextSetLineWidth(cref, w);
 				CGContextAddLineToPoint(cref, pt.x, pt.y);
+				CGContextStrokePath(cref);
+				
+				w = max_width * z_get_stored_Width(curve, i);
+				if( w<min_width ) w = min_width;
+				CGContextMoveToPoint(cref, pt.x, pt.y);
+				CGContextSetLineWidth(cref, w);
 			}
-			CGContextStrokePath(cref);
 		}
-	}
+	 }
 }
 
 @end
