@@ -10,7 +10,21 @@
 	CGPoint lastpoint;
 	int64_t lastms;
 	float   lastwidth;
-	float penWidth;
+	
+	CGContextRef _imageContext;
+	UIImage *_image;
+}
+
+- (BOOL) initImageContext{
+	UIGraphicsBeginImageContext(self.frame.size);
+	_imageContext = UIGraphicsGetCurrentContext();
+	CGContextSetStrokeColorWithColor(_imageContext, [color CGColor]);
+	CGSize scale = fitPageToScreen(pageSize, self.bounds.size);
+	CGContextScaleCTM(_imageContext, scale.width, scale.height);
+	[color set];
+	CGContextSetLineCap(_imageContext,  kCGLineCapRound);
+	CGContextSetLineJoin(_imageContext, kCGLineJoinRound);
+	return YES;
 }
 
 - (id) initWithPageSize:(CGSize)_pageSize
@@ -19,11 +33,13 @@
 	if (self) {
 		[self setOpaque:NO];
 		pageSize = _pageSize;
-		color = [[UIColor colorWithRed:1.0 green:0.0 blue:0.0 alpha:1.0] retain];
+		color = [[UIColor colorWithRed:1.0 green:0.0 blue:0.0 alpha:0.8] retain];
 		curves = [[NSMutableArray array] retain];
 		UIPanGestureRecognizer *rec = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(onDrag:)];
 		[self addGestureRecognizer:rec];
 		[rec release];
+		
+		_imageContext = nil;
 	}
 	return self;
 }
@@ -43,40 +59,81 @@
 	CGPoint point = [rec locationInView:self];
 	point.x /= scale.width;
 	point.y /= scale.height;
-	
-	if( point.x==lastpoint.x && point.y==lastpoint.y){
-		return;
-	}
 	int64_t ms = [[NSDate date] timeIntervalSince1970]*1000;
 	NSMutableArray *curve = nil;
-	if (rec.state == UIGestureRecognizerStateBegan) {
-		[curves addObject:[NSMutableArray array]];
+	UIGestureRecognizerState curState = rec.state;
+	if (curState == UIGestureRecognizerStateBegan) {
+			[curves addObject:[NSMutableArray array]];
+			curve = [curves lastObject];
+			lastwidth = z_insertPoint(curve, lastpoint , lastms, lastwidth, point, ms);
 	}
 	else{
 		curve = [curves lastObject];
-		if( rec.state == UIGestureRecognizerStateEnded){
+		int lastIndex = (int)([curve count] - 1);
+		if( curState == UIGestureRecognizerStateEnded){
+			printf(" UIGestureRecognizerStateEnded\n");
 			z_insertLastPoint(curve, lastpoint);
 		}
-		else {
+		else { // UIGestureRecognizerStateChanged
+			if( point.x==lastpoint.x && point.y==lastpoint.y) {
+				return;
+			}
 			lastwidth = z_insertPoint(curve, lastpoint, lastms, lastwidth, point, ms);
-			lastpoint = point;
-			lastms = ms;
 		}
+		if ( nil==_imageContext ){
+			[self initImageContext];
+		}
+		[self setNeedsDisplay];
+		/*
+		CGRect r = [self drawCurrent:curve fromIndex:lastIndex];
+		[self setNeedsDisplayInRect:r];
+		 */
 	}
-	[self setNeedsDisplay];
+	lastpoint = point;
+	lastms = ms;
+}
+
+- (CGRect)drawCurrent : (NSMutableArray*)points fromIndex:(int)index{
+	float max_width = 5.0f;
+	float min_width = 1.0f;
+	float w = max_width * z_get_stored_Width(points, index);
+	if( w<min_width ) w = min_width;
+	CGPoint point = z_get_stored_CGPoint(points, index);
+	
+	CGRect rect =  {point, CGSizeZero};
+	
+	CGContextMoveToPoint(_imageContext, point.x, point.y);
+	CGContextSetLineWidth(_imageContext, w);
+	index ++;
+	for(; index<[points count]; index++){
+		point = z_get_stored_CGPoint(points, index);
+		CGContextAddLineToPoint(_imageContext, point.x, point.y);
+		CGContextStrokePath(_imageContext);
+		
+		float w = max_width * z_get_stored_Width(points, index);
+		if( w<min_width ) w = min_width;
+		CGContextMoveToPoint(_imageContext, point.x, point.y);
+		CGContextSetLineWidth(_imageContext, w);
+		
+		rect = CGRectExpendTo(rect, point);
+	}
+	_image = UIGraphicsGetImageFromCurrentImageContext();
+	return rect;
 }
 
 - (void)drawRect:(CGRect)rect
 {
-	CGContextRef cref = UIGraphicsGetCurrentContext();
-	CGContextSetRGBStrokeColor(cref,1.0,0,0,1.0);
+	// [_image drawInRect:rect];
+	//*
 	float max_width = 5.0f;
 	float min_width = 1.0f;
+	CGContextRef cref = UIGraphicsGetCurrentContext();
 	CGSize scale = fitPageToScreen(pageSize, self.bounds.size);
 	CGContextScaleCTM(cref, scale.width, scale.height);
 	[color set];
 	CGContextSetLineCap(cref,  kCGLineCapRound);
 	CGContextSetLineJoin(cref, kCGLineJoinRound);
+	
 	for (NSArray *curve in curves) {
 		if (curve.count >= 2) {
 			CGPoint pt= z_get_stored_CGPoint(curve, 0);
@@ -96,6 +153,7 @@
 			}
 		}
 	 }
+ // */
 }
 
 @end

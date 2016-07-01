@@ -28,4 +28,6 @@ float z_insertPoint(NSMutableArray *arr, CGPoint lastpoint, UInt64 lastms,
 void z_insertLastPoint(NSMutableArray *arr, CGPoint e);
 CGPoint z_get_stored_CGPoint(NSArray *arr, int index);
 float   z_get_stored_Width  (NSArray *arr, int index);
+
+CGRect CGRectExpendTo(CGRect r, CGPoint p);
 #endif

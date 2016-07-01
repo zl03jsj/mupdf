@@ -162,6 +162,25 @@ float z_get_stored_Width(NSArray *arr, int index){
 }
 
 
+CGRect CGRectExpendTo(CGRect r, CGPoint p){
+	if(CGRectContainsPoint(r, p))
+		return r;
+	CGPoint o = r.origin;
+	CGSize  s = r.size;
+	if( o.x > p.x) o.x = p.x;
+	else{
+		float x_dif = p.x - o.x;
+		if( s.width <x_dif )
+			s.width = x_dif;
+	}
+	if( o.y > p.y) o.y = p.y;
+	else {
+		float y_dif = p.y - r.origin.y;
+		if( s.height <y_dif )
+			s.height = y_dif;
+	}
+	return CGRectMake(o.x, o.y, s.width, s.height);
+}
 
 
 
