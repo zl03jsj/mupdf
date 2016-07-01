@@ -114,7 +114,7 @@ int z_points_add_differentation(z_points *points, z_point_width p){
 	z_point bp = last->p;
 	float bw = last->w;
 	
-    int n = ((p.w - last->w) / max_diff) + 1;
+    int n = ( fz_abs(p.w - last->w) / max_diff) + 1;
     float x_step = (p.p.x - bp.x) / n;
     float y_step = (p.p.y - bp.y) / n;
     float w_step = (p.w - bw)	  / n;

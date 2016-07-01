@@ -71,8 +71,7 @@
 		curve = [curves lastObject];
 		int lastIndex = (int)([curve count] - 1);
 		if( curState == UIGestureRecognizerStateEnded){
-			printf(" UIGestureRecognizerStateEnded\n");
-			z_insertLastPoint(curve, lastpoint);
+			z_insertLastPoint(curve, point);
 		}
 		else { // UIGestureRecognizerStateChanged
 			if( point.x==lastpoint.x && point.y==lastpoint.y) {
@@ -94,7 +93,7 @@
 }
 
 - (CGRect)drawCurrent : (NSMutableArray*)points fromIndex:(int)index{
-	float max_width = 5.0f;
+	float max_width = 6.0f;
 	float min_width = 1.0f;
 	float w = max_width * z_get_stored_Width(points, index);
 	if( w<min_width ) w = min_width;

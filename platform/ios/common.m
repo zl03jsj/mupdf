@@ -5,6 +5,8 @@ fz_context *ctx;
 dispatch_queue_t queue;
 float screenScale = 1;
 
+z_point_width z_stored_point(NSArray *arr, int index);
+
 CGSize fitPageToScreen(CGSize page, CGSize screen)
 {
 	float hscale = screen.width / page.width;
@@ -78,7 +80,7 @@ z_point_width z_point_width_new(float x, float y, float w) {
 }
 
 static float z_lineWidth(z_point_time bt, z_point_time et, float bwidth,float step){
-	const float max_speed = 3.0f;
+	const float max_speed = 4.0f;
 	// const float min_speed = 0.2f;
 	float d = z_distance(bt.p, et.p);
 	float s = d / (et.t - bt.t); s = s > max_speed ? max_speed : s;
@@ -101,11 +103,11 @@ float z_insertPoint(NSMutableArray *arr, CGPoint lastpoint, UInt64 lastms,
 	long count = [arr count];
 	z_point zp = {point.x, point.y};
 	if( 0==count ){
-		z_point_width p = {zp, 0.1};
+		z_point_width p = {zp, 0.3};
 		[arr addObject:[NSValue valueWithBytes:&p objCType:@encode(z_point_width)]];
 		return 0.1;
 	}
-	float step = count > 4 ? 0.01: 0.02;
+	float step = count > 4 ? 0.01: 0.04;
 	z_point_time bt = { {lastpoint.x,lastpoint.y}, lastms};
 	z_point_time et = { zp, ms};
 	float w = z_lineWidth(bt, et, lastwidth, step);
@@ -136,8 +138,11 @@ void z_insertLastPoint(NSMutableArray *arr, CGPoint e) {
 	long count = [arr count];
 	if( count==0 ) return;
 	z_points *points = z_points_new(51);
-	z_point_width p = { {e.x, e.y}, 0.1};
-	z_points_add_differentation(points, p);
+	z_point_width zb = z_stored_point(arr, (int)[arr count] - 1);
+	z_points_add(points, zb);
+	
+	z_point_width ze = { {e.x, e.y}, 0.1};
+	z_points_add_differentation(points, ze);
 	for(int i=0; i<points->count; i++) {
 		[arr addObject:[NSValue valueWithBytes:(points->data+i) objCType:@encode(z_point_width)]];
 	}
