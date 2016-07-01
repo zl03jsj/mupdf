@@ -90,7 +90,7 @@ void z_square_bezier(z_points *out, z_point_width b, z_point c, z_point_width e)
 {
 	if(!out) return;
 	float d = z_distance(b.p, c) + z_distance(c, e.p);
-	float f = 1.0 / (d + 1);
+	float f = 0.05; //1.0 / (d + 1);
 	int count = (int)(f/0.02) * 0.02;
 	float t = 1.0/count;
 	

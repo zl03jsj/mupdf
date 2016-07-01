@@ -16,7 +16,7 @@
 }
 
 - (BOOL) initImageContext{
-	UIGraphicsBeginImageContext(self.frame.size);
+	UIGraphicsBeginImageContextWithOptions(self.bounds.size, self.opaque, 0.0);
 	_imageContext = UIGraphicsGetCurrentContext();
 	CGContextSetStrokeColorWithColor(_imageContext, [color CGColor]);
 	CGSize scale = fitPageToScreen(pageSize, self.bounds.size);
@@ -40,6 +40,7 @@
 		[rec release];
 		
 		_imageContext = nil;
+		_image = nil;
 	}
 	return self;
 }
@@ -48,6 +49,7 @@
 
 -(void)dealloc
 {
+	UIGraphicsEndImageContext();
 	[curves release];
 	[color release];
 	[super dealloc];
@@ -82,18 +84,16 @@
 		if ( nil==_imageContext ){
 			[self initImageContext];
 		}
-		[self setNeedsDisplay];
-		/*
 		CGRect r = [self drawCurrent:curve fromIndex:lastIndex];
-		[self setNeedsDisplayInRect:r];
-		 */
+		// [self setNeedsDisplayInRect:r];
+		[self setNeedsDisplay];
 	}
 	lastpoint = point;
 	lastms = ms;
 }
 
 - (CGRect)drawCurrent : (NSMutableArray*)points fromIndex:(int)index{
-	float max_width = 6.0f;
+	float max_width = 5.0f;
 	float min_width = 1.0f;
 	float w = max_width * z_get_stored_Width(points, index);
 	if( w<min_width ) w = min_width;
@@ -116,14 +116,18 @@
 		
 		rect = CGRectExpendTo(rect, point);
 	}
+	rect = CGRectInset(rect, -max_width, -max_width);
 	_image = UIGraphicsGetImageFromCurrentImageContext();
+	[_image retain];
 	return rect;
 }
 
 - (void)drawRect:(CGRect)rect
 {
-	// [_image drawInRect:rect];
-	//*
+	if( nil==_image ) return;
+	[_image drawInRect:rect];
+	[_image release];
+	/*
 	float max_width = 5.0f;
 	float min_width = 1.0f;
 	CGContextRef cref = UIGraphicsGetCurrentContext();
