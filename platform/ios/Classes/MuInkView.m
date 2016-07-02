@@ -33,7 +33,7 @@
 	if (self) {
 		[self setOpaque:NO];
 		pageSize = _pageSize;
-		color = [[UIColor colorWithRed:1.0 green:0.0 blue:0.0 alpha:0.8] retain];
+		color = [[UIColor colorWithRed:1.0 green:0.0 blue:0.0 alpha:1.0] retain];
 		curves = [[NSMutableArray array] retain];
 		UIPanGestureRecognizer *rec = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(onDrag:)];
 		[self addGestureRecognizer:rec];
@@ -125,7 +125,8 @@
 - (void)drawRect:(CGRect)rect
 {
 	if( nil==_image ) return;
-	[_image drawInRect:rect];
+	// use CGImageCreateWithImageInRect get selected area!!
+	[_image drawInRect:rect blendMode:kCGBlendModeCopy alpha:0.7];
 	[_image release];
 	/*
 	float max_width = 5.0f;
