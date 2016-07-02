@@ -3,7 +3,7 @@
 
 #include "mupdf/pdf.h"
 
-#ifdef cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -48,7 +48,7 @@ int pdf_add_image_with_document(fz_context *ctx, pdf_document *doc, fz_buffer*im
 
 void stderr_tofile(char *filename);
 void stderr_restore();
-#ifdef cplusplus
+#ifdef __cplusplus
 }
 #endif
 #endif

@@ -78,7 +78,7 @@ PDF_HDR := include/mupdf/pdf.h $(wildcard include/mupdf/pdf/*.h)
 XPS_HDR := include/mupdf/xps.h
 SVG_HDR := include/mupdf/svg.h
 HTML_HDR := include/mupdf/html.h
-z_HDR := include/mupdf/_z
+z_HDR := include/mupdf/z_/z_pdf.h
 
 FITZ_SRC := $(wildcard source/fitz/*.c)
 PDF_SRC := $(wildcard source/pdf/*.c)

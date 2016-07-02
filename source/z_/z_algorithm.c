@@ -10,7 +10,7 @@
  *   Organization:  
  * =====================================================================================
  */
-#include "mupdf/_z/z_algorithm.h"
+#include "mupdf/z_/z_algorithm.h"
 #include <math.h>
 /***************************** mac stdlib location:
 Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/stdio.h
@@ -18,7 +18,6 @@ Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SD
 #define z_ok        1
 #define z_error     0
 
-static float z_bezier_split_factor = 0.05;
 static float z_square(float f){ return (float)f*f; };
 static float z_cubic_(float f){ return (float)powf(f, 3); };
 
@@ -152,7 +151,8 @@ int z_points_add(z_points *points, z_point_width p){
     return z_points_add_xyw(points, p.p.x, p.p.y, p.w);
 }
 		
-/*
+/***************this algorathim not used!!!***********************
+static float z_bezier_split_factor = 0.05;
 void z_points_time_to_width(z_points_array *points) {
     if(!points || points->count<=1)  return;
 	points->data[0].l = 0x20;
@@ -305,22 +305,4 @@ z_point z_bezier_control_point(z_point b,z_point e,z_point n,z_point *c,float f)
 	}
 	return point;
 }
-*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//////////////////////////////////////*/

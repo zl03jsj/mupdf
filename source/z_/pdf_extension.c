@@ -1,4 +1,4 @@
-#include "mupdf/pdf/pdf_extension.h"
+#include "mupdf/z_/pdf_extension.h"
 #include "../../thirdparty/zlib/zlib.h"
 
 static const char *ntkoextobjname = "ntkoext";
