@@ -359,7 +359,7 @@ fz_rect pdf_page_box(fz_context *ctx, pdf_document *doc, int pageno) {
     if(!page) return fz_empty_rect;
 	fz_rect bbox = fz_empty_rect;
     fz_try(ctx) {
-		pdf_obj *obj = pdf_dict_gets(ctx, page, PDF_NAME_MediaBox);
+		pdf_obj *obj = pdf_dict_gets(ctx, page, "Mediabox");
 		if ( !pdf_is_array(ctx, obj) )
 			break;
 		pdf_to_rect(ctx, obj, &bbox);

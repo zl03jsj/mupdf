@@ -45,7 +45,7 @@ static fz_buffer *z_points_to_PdfContentStream(fz_context *ctx,pdf_document *doc
     pdf_drop_page(ctx, page); page = NULL; 
 
     int bufsize = 128 + (points->count * 64);
-    unsigned char *data = fz_malloc(ctx, bufsize);
+    char *data = (char*)fz_malloc(ctx, bufsize);
     memset(data, 0, bufsize);
 
     int pos = 0;
@@ -57,7 +57,7 @@ static fz_buffer *z_points_to_PdfContentStream(fz_context *ctx,pdf_document *doc
            p[i+0].p.x, p[i+0].p.y,
            p[i+1].p.x, p[i+1].p.y );
     }
-	fz_buffer *bfCompressed = deflate_buffer_fromdata(ctx, data, pos); 
+	fz_buffer *bfCompressed = deflate_buffer_fromdata(ctx, (unsigned char*)data, pos); 
     fz_free(ctx, data); data = NULL; 
     return bfCompressed;
 }

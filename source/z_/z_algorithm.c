@@ -11,7 +11,6 @@
  *   Organization:  
  * =====================================================================================
  */
-//#include "mupdf/z_/z_algorithm.h"
 #include "mupdf/z_/z_pdf.h"
 #include <math.h>
 /***************************** mac stdlib location:
