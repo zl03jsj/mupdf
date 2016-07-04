@@ -1,5 +1,5 @@
 #include "common.h"
-#include "mupdf/_z/z_algorithm.h"
+#include "mupdf/z_/z_algorithm.h"
 
 fz_context *ctx;
 dispatch_queue_t queue;

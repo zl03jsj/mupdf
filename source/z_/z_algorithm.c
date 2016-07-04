@@ -1,4 +1,5 @@
 /*
+ *
  * =====================================================================================
  *       Filename:  z_algorithm.c
  *    Description:
@@ -10,14 +11,12 @@
  *   Organization:  
  * =====================================================================================
  */
-#include "mupdf/z_/z_algorithm.h"
+//#include "mupdf/z_/z_algorithm.h"
+#include "mupdf/z_/z_pdf.h"
 #include <math.h>
 /***************************** mac stdlib location:
 Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/stdio.h
 */
-#define z_ok        1
-#define z_error     0
-
 static float z_square(float f){ return (float)f*f; };
 static float z_cubic_(float f){ return (float)powf(f, 3); };
 
@@ -27,7 +26,7 @@ float z_distance(z_point b, z_point e){
 
 int z_point_pos_equals(z_point *p1, z_point *p2) {
     if( (p1->x==p2->x && p1->y==p2->y) ){
-        return z_ok;
+        return z_okay;
     }
     return z_error;
 }
@@ -76,7 +75,7 @@ int z_points_increasesize(z_points *points, int count){
 	
 	points->cap  = newcount;
     points->data = newdata;
-    return z_ok;
+    return z_okay;
 }
 
 float z_point_movespeed(z_point_time b, z_point_time e){
@@ -88,7 +87,7 @@ float z_point_movespeed(z_point_time b, z_point_time e){
 void z_square_bezier(z_points *out, z_point_width b, z_point c, z_point_width e)
 {
 	if(!out) return;
-	float d = z_distance(b.p, c) + z_distance(c, e.p);
+	// float d = z_distance(b.p, c) + z_distance(c, e.p);
 	float f = 0.05; //1.0 / (d + 1);
 	int count = (int)(f/0.02) * 0.02;
 	float t = 1.0/count;
@@ -106,7 +105,7 @@ int z_points_add_differentation(z_points *points, z_point_width p){
     if( !points ) return z_error;
     if( points->count==0 ) {
         z_points_add(points, p);
-        return z_ok;
+        return z_okay;
     }
 	float max_diff = 0.05;
 	z_point_width *last = points->data + (points->count -1);
@@ -144,7 +143,7 @@ int z_points_add_xyw(z_points *points, float x, float y, float w){
     point->w = w;
 	
 	points->count++;
-    return z_ok;
+    return z_okay;
 }
 
 int z_points_add(z_points *points, z_point_width p){

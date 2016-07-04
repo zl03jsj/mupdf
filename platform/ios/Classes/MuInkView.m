@@ -50,6 +50,8 @@
 -(void)dealloc
 {
 	UIGraphicsEndImageContext();
+	if( nil!=_image ) [_image release];
+	// if( nil!=_imageContext) [_image release];
 	[curves release];
 	[color release];
 	[super dealloc];

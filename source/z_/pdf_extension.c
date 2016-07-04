@@ -1,5 +1,6 @@
-#include "mupdf/z_/pdf_extension.h"
+// #include "mupdf/z_/pdf_extension.h"
 #include "../../thirdparty/zlib/zlib.h"
+#include "mupdf/z_/z_pdf.h"
 
 static const char *ntkoextobjname = "ntkoext";
 
@@ -68,7 +69,7 @@ int pdf_save_incremental_tofile(fz_context *ctx, pdf_document *doc,char *filenam
 	pdf_write_options opts = { 0 };
 	opts.do_incremental = 1;
 	pdf_save_document(ctx, doc, filename, &opts);
-	return 0;
+	return z_okay;
 }
 
 pdf_document * pdf_open_document_with_filename(fz_context * ctx, const char * filename, char * password)
@@ -106,7 +107,7 @@ fz_buffer * deflate_buffer_fromdata(fz_context *ctx, unsigned char *p, int n)
 
 	buf = fz_new_buffer(ctx, compressBound(n));
 	csize = buf->cap;
-	t = compress(buf->data, &csize, p, n);
+	t = compress(buf->data, (unsigned long *)&csize, p, n);
 	if (t != Z_OK)
 	{
 		fz_drop_buffer(ctx, buf);
@@ -257,7 +258,7 @@ int pdf_page_add_content(fz_context *ctx, pdf_document *doc, pdf_obj *page, pdf_
 		pdf_dict_put_drop(ctx, page, PDF_NAME_Contents, contentsobj);
 	}
 	pdf_array_push_drop(ctx, contentsobj, objref);
-	return 0;
+	return z_okay;
 }
 
 int pdf_resource_add_xobj(fz_context *ctx, pdf_document *doc, pdf_obj *resobj,
@@ -271,7 +272,7 @@ int pdf_resource_add_xobj(fz_context *ctx, pdf_document *doc, pdf_obj *resobj,
 	pdf_obj *nameobj = pdf_new_name(ctx, doc, name);
 	pdf_dict_put_drop(ctx, xobj, nameobj, ref);
 	pdf_drop_obj(ctx, nameobj);
-	return 0;
+	return z_okay;
 }
 
 int pdf_resource_add_extgstate(fz_context *ctx, pdf_document *doc, pdf_obj *resobj,
@@ -284,7 +285,7 @@ int pdf_resource_add_extgstate(fz_context *ctx, pdf_document *doc, pdf_obj *reso
 		pdf_add_object(ctx, doc, egsObj);
 	}
 	pdf_dict_put_drop(ctx, egsObj, pdf_new_name(ctx, doc, ntkoextobjname), ref);
-	return 0;
+	return z_okay;
 }
 
 int pdf_add_image_with_document(fz_context *ctx, pdf_document *doc, fz_buffer*imgbf,
@@ -300,13 +301,13 @@ int pdf_add_image_with_document(fz_context *ctx, pdf_document *doc, fz_buffer*im
 	pdf_obj * egsObjRef = pdf_add_extstate(ctx, doc);
 	pdf_obj *resobj = pdf_dict_gets(ctx, pageobj, "Resources");
 	pdf_resource_add_extgstate(ctx, doc, resobj, ntkoextobjname, egsObjRef);
-	unsigned char *xobjname = new_unique_string(ctx, "ntkoimage", NULL);
+	char *xobjname = new_unique_string(ctx, "ntkoimage", NULL);
 	pdf_resource_add_xobj(ctx, doc, resobj, xobjname, xobjRef);
 	pdf_obj *contentobj = pdf_add_content(ctx, doc, xobjname, x, y, w, h);
 	fz_free(ctx, xobjname);
 	pdf_page_add_content(ctx, doc, pageobj, contentobj);
 
-	return 0;
+	return z_okay;
 }
 
 int pdf_add_image_with_filestream(fz_context *ctx, fz_stream*file, fz_buffer*imgbf,
@@ -317,7 +318,7 @@ int pdf_add_image_with_filestream(fz_context *ctx, fz_stream*file, fz_buffer*img
 	if (pageno < 0) pageno = 0;
 	if (pageno >= pagecount) {
 		fz_throw(ctx, 1, "page number ot of range");
-		return 1;
+		return z_error;
 	}
 	int code = pdf_add_image_with_document(ctx, doc, imgbf, pageno, x, y, w, h);
 	if( !code ) 
