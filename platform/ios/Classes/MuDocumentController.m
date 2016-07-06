@@ -708,7 +708,8 @@ static void saveDoc(char *current_path, fz_document *doc)
 					break;
 
 				case BARMODE_INK:
-					[view saveInk];
+					[view saveContentStream];
+					// [view saveInk];
 			}
 		}
 	}

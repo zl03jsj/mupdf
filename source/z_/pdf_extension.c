@@ -99,15 +99,11 @@ pdf_document * pdf_open_document_with_filestream(fz_context * ctx, fz_stream *fi
 	return doc;
 }
 
-fz_buffer * deflate_buffer_fromdata(fz_context *ctx, unsigned char *p, int n)
+fz_buffer * deflate_buffer_fromdata(fz_context *ctx, char *p, int n)
 {
-	fz_buffer *buf;
-	int csize;
-	int t;
-
-	buf = fz_new_buffer(ctx, compressBound(n));
-	csize = buf->cap;
-	t = compress(buf->data, (unsigned long *)&csize, p, n);
+	fz_buffer *buf = fz_new_buffer(ctx, compressBound(n));
+	unsigned long csize = buf->cap;
+	int t = compress(buf->data, &csize, (unsigned char*)p, n);
 	if (t != Z_OK)
 	{
 		fz_drop_buffer(ctx, buf);
@@ -215,7 +211,8 @@ pdf_obj *pdf_add_pixmap(fz_context *ctx, pdf_document *doc, fz_pixmap *pixmap)
 	fz_drop_buffer(ctx, bfCompressed);
 #endif 
 	buffer = fz_pixmap_rgb(ctx, pixmap);
-	fz_buffer *bfCompressed_rgb = deflate_buffer_fromdata(ctx, buffer->data, buffer->len);
+	fz_buffer *bfCompressed_rgb = deflate_buffer_fromdata(ctx,
+            (char*)(buffer->data), buffer->len);
 	xi.colorspace = "DeviceRGB";
 	xi.data = bfCompressed_rgb;
 	xi.maskobj = maskobj;
@@ -247,7 +244,10 @@ pdf_obj *pdf_add_content(fz_context *ctx, pdf_document *doc,
 
 int pdf_page_add_content(fz_context *ctx, pdf_document *doc, pdf_obj *page, pdf_obj *objref)
 {
+	// printf("pdf_page_add_content\n");
+	fz_output *o = fz_new_output_with_file_ptr(ctx, stdout, 0);
 	pdf_obj *contentsobj = pdf_dict_gets(ctx, page, "Contents");
+	pdf_print_obj(ctx, o, contentsobj, 1);
 	if (!pdf_is_array(ctx, contentsobj)) {
 		pdf_keep_obj(ctx, contentsobj);
 		pdf_dict_dels(ctx, page, "Contents");
@@ -258,6 +258,8 @@ int pdf_page_add_content(fz_context *ctx, pdf_document *doc, pdf_obj *page, pdf_
 		pdf_dict_put_drop(ctx, page, PDF_NAME_Contents, contentsobj);
 	}
 	pdf_array_push_drop(ctx, contentsobj, objref);
+	
+	pdf_print_obj(ctx, o, contentsobj, 1);
 	return z_okay;
 }
 
@@ -367,4 +369,21 @@ fz_rect pdf_page_box(fz_context *ctx, pdf_document *doc, int pageno) {
 	fz_catch(ctx) {
 	}
 	return bbox;
+}
+
+int pdf_add_content_Stream(fz_context *ctx, pdf_document *doc, pdf_obj *page,
+    fz_buffer *buffer)
+{
+    if( !page ) return z_error;
+    pdf_obj *obj = pdf_new_dict(ctx, doc, 1);
+	pdf_dict_put_drop(ctx, obj, PDF_NAME_Filter,
+				pdf_new_name(ctx, doc, "FlateDecode") );
+    pdf_obj *objref = pdf_add_object(ctx, doc, obj);
+    pdf_update_stream(ctx, doc, obj, buffer, 1);
+    int ret = pdf_page_add_content(ctx, doc, page, objref);
+    if( ret == z_error ) {
+        pdf_delete_object(ctx, doc, pdf_to_num(ctx, objref));
+        pdf_drop_obj(ctx, obj); 
+    }
+    return ret;
 }

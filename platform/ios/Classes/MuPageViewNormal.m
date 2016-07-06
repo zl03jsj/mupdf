@@ -232,6 +232,89 @@ static void addMarkupAnnot(fz_document *doc, fz_page *page, int type, NSArray *r
 	}
 }
 
+// 0123456789abcdef0123456789abcdef0123456789abcdef01234567890abcdef  
+// header------------------------------------------------------------
+// q                                                        2       bytes
+// 1.00000 0.00000 0.00000 -1.00000 0.00000 842.00000 cm    56(60)  bytes   
+// 1 J 1 j /DoeviceRGB CS 0.00 0.00 0.00 SCN                46      bytes
+// //////////////104 count as 128 bytes
+// item--------------------------------------------------------------
+// 1.22 w                                                   7   bytes
+// 197.37 27.00 m                                           15  bytes
+// 197.93 29.86 l                                           15  bytes
+// S                                                        2   bytes
+// f                                                        2   bytes
+// //////////////41 count as 64 bytes
+static int writeOneArrToBuffer(NSArray *arr, char *bf) {
+	int pos = 0;
+	int itemcount = arr==nil? 0 : (int)[arr count];
+	if( 0==itemcount ) return z_error;
+    const char *item = "%.2f w\n%.2f %.2f m\n%.2f %.2f l\nS\nf\n";
+	
+    for(int i=0; i<itemcount-1; i++) {
+		z_point_width cur = z_stored_point(arr, i+0);
+		z_point_width nxt = z_stored_point(arr, i+1);
+        pos += sprintf(bf+ pos, item, 7.0 * nxt.w,
+		   cur.p.x, cur.p.y, nxt.p.x, nxt.p.y);
+    }
+	return pos;
+}
+
+static void addPointsContentStream(fz_document *doc, fz_page *page, NSArray *arrs, UIColor *colr){
+	if( !doc || !page || !arrs ) return;
+	int arrcount = (int)[arrs count];
+	if( 0==arrcount) return;
+	
+	int itemCount = 0;
+	int i = 0;
+	NSArray *arr = nil;
+	for(; i<arrcount; i++) {
+		arr = [arrs objectAtIndex:i];
+		itemCount += (int)[arr count];
+	}
+	CGFloat r,g,b;
+	if(colr) {
+		[colr getRed:&r green:&g blue:&b alpha:NULL];
+	}
+	else {
+		r = 1.0; g = 0; b = 0;
+	}
+    const char *header =  "q\n"                     \
+        "1.000 0.000 0.000 -1.000 0.000 %.3f cm\n"  \
+        "1 J 1 j /DeviceRGB CS %.2f %.2f %.2f SCN\n";
+	int buffersize = 128 + (itemCount * 64);
+	char *data = NULL;
+	fz_buffer *buffer = NULL;
+	fz_try(ctx) {
+		fz_rect bound = fz_empty_rect;
+		pdf_bound_page(ctx, (pdf_page*)page, &bound);
+		
+		data = fz_malloc(ctx, buffersize);
+		memset(data, 0, buffersize);
+		int pos = 0;
+		pos += snprintf(data + pos,  buffersize - pos, header,
+				bound.y1-bound.y0, (float)r, (float)g, (float)b);
+		for(i=0; i<(int)[arrs count]; i++) {
+			pos += writeOneArrToBuffer([arrs objectAtIndex:i], data + pos);
+		}
+		data[pos++] = 'Q';
+		data[pos++] = '\n';
+		buffer = deflate_buffer_fromdata(ctx, data, pos);
+		fz_free(ctx, data); data = NULL;
+		pdf_add_content_Stream(ctx, pdf_specifics(ctx, doc), ((pdf_page*)page)->me, buffer);
+	}
+	fz_always(ctx)
+	{
+		if( data ) fz_free(ctx, data);
+		if( buffer ) fz_drop_buffer(ctx, buffer);
+	}
+	fz_catch(ctx)
+	{
+		printf( (char*) ctx->error->message);
+		printf("draw points line failed!!\n");
+	}
+}
+
 static void addInkAnnot(fz_document *doc, fz_page *page, NSArray *curves)
 {
 	pdf_document *idoc;
@@ -507,7 +590,6 @@ static rect_list *updatePage(fz_document *doc, fz_page *page)
 			while ((annot = (fz_annot *)pdf_poll_changed_annot(ctx, idoc, (pdf_page *)page)) != NULL)
 			{
 				rect_list *node = fz_malloc_struct(ctx, rect_list);
-
 				fz_bound_annot(ctx, annot, &node->rect);
 				node->next = list;
 				list = node;
@@ -607,6 +689,8 @@ static void updatePixmap(fz_document *doc, fz_display_list *page_list, fz_displa
 	BOOL cancel;
 	id<MuDialogCreator> dialogCreator;
 	id<MuUpdater> updater;
+	
+	BOOL updateForContents;
 }
 
 - (void) ensurePageLoaded
@@ -641,6 +725,30 @@ static void updatePixmap(fz_document *doc, fz_display_list *page_list, fz_displa
 		annot_list = create_annot_list(doc, page);
 }
 
+
+//static void drop_page_cache(globals *glo, page_cache *pc)
+//{
+//	fz_context *ctx = glo->ctx;
+//	fz_document *doc = glo->doc;
+//
+//	LOGI("Drop page %d", pc->number);
+//	fz_drop_display_list(ctx, pc->page_list);
+//	pc->page_list = NULL;
+//	fz_drop_display_list(ctx, pc->annot_list);
+//	pc->annot_list = NULL;
+//	fz_drop_page(ctx, pc->page);
+//	pc->page = NULL;
+//	drop_changed_rects(ctx, &pc->changed_rects);
+//	drop_changed_rects(ctx, &pc->hq_changed_rects);
+//}
+
+- (void) dropForUpdateContents {
+	if( page_list ) fz_drop_display_list(ctx, page_list);
+	if( page ) fz_drop_page(ctx, page);
+	page_list = NULL;
+	page = NULL;
+}
+
 -(id) initWithFrame:(CGRect)frame dialogCreator:(id<MuDialogCreator>)dia updater:(id<MuUpdater>)upd document:(MuDocRef *)aDoc page:(int)aNumber
 {
 	self = [super initWithFrame: frame];
@@ -652,6 +760,8 @@ static void updatePixmap(fz_document *doc, fz_display_list *page_list, fz_displa
 		dialogCreator = dia;
 		updater = upd;
 		selectedAnnotationIndex = -1;
+		
+		updateForContents = NO;
 
 		[self setShowsVerticalScrollIndicator: NO];
 		[self setShowsHorizontalScrollIndicator: NO];
@@ -825,6 +935,25 @@ static void updatePixmap(fz_document *doc, fz_display_list *page_list, fz_displa
 		[self loadAnnotations];
 	});
 	[self textSelectModeOff];
+}
+
+-(void) saveContentStream
+{
+	NSArray *curves = inkView.curves;
+	if (curves.count == 0)
+		return;
+
+	[curves retain];
+	updateForContents = YES;
+	dispatch_async(queue, ^{
+		addPointsContentStream(doc, page, curves, [UIColor redColor]);
+		[curves release];
+		dispatch_async(dispatch_get_main_queue(), ^{
+			[self update];
+		});
+		[self  dropForUpdateContents];
+	});
+	[self inkModeOff];
 }
 
 -(void) saveInk
@@ -1177,9 +1306,20 @@ static void updatePixmap(fz_document *doc, fz_display_list *page_list, fz_displa
 
 - (void) updatePageAndTileWithTileFrame:(CGRect)tframe tileScale:(float)tscale viewFrame:(CGRect)vframe
 {
-	rect_list *rlist = updatePage(doc, page);
-	fz_drop_display_list(ctx, annot_list);
-	annot_list = create_annot_list(doc, page);
+	rect_list *rlist = NULL;
+	if( updateForContents==YES ){
+		[self ensureDisplaylists];
+		rlist = fz_malloc_struct(ctx, rect_list);
+		fz_bound_page(ctx, page, &(rlist->rect));
+		rlist->next = NULL;
+		if( updateForContents==YES )  updateForContents = NO;
+	}
+	else {
+		rlist = updatePage(doc, page);
+		fz_drop_display_list(ctx, annot_list);
+		annot_list = create_annot_list(doc, page);
+	}
+	
 	if (tile_pix)
 	{
 		updatePixmap(doc, page_list, annot_list, tile_pix, rlist, pageSize, self.bounds.size, vframe, tscale);

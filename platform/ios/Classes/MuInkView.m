@@ -78,7 +78,10 @@
 			z_insertLastPoint(curve, point);
 		}
 		else { // UIGestureRecognizerStateChanged
-			if( point.x==lastpoint.x && point.y==lastpoint.y) {
+			if( (ms - lastms) < 35 ){
+				return;
+			}
+			if( 3>distanceBetweenPoints(point, lastpoint) ){
 				return;
 			}
 			lastwidth = z_insertPoint(curve, lastpoint, lastms, lastwidth, point, ms);
@@ -95,7 +98,7 @@
 }
 
 - (CGRect)drawCurrent : (NSMutableArray*)points fromIndex:(int)index{
-	float max_width = 5.0f;
+	float max_width = 7.0f;
 	float min_width = 1.0f;
 	float w = max_width * z_get_stored_Width(points, index);
 	if( w<min_width ) w = min_width;
@@ -129,7 +132,7 @@
 	if( nil==_image ) return;
 	// use CGImageCreateWithImageInRect get selected area!!
 	[_image drawInRect:rect blendMode:kCGBlendModeCopy alpha:0.7];
-	[_image release];
+	[_image release]; _image = nil;
 	/*
 	float max_width = 5.0f;
 	float min_width = 1.0f;
