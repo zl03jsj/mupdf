@@ -18,7 +18,7 @@
 - (BOOL) initImageContext{
 	UIGraphicsBeginImageContextWithOptions(self.bounds.size, self.opaque, 0.0);
 	_imageContext = UIGraphicsGetCurrentContext();
-	CGContextSetStrokeColorWithColor(_imageContext, [color CGColor]);
+	// CGContextSetStrokeColorWithColor(_imageContext, [color CGColor]);
 	CGSize scale = fitPageToScreen(pageSize, self.bounds.size);
 	CGContextScaleCTM(_imageContext, scale.width, scale.height);
 	[color set];
@@ -46,6 +46,7 @@
 }
 
 @synthesize curves;
+@synthesize color = color;
 
 -(void)dealloc
 {
@@ -89,7 +90,7 @@
 		if ( nil==_imageContext ){
 			[self initImageContext];
 		}
-		CGRect r = [self drawCurrent:curve fromIndex:lastIndex];
+		[self drawCurrent:curve fromIndex:lastIndex];
 		// [self setNeedsDisplayInRect:r];
 		[self setNeedsDisplay];
 	}
@@ -97,6 +98,7 @@
 	lastms = ms;
 }
 
+// returns the rect need be redraw!!
 - (CGRect)drawCurrent : (NSMutableArray*)points fromIndex:(int)index{
 	float max_width = 7.0f;
 	float min_width = 1.0f;

@@ -242,24 +242,34 @@ pdf_obj *pdf_add_content(fz_context *ctx, pdf_document *doc,
 	return objRef;
 }
 
-int pdf_page_add_content(fz_context *ctx, pdf_document *doc, pdf_obj *page, pdf_obj *objref)
+/******************** 
+int pdf_page_add_content(fz_context *ctx, pdf_document *doc, pdf_page *page, pdf_obj *objref)
 {
-	// printf("pdf_page_add_content\n");
-	fz_output *o = fz_new_output_with_file_ptr(ctx, stdout, 0);
 	pdf_obj *contentsobj = pdf_dict_gets(ctx, page, "Contents");
-	pdf_print_obj(ctx, o, contentsobj, 1);
 	if (!pdf_is_array(ctx, contentsobj)) {
 		pdf_keep_obj(ctx, contentsobj);
 		pdf_dict_dels(ctx, page, "Contents");
-
 		pdf_obj *arrobj = pdf_new_array(ctx, doc, 2);
 		pdf_array_push_drop(ctx, arrobj, contentsobj);
 		contentsobj = arrobj;
 		pdf_dict_put_drop(ctx, page, PDF_NAME_Contents, contentsobj);
 	}
 	pdf_array_push_drop(ctx, contentsobj, objref);
-	
-	pdf_print_obj(ctx, o, contentsobj, 1);
+	return z_okay;
+}
+*/
+int pdf_page_add_content(fz_context *ctx, pdf_document *doc, pdf_obj *page, pdf_obj *objref)
+{
+	pdf_obj *contentsobj = pdf_dict_gets(ctx, page, "Contents");
+	if (!pdf_is_array(ctx, contentsobj)) {
+		pdf_keep_obj(ctx, contentsobj);
+		pdf_dict_dels(ctx, page, "Contents");
+		pdf_obj *arrobj = pdf_new_array(ctx, doc, 2);
+		pdf_array_push_drop(ctx, arrobj, contentsobj);
+		contentsobj = arrobj;
+		pdf_dict_put_drop(ctx, page, PDF_NAME_Contents, contentsobj);
+	}
+	pdf_array_push_drop(ctx, contentsobj, objref);
 	return z_okay;
 }
 

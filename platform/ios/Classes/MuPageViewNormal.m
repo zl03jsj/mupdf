@@ -301,7 +301,10 @@ static void addPointsContentStream(fz_document *doc, fz_page *page, NSArray *arr
 		data[pos++] = '\n';
 		buffer = deflate_buffer_fromdata(ctx, data, pos);
 		fz_free(ctx, data); data = NULL;
-		pdf_add_content_Stream(ctx, pdf_specifics(ctx, doc), ((pdf_page*)page)->me, buffer);
+		
+		pdf_document *pdfdoc = pdf_specifics(ctx, doc);
+		pdf_add_content_Stream(ctx, pdfdoc, ((pdf_page*)page)->me, buffer);
+		pdfdoc->dirty = 1;
 	}
 	fz_always(ctx)
 	{
@@ -310,8 +313,8 @@ static void addPointsContentStream(fz_document *doc, fz_page *page, NSArray *arr
 	}
 	fz_catch(ctx)
 	{
-		printf( (char*) ctx->error->message);
-		printf("draw points line failed!!\n");
+		printf("%s,message:%s\n",
+			   "add points contents stream error", ctx->error->message);
 	}
 }
 
@@ -940,13 +943,14 @@ static void updatePixmap(fz_document *doc, fz_display_list *page_list, fz_displa
 -(void) saveContentStream
 {
 	NSArray *curves = inkView.curves;
+	UIColor *color = inkView.color;
 	if (curves.count == 0)
 		return;
 
 	[curves retain];
 	updateForContents = YES;
 	dispatch_async(queue, ^{
-		addPointsContentStream(doc, page, curves, [UIColor redColor]);
+		addPointsContentStream(doc, page, curves, color);
 		[curves release];
 		dispatch_async(dispatch_get_main_queue(), ^{
 			[self update];
