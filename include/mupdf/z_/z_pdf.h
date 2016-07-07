@@ -31,6 +31,7 @@ typedef enum {
 #include "z_algorithm.h"
 #include "pdf_extension.h"
 //________________________pdf_add_contentstream.c
+extern const char *ntkoextobjname;
 int pdf_draw_pointsToPage(fz_context* ctx, pdf_document *doc, z_points *points, int pageno);
 
 #ifdef __cplusplus

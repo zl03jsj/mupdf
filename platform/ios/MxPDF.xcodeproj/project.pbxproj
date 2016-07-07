@@ -65,9 +65,11 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		6857D70A1D2E53CB0020241F /* z_pdf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = z_pdf.h; path = ../../include/mupdf/z_/z_pdf.h; sourceTree = "<group>"; };
 		685E20E11D2CFF9B002257AB /* pdf_add_contentstream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pdf_add_contentstream.c; path = ../../source/z_/pdf_add_contentstream.c; sourceTree = "<group>"; };
 		685E20E21D2CFF9B002257AB /* pdf_extension.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pdf_extension.c; path = ../../source/z_/pdf_extension.c; sourceTree = "<group>"; };
 		68B07AA41D24BF830038B738 /* z_algorithm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = z_algorithm.c; path = ../../source/z_/z_algorithm.c; sourceTree = "<group>"; };
+		68C4FCCD1D2E052E00108D3F /* pdf_extension.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pdf_extension.h; path = ../../include/mupdf/z_/pdf_extension.h; sourceTree = "<group>"; };
 		68E431DC1D2A433400571A7C /* z_algorithm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = z_algorithm.h; path = ../../include/mupdf/z_/z_algorithm.h; sourceTree = "<group>"; };
 		7C6152E719DDD6A90095ECAC /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = MuPDF/Images.xcassets; sourceTree = "<group>"; };
 		7C6152E919DDF05B0095ECAC /* Launch Screen.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = "Launch Screen.xib"; path = "MuPDF/Launch Screen.xib"; sourceTree = "<group>"; };
@@ -155,9 +157,11 @@
 		68B07AA51D24BF950038B738 /* z_ */ = {
 			isa = PBXGroup;
 			children = (
+				6857D70A1D2E53CB0020241F /* z_pdf.h */,
+				68E431DC1D2A433400571A7C /* z_algorithm.h */,
+				68C4FCCD1D2E052E00108D3F /* pdf_extension.h */,
 				685E20E11D2CFF9B002257AB /* pdf_add_contentstream.c */,
 				685E20E21D2CFF9B002257AB /* pdf_extension.c */,
-				68E431DC1D2A433400571A7C /* z_algorithm.h */,
 				68B07AA41D24BF830038B738 /* z_algorithm.c */,
 			);
 			name = z_;

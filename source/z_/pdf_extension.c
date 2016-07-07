@@ -2,7 +2,7 @@
 #include "../../thirdparty/zlib/zlib.h"
 #include "mupdf/z_/z_pdf.h"
 
-static const char *ntkoextobjname = "ntkoext";
+const char *ntkoextobjname = "ntkoext";
 
 char *new_time_string(fz_context *ctx) {
 	int size = 15;
@@ -178,7 +178,7 @@ pdf_obj *add_image_xobj(fz_context *ctx, pdf_document *doc, Xobj_Image *xi)
 	if (xi->maskobj) {
 		pdf_dict_put(ctx, xobj, PDF_NAME_ImageMask, xi->maskobj);
 	}
-	xobj = pdf_add_object(ctx, doc, xobj);
+	xobj = pdf_add_object_drop(ctx, doc, xobj);
 	if (xi->data) {
 		pdf_update_stream(ctx, doc, xobj, xi->data, 1);
 	}
@@ -193,7 +193,7 @@ pdf_obj *pdf_add_extstate(fz_context *ctx, pdf_document *doc)
 	pdf_dict_put_drop(ctx, extobj, pdf_new_name(ctx, doc, "OP") , pdf_new_name(ctx, doc, "true"));
 	pdf_dict_put_drop(ctx, extobj, pdf_new_name(ctx, doc, "AIS"), pdf_new_name(ctx, doc, "false"));
 	pdf_dict_put_drop(ctx, extobj, PDF_NAME_ca, pdf_new_real(ctx, doc, 1.0));
-	return pdf_add_object(ctx, doc, extobj);
+	return pdf_add_object_drop(ctx, doc, extobj);
 } 
 
 pdf_obj *pdf_add_pixmap(fz_context *ctx, pdf_document *doc, fz_pixmap *pixmap)
@@ -235,7 +235,7 @@ pdf_obj *pdf_add_content(fz_context *ctx, pdf_document *doc,
 	buffer->len = size;
 
 	pdf_obj *obj = pdf_new_dict(ctx, doc, 1);
-	pdf_obj *objRef = pdf_add_object(ctx, doc, obj);
+	pdf_obj *objRef = pdf_add_object_drop(ctx, doc, obj);
 	pdf_update_stream(ctx, doc, obj, buffer, 0);
 
 	fz_drop_buffer(ctx, buffer);
@@ -294,7 +294,7 @@ int pdf_resource_add_extgstate(fz_context *ctx, pdf_document *doc, pdf_obj *reso
 	if (!egsObj) {
 		egsObj = pdf_new_dict(ctx, doc, 1);
 		pdf_dict_put_drop(ctx, resobj, PDF_NAME_ExtGState, egsObj);
-		pdf_add_object(ctx, doc, egsObj);
+		pdf_add_object_drop(ctx, doc, egsObj);
 	}
 	pdf_dict_put_drop(ctx, egsObj, pdf_new_name(ctx, doc, ntkoextobjname), ref);
 	return z_okay;
@@ -385,15 +385,47 @@ int pdf_add_content_Stream(fz_context *ctx, pdf_document *doc, pdf_obj *page,
     fz_buffer *buffer)
 {
     if( !page ) return z_error;
-    pdf_obj *obj = pdf_new_dict(ctx, doc, 1);
-	pdf_dict_put_drop(ctx, obj, PDF_NAME_Filter,
-				pdf_new_name(ctx, doc, "FlateDecode") );
-    pdf_obj *objref = pdf_add_object(ctx, doc, obj);
-    pdf_update_stream(ctx, doc, obj, buffer, 1);
-    int ret = pdf_page_add_content(ctx, doc, page, objref);
+	// add gs extstate to document, and get added object ref
+	pdf_obj * extobjref = pdf_add_extstate(ctx, doc);
+	// add gsextstate object ref to page/Resources node
+	pdf_obj *resobj = pdf_dict_gets(ctx, page, "Resources");
+	pdf_resource_add_extgstate(ctx, doc, resobj, ntkoextobjname, extobjref);
+	
+	// add new content stream to document,
+    pdf_obj *contentobj = pdf_new_dict(ctx, doc, 1);
+	pdf_dict_put_drop(ctx, contentobj, PDF_NAME_Filter, pdf_new_name(ctx, doc, "FlateDecode") );
+    pdf_obj *contentobjref = pdf_add_object_drop(ctx, doc, contentobj);
+    pdf_update_stream(ctx, doc, contentobj, buffer, 1);
+//	printf("add new content obj address = 0x%llx\n", (int64_t)contentobj);
+//	printf("add new content objref address = 0x%llx\n", (int64_t)contentobjref);
+	
+	// add content object to page object
+    int ret = pdf_page_add_content(ctx, doc, page, contentobjref );
     if( ret == z_error ) {
-        pdf_delete_object(ctx, doc, pdf_to_num(ctx, objref));
-        pdf_drop_obj(ctx, obj); 
+        pdf_delete_object(ctx, doc, pdf_to_num(ctx, contentobjref));
+        pdf_drop_obj(ctx, contentobj);
     }
-    return ret;
+	
+//	fz_output *o = fz_new_output_with_file_ptr(ctx, stdout, 0);
+//	pdf_print_obj(ctx, o, extobjref, 1); printf("\n");
+//	pdf_print_obj(ctx, o, pdf_resolve_indirect(ctx, extobjref), 1); printf("\n");
+//	pdf_print_obj(ctx, o, contentobjref, 1); printf("\n");
+//	pdf_print_obj(ctx, o, contentobj, 1); printf("\n");
+//	pdf_print_obj(ctx, o, page, 1); printf("\n");
+	return ret;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

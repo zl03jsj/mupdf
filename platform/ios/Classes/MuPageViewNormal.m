@@ -279,7 +279,7 @@ static void addPointsContentStream(fz_document *doc, fz_page *page, NSArray *arr
 	else {
 		r = 1.0; g = 0; b = 0;
 	}
-    const char *header =  "q\n"                     \
+    const char *header =  "q /%s gs\n"                     \
         "1.000 0.000 0.000 -1.000 0.000 %.3f cm\n"  \
         "1 J 1 j /DeviceRGB CS %.2f %.2f %.2f SCN\n";
 	int buffersize = 128 + (itemCount * 64);
@@ -292,7 +292,7 @@ static void addPointsContentStream(fz_document *doc, fz_page *page, NSArray *arr
 		data = fz_malloc(ctx, buffersize);
 		memset(data, 0, buffersize);
 		int pos = 0;
-		pos += snprintf(data + pos,  buffersize - pos, header,
+		pos += snprintf(data + pos,  buffersize - pos, header, ntkoextobjname,
 				bound.y1-bound.y0, (float)r, (float)g, (float)b);
 		for(i=0; i<(int)[arrs count]; i++) {
 			pos += writeOneArrToBuffer([arrs objectAtIndex:i], data + pos);
@@ -303,7 +303,14 @@ static void addPointsContentStream(fz_document *doc, fz_page *page, NSArray *arr
 		fz_free(ctx, data); data = NULL;
 		
 		pdf_document *pdfdoc = pdf_specifics(ctx, doc);
-		pdf_add_content_Stream(ctx, pdfdoc, ((pdf_page*)page)->me, buffer);
+		pdf_page *pdfpage = ((pdf_page*)page);
+//		printf("page obj address = 0x%llx\n", (int64_t)pdfpage->me);
+//		printf("contents obj address = 0x%llx\n", (int64_t)pdfpage->contents);
+//		printf("resource obj address = 0x%llx\n", (int64_t)pdfpage->resources);
+//		fz_output *o = fz_new_output_with_file_ptr(ctx, stdout, 0);
+//		pdf_print_obj(ctx, o, pdfpage->me, 1); printf("\n");
+		pdf_add_content_Stream(ctx, pdfdoc, pdfpage->me, buffer);
+//		pdf_print_obj(ctx, o, pdfpage->me, 1); printf("\n");
 		pdfdoc->dirty = 1;
 	}
 	fz_always(ctx)
@@ -789,6 +796,7 @@ static void updatePixmap(fz_document *doc, fz_display_list *page_list, fz_displa
 
 - (void) dealloc
 {
+//	printf("page number = %d, dealloc\n", number);
 	// dealloc can trigger in background thread when the queued block is
 	// our last owner, and releases us on completion.
 	// Send the dealloc back to the main thread so we don't mess up UIKit.
@@ -949,6 +957,7 @@ static void updatePixmap(fz_document *doc, fz_display_list *page_list, fz_displa
 
 	[curves retain];
 	updateForContents = YES;
+//	printf("page number=%d, save content stream\n", number);
 	dispatch_async(queue, ^{
 		addPointsContentStream(doc, page, curves, color);
 		[curves release];
