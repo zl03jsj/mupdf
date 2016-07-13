@@ -59,11 +59,16 @@ public class Z_Bezier{
 
         float step = m_lastsize > 4 ? 0.01f : 0.4f;
         long ms = new java.util.Date().getTime();
+		if( ms-m_lastms < 35 ||
+		    distance(p, m_lastpoint) < 4 ){
+			return -1;
+		}
         float w = width(m_lastpoint, p, ms - m_lastms, m_lastwidth, step);
         Z_Point e = new Z_Point (
             (m_lastpoint.x + p.x) / 2,
             (m_lastpoint.y + p.y) / 2,
             (w + m_lastwidth) / 2 );
+		
         if( 1==m_lastsize ){
             addDifferentationToArray(m_points, e);
         }
