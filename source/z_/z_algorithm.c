@@ -86,7 +86,7 @@ float z_point_movespeed(z_point_time b, z_point_time e){
 void z_square_bezier(z_points *out, z_point_width b, z_point c, z_point_width e)
 {
 	if(!out) return;
-	float f = 0.05;
+	float f = 0.05f;
 	for(float t=0; t<=1.0; t+=f ) {
 		float x1 = z_square(1-t)*b.p.x + 2*t*(1-t)*c.x + z_square(t)*e.p.x;
 		float y1 = z_square(1-t)*b.p.y + 2*t*(1-t)*c.y + z_square(t)*e.p.y;
