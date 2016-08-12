@@ -144,7 +144,81 @@ int z_points_add_xyw(z_points *points, float x, float y, float w){
 int z_points_add(z_points *points, z_point_width p){
     return z_points_add_xyw(points, p.p.x, p.p.y, p.w);
 }
-		
+
+float z_linewidth(z_point_time bt, z_point_time et, float bwidth,float step){
+	const float max_speed = 2.0f;
+	// const float min_speed = 0.2f;
+	float d = z_distance(bt.p, et.p);
+	float s = d / (et.t - bt.t); s = s > max_speed ? max_speed : s;
+	float w = (max_speed-s) / max_speed;
+	float max_dif = d * step;
+	if( w<0.05 ) w = 0.05;
+	if( fabs( w-bwidth ) > max_dif ){
+		if( w > bwidth )
+			w = bwidth + max_dif;
+		else
+			w = bwidth - max_dif;
+	}
+	// printf("d:%.4f, time_diff:%lld, speed:%.4f, width:%.4f\n", d, et.t-bt.t, s, w);
+	return w;
+}
+
+float z_insertPoint(z_points *arr, z_point lastpoint, int64_t lastms,
+	float lastwidth, z_point point, int64_t ms) {
+	
+	if(!arr) return 0;
+    int count = arr->count;
+	z_point zp = {point.x, point.y};
+	if( 0==count ){
+		z_point_width p = {zp, 0.4};
+        z_points_add(arr, p);
+		return p.w;
+	}
+
+	float step = arr->count > 4 ? 0.01: 0.1;
+	z_point_time bt = { {lastpoint.x,lastpoint.y}, lastms};
+	z_point_time et = { zp, ms};
+	float w = (z_linewidth(bt, et, lastwidth, step) + lastwidth) / 2;
+	z_points *points = z_points_new(51);
+    z_point_width tmppoint = arr->data[count -1];
+	z_points_add(points, tmppoint);
+	if( 1==count ) {
+		z_point_width p = { {(bt.p.x + et.p.x + 1) / 2, (bt.p.y + et.p.y +1) / 2}, w};
+		z_points_add_differentation(points, p);
+		w = p.w;
+	}
+	else {
+		z_point_width bw = tmppoint;
+		z_point c =  {lastpoint.x,lastpoint.y};
+		z_point_width ew = {{(lastpoint.x + point.x)/2, (lastpoint.y + point.y)/2}, w};
+		z_square_bezier(points, bw, c, ew);
+	}
+	
+	// escape the first point
+	for(int i=1; i<points->count; i++) {
+        z_points_add(arr, points->data[i]);
+	}
+
+	z_points_release(points);
+	
+	return w;
+}
+
+void z_insertLastPoint(z_points *arr, z_point e) {
+	if(!arr) return;
+	long count = arr->count;
+	if( count==0 ) return;
+	z_points *points = z_points_new(51);
+	z_point_width zb = arr->data[count-1];
+	z_points_add(points, zb);
+	
+	z_point_width ze = { {e.x, e.y}, 0.1};
+	z_points_add_differentation(points, ze);
+	for(int i=1; i<points->count; i++) {
+        z_points_add(arr, points->data[i]);
+	}
+	z_points_release(points);
+}
 /***************this algorathim not used!!!***********************
 static float z_bezier_split_factor = 0.05;
 void z_points_time_to_width(z_points_array *points) {

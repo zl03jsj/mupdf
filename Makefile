@@ -18,6 +18,21 @@ include Makethird
 CFLAGS += $(XCFLAGS) -Iinclude -I$(GEN)
 LIBS += $(XLIBS) -lm
 
+ifeq "$(HAVE_OPENSSL)" "yes"
+OPENSSL_CFLAGS = $(SYS_OPENSSL_CFLAGS)
+OPENSSL_LIBS = $(SYS_OPENSSL_LIBS)
+
+ifeq  "$(Use_Z_test)" "yes"
+	OPENSSL_CFLAGS += -DZ_pdf_sign_
+endif
+
+endif
+
+ifeq "$(HAVE_X11)" "yes"
+X11_CFLAGS = $(SYS_X11_CFLAGS)
+X11_LIBS = $(SYS_X11_LIBS)
+endif
+
 LIBS += $(FREETYPE_LIBS)
 LIBS += $(HARFBUZZ_LIBS)
 LIBS += $(JBIG2DEC_LIBS)
@@ -26,6 +41,8 @@ LIBS += $(MUJS_LIBS)
 LIBS += $(OPENJPEG_LIBS)
 LIBS += $(OPENSSL_LIBS)
 LIBS += $(ZLIB_LIBS)
+LIBS += $(X11_LIBS)
+
 
 CFLAGS += $(FREETYPE_CFLAGS)
 CFLAGS += $(HARFBUZZ_CFLAGS)
@@ -35,6 +52,9 @@ CFLAGS += $(MUJS_CFLAGS)
 CFLAGS += $(OPENJPEG_CFLAGS)
 CFLAGS += $(OPENSSL_CFLAGS)
 CFLAGS += $(ZLIB_CFLAGS)
+CFLAGS += $(X11_CFLAGS)
+
+
 
 # --- Commands ---
 
@@ -261,9 +281,9 @@ $(OUT)/cmapdump.o : include/mupdf/pdf/cmap.h source/fitz/context.c source/fitz/e
 # --- Tools and Apps ---
 
 MUTOOL := $(addprefix $(OUT)/, mutool)
-MUTOOL_OBJ := $(addprefix $(OUT)/tools/, mutool.o muconvert.o mudraw.o murun.o pdfclean.o pdfcreate.o pdfextract.o pdfinfo.o pdfmerge.o pdfposter.o pdfpages.o pdfshow.o)
+MUTOOL_OBJ := $(addprefix $(OUT)/tools/, mutool.o muconvert.o mudraw.o murun.o pdfclean.o pdfcreate.o pdfextract.o pdfinfo.o pdfmerge.o pdfposter.o pdfpages.o pdfshow.o pdfaddimage.o)
 $(MUTOOL_OBJ): $(FITZ_HDR) $(PDF_HDR)
-$(MUTOOL) : $(MUPDF_LIB) $(THIRD_LIB)
+$(MUTOOL) : $(MUPDF_LIB) $(THIRD_LIB) 
 $(MUTOOL) : $(MUTOOL_OBJ)
 	$(LINK_CMD)
 
@@ -278,6 +298,14 @@ $(MUJSTEST_OBJ) : $(FITZ_HDR) $(PDF_HDR)
 $(MUJSTEST) : $(MUPDF_LIB) $(THIRD_LIB)
 $(MUJSTEST) : $(MUJSTEST_OBJ)
 	$(LINK_CMD)
+
+# ifeq "$(Z_test_)" "yes"
+# Z_test := $(OUT)/z_test
+# Z_test_obj :=
+# $(Z_test_obj) : $(FITZ_HDR) $(PDF_HDR)
+# $(Z_test) : $(MUPDF_LIB) $(THIRD_LIB)
+# $(Z_test) : $(Z_test_obj)
+	# $(LINK_CMD) 
 
 ifeq "$(HAVE_X11)" "yes"
 MUVIEW_X11 := $(OUT)/mupdf-x11
@@ -400,13 +428,16 @@ cscope.out: cscope.files
 all: libs apps
 
 clean:
-	rm -rf $(OUT)
+	rm -rf build/*
 nuke:
 	rm -rf build/* $(GEN) $(NAME_GEN)
 
 release:
 	$(MAKE) build=release
 debug:
+	@echo "the libs!!!!!!!=$(LIBS)"
+	@echo "the cflags!!!!!!!=$(CFLAGS)"
+	@echo "the cccmd!!!!=$(CC_CMD)"
 	$(MAKE) build=debug
 
 .PHONY: all clean nuke install third libs apps generate

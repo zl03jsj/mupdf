@@ -78,25 +78,7 @@ z_point_width z_point_width_new(float x, float y, float w) {
 	return p;
 }
 
-static float z_lineWidth(z_point_time bt, z_point_time et, float bwidth,float step){
-	const float max_speed = 2.0f;
-	// const float min_speed = 0.2f;
-	float d = z_distance(bt.p, et.p);
-	float s = d / (et.t - bt.t); s = s > max_speed ? max_speed : s;
-	float w = (max_speed-s) / max_speed;
-	float max_dif = d * step;
-	if( w<0.05 ) w = 0.05;
-	if( fabs( w-bwidth ) > max_dif ){
-		if( w > bwidth )
-			w = bwidth + max_dif;
-		else
-			w = bwidth - max_dif;
-	}
-	// printf("d:%.4f, time_diff:%lld, speed:%.4f, width:%.4f\n", d, et.t-bt.t, s, w);
-	return w;
-}
-
-float z_insertPoint(NSMutableArray *arr, CGPoint lastpoint, UInt64 lastms,
+float z_IOS_insertPoint(NSMutableArray *arr, CGPoint lastpoint, UInt64 lastms,
 	float lastwidth, CGPoint point, UInt64 ms) {
 	
 	if(!arr) return 0;
@@ -110,7 +92,7 @@ float z_insertPoint(NSMutableArray *arr, CGPoint lastpoint, UInt64 lastms,
 	float step = count > 4 ? 0.01: 0.1;
 	z_point_time bt = { {lastpoint.x,lastpoint.y}, lastms};
 	z_point_time et = { zp, ms};
-	float w = (z_lineWidth(bt, et, lastwidth, step) + lastwidth) / 2;
+	float w = (z_linewidth(bt, et, lastwidth, step) + lastwidth) / 2;
 	z_points *points = z_points_new(51);
 	z_points_add(points, z_stored_point(arr, (int)[arr count]-1));
 	if( 1==count ) {
@@ -135,7 +117,7 @@ float z_insertPoint(NSMutableArray *arr, CGPoint lastpoint, UInt64 lastms,
 	return w;
 }
 
-void z_insertLastPoint(NSMutableArray *arr, CGPoint e) {
+void z_IOS_insertLastPoint(NSMutableArray *arr, CGPoint e) {
 	if(!arr) return;
 	long count = [arr count];
 	if( count==0 ) return;

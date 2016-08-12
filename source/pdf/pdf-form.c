@@ -1439,7 +1439,11 @@ int pdf_signature_widget_contents(fz_context *ctx, pdf_document *doc, pdf_widget
 	return pdf_to_str_len(ctx, c);
 }
 
-void pdf_signature_set_value(fz_context *ctx, pdf_document *doc, pdf_obj *field, pdf_signer *signer)
+// modified by zl [2016-08-12 17:13:18]
+// for compatible"Z_pdf_sign_" macro is defiend
+// if Z_pdf_sign_ is defined type of dev is (Z_sign_device*), or pdf_signer*!
+// void pdf_signature_set_value(fz_context *ctx, pdf_document *doc, pdf_obj *field, pdf_signer *signer)
+void pdf_signature_set_value(fz_context *ctx, pdf_document *doc, pdf_obj *field, void *dev)
 {
 	pdf_obj *v;
 	pdf_obj *indv;
@@ -1481,5 +1485,5 @@ void pdf_signature_set_value(fz_context *ctx, pdf_document *doc, pdf_obj *field,
 	/* Record details within the document structure so that contents
 	 * and byte_range can be updated with their correct values at
 	 * saving time */
-	pdf_xref_store_unsaved_signature(ctx, doc, field, signer);
+	pdf_xref_store_unsaved_signature(ctx, doc, field, dev);
 }

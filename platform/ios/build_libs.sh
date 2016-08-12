@@ -13,8 +13,6 @@ fi
 
 export OS=ios
 export build=$(echo $CONFIGURATION | tr A-Z a-z)
-echo 'configuration:'$CONFIGURATION 
-echo 'build':$build
 FLAGS="-Wno-unused-function -Wno-empty-body -Wno-implicit-function-declaration"
 for A in $ARCHS
 do
@@ -39,6 +37,15 @@ make -j4 -C ../.. OUT=$OUT XCFLAGS="$FLAGS" XLDFLAGS="$FLAGS" third libs || exit
 
 echo Copying library to $BUILT_PRODUCTS_DIR/.
 mkdir -p "$BUILT_PRODUCTS_DIR"
+
+if [ "$HAVE_OPENSSL" = "yes" ] 
+then
+echo copy openssl libs
+cp -f  ../../thirdparty/openssllib/ios/$ARCHS/lib*.a $BUILT_PRODUCTS_DIR
+else
+echo "HAVE_OPENSSL=${HAVE_OPENSSL}"
+fi
+
 cp -f ../../$OUT/lib*.a $BUILT_PRODUCTS_DIR
 ranlib $BUILT_PRODUCTS_DIR/lib*.a
 

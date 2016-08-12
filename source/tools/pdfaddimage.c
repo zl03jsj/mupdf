@@ -1,6 +1,7 @@
 // this file is create by zl(2016/5/17)
 // purpose to insert picture into pdf!!!
-#include "mupdf/pdf/pdf_extension.h"
+
+#include "mupdf/pdf.h"
 #include "../../thirdparty/zlib/zlib.h"
 
 int muaddimage_main(int argc, char *argv[]) 

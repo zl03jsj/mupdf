@@ -26,12 +26,11 @@
 // S                                                        2   bytes
 // f                                                        2   bytes
 // //////////////41 count as 64 bytes
-static fz_buffer *z_points_to_PdfContentStream(fz_context *ctx,pdf_document *doc,
-        int pageno, z_points *points) 
+fz_buffer *z_points_to_PdfScriptStream(fz_context *ctx,pdf_document *doc,
+       pdf_page *page, z_points *points) 
 {
-    if( !ctx || !doc || !points || 0==points->count ) return NULL;
-    int pageCount = pdf_count_pages(ctx, doc);
-    if( pageno<0 || pageno>pageCount ) return NULL;
+    if( !ctx || !doc || !points || 0==points->count )
+        return NULL;
 
     const char *header =  "q\n"                     \
         "1.000 0.000 0.000 -1.000 0.000 %.3f cm\n"  \
@@ -39,7 +38,6 @@ static fz_buffer *z_points_to_PdfContentStream(fz_context *ctx,pdf_document *doc
     const char *item = "%.2f w\n %.2f %.2f m\n%.2f %.2f l\nS\nf\n";
 
     fz_rect r;
-    pdf_page *page =  pdf_load_page(ctx, doc, pageno);
     pdf_bound_page(ctx, page, &r);
     float h = r.y1 - r.y0;
     pdf_drop_page(ctx, page); page = NULL; 
@@ -64,18 +62,21 @@ static fz_buffer *z_points_to_PdfContentStream(fz_context *ctx,pdf_document *doc
 
 int pdf_draw_pointsToPage(fz_context *ctx, pdf_document *doc, z_points *points,
     int pageno){
+    pdf_page *page = NULL;
     fz_buffer *buffer = NULL;
     int ret = z_error;
     fz_try(ctx) {
-        buffer = z_points_to_PdfContentStream(ctx,doc, pageno, points);
+        page = pdf_load_page(ctx,doc, pageno); 
+        buffer = z_points_to_PdfScriptStream(ctx,doc, page, points);
         if( !buffer )
             return z_error;
-        pdf_obj *pageobj = pdf_lookup_page_obj(ctx, doc, pageno);
-        ret = pdf_add_content_Stream(ctx, doc, pageobj, buffer);
+        // pdf_obj *pageobj = pdf_lookup_page_obj(ctx, doc, pageno);
+        ret = pdf_add_content_Stream(ctx, doc, page->me, buffer);
     }
 	fz_always(ctx)
 	{
         if(buffer) fz_drop_buffer(ctx, buffer);
+        if(page) pdf_drop_page(ctx, page);
 	}
     fz_catch(ctx) {
         printf("%s,message:%s\n", "error in pdf_draw_pointsToPage", 

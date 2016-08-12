@@ -60,6 +60,7 @@ int z_points_add_xyw(z_points *points, float x, float y, float w);
 int z_points_add(z_points *points, z_point_width p);
 int z_points_add_differentation(z_points *points, z_point_width p);
 void z_square_bezier(z_points *out, z_point_width b, z_point c, z_point_width e);
+float z_linewidth(z_point_time bt, z_point_time et, float bwidth,float step);
 
 #ifdef __cplusplus
 }

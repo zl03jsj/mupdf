@@ -2649,14 +2649,27 @@ static void complete_signatures(fz_context *ctx, pdf_document *doc, pdf_write_st
 
 			/* Write the digests into the file */
 			for (usig = xref->unsaved_sigs; usig; usig = usig->next)
+            {
+#ifdef  Z_pdf_sign_
+                Z_pdf_signComplete(usig->signDev, ctx, doc, 
+                    filename, byte_range, usig->contents_start,
+                    usig->contents_end - usig->contents_start);
+#else
 				pdf_write_digest(ctx, doc, filename, byte_range, usig->contents_start, usig->contents_end - usig->contents_start, usig->signer);
-
+#endif
+            }
 			/* delete the unsaved_sigs records */
 			while ((usig = xref->unsaved_sigs) != NULL)
 			{
 				xref->unsaved_sigs = usig->next;
 				pdf_drop_obj(ctx, usig->field);
+#ifdef Z_pdf_sign_
+                Z_signdev_drop(usig->signDev, ctx);
+                usig->signDev = NULL;
+#else
 				pdf_drop_signer(ctx, usig->signer);
+                usig->signer = NULL;
+#endif
 				fz_free(ctx, usig);
 			}
 		}

@@ -279,7 +279,7 @@ static void addPointsContentStream(fz_document *doc, fz_page *page, NSArray *arr
 	else {
 		r = 1.0; g = 0; b = 0;
 	}
-    const char *header =  "q /%s gs\n"                     \
+    const char *header =  "q /%s gs\n"              \
         "1.000 0.000 0.000 -1.000 0.000 %.3f cm\n"  \
         "1 J 1 j /DeviceRGB CS %.2f %.2f %.2f SCN\n";
 	int buffersize = 128 + (itemCount * 64);

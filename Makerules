@@ -55,12 +55,12 @@ HAVE_X11 ?= yes
 HAVE_PTHREADS ?= yes
 
 # Mac OS X deprecated openssl, so the default is to not include it.
-HAVE_OPENSSL ?= no
+HAVE_OPENSSL ?= yes
 SYS_OPENSSL_CFLAGS =
 SYS_OPENSSL_LIBS =
 ifeq "$(HAVE_OPENSSL)" "yes"
 SYS_OPENSSL_CFLAGS = -DHAVE_OPENSSL
-SYS_OPENSSL_LIBS = -lcrypto
+SYS_OPENSSL_LIBS  = -L./thirdparty/openssllib/$(ARCHS) -lcrypto -lssl
 endif
 
 SYS_CURL_DEPS = -lpthread
@@ -243,3 +243,5 @@ ifeq "$(HAVE_PTHREADS)" "yes"
 CFLAGS += -DHAVE_PTHREADS
 LIBS += -lpthread
 endif
+
+Use_Z_test ?= yes
