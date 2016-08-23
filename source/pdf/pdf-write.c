@@ -1940,6 +1940,10 @@ static void writexref(fz_context *ctx, pdf_document *doc, pdf_write_state *opts,
 		if (opts->do_incremental)
 		{
 			trailer = pdf_keep_obj(ctx, pdf_trailer(ctx, doc));
+            // modified by zl[2016-08-16 15:23:31], 
+            // this is a bug!!
+            // must delete /XRefStm sub object!!!, 
+            pdf_dict_dels(ctx, trailer, "XRefStm");
 			pdf_dict_put_drop(ctx, trailer, PDF_NAME_Size, pdf_new_int(ctx, doc, pdf_xref_len(ctx, doc)));
 			pdf_dict_put_drop(ctx, trailer, PDF_NAME_Prev, pdf_new_int(ctx, doc, doc->startxref));
 			doc->startxref = startxref;
@@ -2933,10 +2937,17 @@ void pdf_save_document(fz_context *ctx, pdf_document *doc, const char *filename,
 				}
 
 				opts.first_xref_offset = fz_tell_output(ctx, opts.out);
-				if (doc->has_xref_streams)
-					writexrefstream(ctx, doc, &opts, 0, xref_len, 1, 0, opts.first_xref_offset);
-				else
-					writexref(ctx, doc, &opts, 0, xref_len, 1, 0, opts.first_xref_offset);
+#pragma message("there are some bug in writexrefstream, wait for fixing!")
+#if 1
+                writexref(ctx, doc, &opts, 0, xref_len, 1, 0, opts.first_xref_offset);
+#else
+                // there are some bug in writexrefstream!!!!!!
+                // todo: fix bug in writexrefstream!!!!!!!!!!
+                if (doc->has_xref_streams)
+                    writexrefstream(ctx, doc, &opts, 0, xref_len, 1, 0, opts.first_xref_offset);
+                else
+                    writexref(ctx, doc, &opts, 0, xref_len, 1, 0, opts.first_xref_offset);
+#endif
 
 				doc->xref_sections[doc->xref_base].end_ofs = fz_tell_output(ctx, opts.out);
 			}

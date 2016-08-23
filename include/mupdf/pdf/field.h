@@ -49,7 +49,7 @@ void pdf_field_set_text_color(fz_context *ctx, pdf_document *doc, pdf_obj *field
 // for compatible"Z_pdf_sign_" macro is defiend
 // if Z_pdf_sign_ is defined type of dev is (Z_sign_device*), or pdf_signer*!
 // void pdf_signature_set_value(fz_context *ctx, pdf_document *doc, pdf_obj *field, pdf_signer *signer)
-void pdf_signature_set_value(fz_context *ctx, pdf_document *doc, pdf_obj *field, void *dev);
+pdf_obj *pdf_signature_set_value(fz_context *ctx, pdf_document *doc, pdf_obj *field, void *dev);
 int pdf_field_display(fz_context *ctx, pdf_document *doc, pdf_obj *field);
 char *pdf_field_name(fz_context *ctx, pdf_document *doc, pdf_obj *field);
 void pdf_field_set_display(fz_context *ctx, pdf_document *doc, pdf_obj *field, int d);

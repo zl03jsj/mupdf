@@ -60,7 +60,7 @@ SYS_OPENSSL_CFLAGS =
 SYS_OPENSSL_LIBS =
 ifeq "$(HAVE_OPENSSL)" "yes"
 SYS_OPENSSL_CFLAGS = -DHAVE_OPENSSL
-SYS_OPENSSL_LIBS  = -L./thirdparty/openssllib/$(ARCHS) -lcrypto -lssl
+SYS_OPENSSL_LIBS  = -L./thirdparty/openssl/macos -lcrypto -lssl
 endif
 
 SYS_CURL_DEPS = -lpthread

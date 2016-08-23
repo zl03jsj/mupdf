@@ -64,8 +64,64 @@ static int bsegs_read(BIO *b, char *buf, int size)
 	return read;
 }
 
+static int bsegs_gets(BIO *b, char *buf, int size)
+{
+	BIO_SEGS_CTX *ctx = (BIO_SEGS_CTX *)b->ptr;
+	int read = 0;
+	while (size > 0 && ctx->current_seg < ctx->nsegs)
+	{
+		int nb = ctx->seg[ctx->current_seg][SEG_SIZE] - ctx->seg_pos;
+
+		if (nb > size)
+			nb = size;
+
+		if (nb > 0)
+		{
+			if (ctx->seg_pos == 0)
+				(void)BIO_seek(b->next_bio, ctx->seg[ctx->current_seg][SEG_START]);
+
+			(void)BIO_read(b->next_bio, buf, nb);
+			ctx->seg_pos += nb;
+			read += nb;
+			buf += nb;
+			size -= nb;
+		}
+		else
+		{
+			ctx->current_seg++;
+
+			if (ctx->current_seg < ctx->nsegs)
+				ctx->seg_pos = 0;
+		}
+	}
+
+	return read;
+}
+
 static long bsegs_ctrl(BIO *b, int cmd, long arg1, void *arg2)
 {
+	BIO_SEGS_CTX *ctx = (BIO_SEGS_CTX *)b->ptr;
+    long ofs;
+
+    switch (cmd) {
+        case BIO_CTRL_RESET:
+        case BIO_C_FILE_SEEK: {
+            int i;
+            i = 0;
+            ofs = cmd==BIO_CTRL_RESET ? 0:arg1;
+            while( i<ctx->nsegs ) {
+                if( ofs < ctx->seg[i][1] ) {
+                    break;
+                }
+                ofs -= ctx->seg[i][1];
+                i ++;
+            }
+            ctx->current_seg = i;
+            ctx->seg_pos = fz_min(ofs, ctx->seg[i][1]-1);
+            arg1 = ctx->seg[i][0] + ctx->seg_pos;
+            }
+            break;
+    }
 	return BIO_ctrl(b->next_bio, cmd, arg1, arg2);
 }
 
@@ -108,16 +164,16 @@ static int bsegs_free(BIO *b)
 
 static long bsegs_callback_ctrl(BIO *b, int cmd, bio_info_cb *fp)
 {
-	return BIO_callback_ctrl(b->next_bio, cmd, fp);
+    return BIO_callback_ctrl(b->next_bio, cmd, fp);
 }
 
 static BIO_METHOD methods_bsegs =
 {
-	0,"segment reader",
+	0, "segment reader",
 	NULL,
 	bsegs_read,
 	NULL,
-	NULL,
+	bsegs_gets,
 	bsegs_ctrl,
 	bsegs_new,
 	bsegs_free,
@@ -367,8 +423,8 @@ static void Z_openssl_drop_signer(fz_context *ctx, Z_openssl_signer *signer);
 static Z_openssl_signer *Z_openssl_keep_signer(fz_context *ctx, Z_openssl_signer *signer);
 typedef int(Z_SignDev_drop_fn)(Z_sign_device *signDev, fz_context *ctx);
 typedef Z_sign_device*(Z_SignDev_keep_fn)(Z_sign_device *signdev, fz_context *ctx); 
-typedef fz_buffer* (Z_sign_fn)(Z_sign_device *signDev, fz_context *ctx, const char *filename, pdf_obj *byterange);
-static fz_buffer* Z_sign_inner(Z_sign_device *signDev, fz_context *ctx, const char *filename, pdf_obj *byrterange);
+typedef fz_buffer* (Z_sign_fn)(Z_sign_device *signDev, fz_context *ctx, pdf_document *, const char *filename, pdf_obj *byterange);
+static fz_buffer* Z_sign_inner(Z_sign_device *signDev, fz_context *ctx, pdf_document *doc, const char *filename, pdf_obj *byrterange);
 static int Z_signdev_drop_inner(Z_sign_device *signDev, fz_context *ctx);
 static Z_sign_device *Z_signdev_keep_inner(Z_sign_device *signDev, fz_context *ctx);
 static BIO* Z_file_segment_BIO(fz_context *ctx, const char *filename, pdf_obj *byterange);
@@ -398,6 +454,7 @@ Z_sign_device *Z_openssl_SignDev_new(fz_context *ctx, const char *file, const ch
         memset(signDev, 0, sizeof(Z_sign_device));
 
         signDev->ref = 1;
+        signDev->signer = signer;
         signDev->dosign = Z_sign_inner;
         signDev->signdevdrop = Z_signdev_drop_inner;
         signDev->signdevkeep = Z_signdev_keep_inner;
@@ -409,21 +466,21 @@ Z_sign_device *Z_openssl_SignDev_new(fz_context *ctx, const char *file, const ch
     return signDev;
 }
 
-static fz_buffer* Z_sign_inner(Z_sign_device *this, fz_context *ctx, const char *filename, 
-        pdf_obj *byterange)
+static fz_buffer* Z_sign_inner(Z_sign_device *signdev, fz_context *ctx, pdf_document * doc,
+        const char *filename, pdf_obj *byterange)
 {
     BIO *bio = NULL;
     fz_try(ctx) {
         bio = Z_file_segment_BIO(ctx, filename, byterange);
-        this->signdata = Z_openssl_sign_bio(ctx, (Z_openssl_signer*)this->signer, bio);
+        signdev->signdata = Z_openssl_sign_bio(ctx, (Z_openssl_signer*)signdev->signer, bio);
     }
     fz_always(ctx) {
-        if(bio) BIO_free(bio); 
+        if(bio) BIO_free_all(bio); 
     }
     fz_catch(ctx) {
         fz_rethrow(ctx); 
     }
-    return this->signdata;
+    return signdev->signdata;
 }
 
 static int Z_signdev_drop_inner(Z_sign_device *this, fz_context *ctx)
@@ -587,12 +644,7 @@ BIO *Z_file_segment_BIO(fz_context *ctx, const char *filename,
 			brange[i][0] = pdf_to_int(ctx, pdf_array_get(ctx, byterange, 2*i));
 			brange[i][1] = pdf_to_int(ctx, pdf_array_get(ctx, byterange, 2*i+1));
 		}
-
-		bdata = BIO_new(BIO_s_file());
-		if (bdata == NULL)
-			fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to create file BIO");
-		BIO_read_filename(bdata, filename);
-
+        bdata = BIO_new_file(filename, "rb");
 		bsegs = BIO_new(BIO_f_segments());
 		if (bsegs == NULL)
 			fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to create segment filter");
@@ -601,9 +653,7 @@ BIO *Z_file_segment_BIO(fz_context *ctx, const char *filename,
 		BIO_set_segments(bsegs, brange, brange_len);
     }
     fz_always(ctx) {
-        BIO_free(bdata);
-        if(f) 
-            fclose(f);
+        if(f) fclose(f);
     }
     fz_catch(ctx) {
         if(brange) fz_free(ctx, brange);
@@ -625,15 +675,15 @@ static fz_buffer *Z_openssl_sign_bio(fz_context *ctx, Z_openssl_signer *signer,
         unsigned char *data = NULL;
         int size = 0;
         p7 = PKCS7_sign(signer->cert, signer->key, signer->ca, 
-                bio, PKCS7_DETACHED);
+                bio, PKCS7_DETACHED|PKCS7_BINARY);
         if( !p7 ){
             fz_throw(ctx, FZ_ERROR_GENERIC, ERR_error_string(ERR_get_error(), NULL));
         }
         size = i2d_PKCS7(p7, NULL);
         data = fz_malloc(ctx, size);
+        unsigned char* tmpdata = data;
         memset(data, 0, size);
-
-        i2d_PKCS7(p7, &data);
+        i2d_PKCS7(p7, &tmpdata);
         signdata = fz_new_buffer_from_data(ctx, data, size);
     }
     fz_always(ctx) {
@@ -644,12 +694,12 @@ static fz_buffer *Z_openssl_sign_bio(fz_context *ctx, Z_openssl_signer *signer,
     }
     return signdata;
 }
-fz_buffer *Z_sign(Z_sign_device *this, fz_context *ctx, pdf_document *doc, 
+fz_buffer *Z_sign(Z_sign_device *signdev, fz_context *ctx, pdf_document *doc, 
         const char *filename, pdf_obj *byterange) 
 {
     fz_buffer *buff= NULL;
     fz_try(ctx) {
-        buff = this->dosign(this, ctx, filename, byterange);
+        buff = signdev->dosign(signdev, ctx, doc, filename, byterange);
     }
     fz_always(ctx) {
     }
@@ -846,6 +896,7 @@ pdf_obj *Z_pdf_add_dsblankfrm(fz_context *ctx, pdf_document *doc)
     pdf_array_push_drop(ctx, subobj, pdf_new_name(ctx, doc, "ImageB"));
     pdf_array_push_drop(ctx, subobj, pdf_new_name(ctx, doc, "ImageC"));
     pdf_array_push_drop(ctx, subobj, pdf_new_name(ctx, doc, "ImageI"));
+    pdf_dict_puts_drop(ctx, obj, "FormType", pdf_new_int(ctx, doc, 1));
     obj = pdf_add_object_drop(ctx, doc, obj);
 
     fz_buffer *buf = fz_new_buffer(ctx, 9);
@@ -869,7 +920,7 @@ pdf_obj *Z_pdf_add_ntko_extgstate(fz_context *ctx, pdf_document *doc)
 static pdf_obj *Z_pdf_addSign_annot(fz_context *ctx, pdf_document *doc,
     int pageno, fz_rect *range) 
 {
-    const char * objstr = "<</Type/Annot/Subtype/Widget/FT/Sig/F 644>>";
+    const char * objstr = "<</Type/Annot/Subtype/Widget/FT/Sig/F 0>>";
     pdf_obj *annot = NULL;
 
     annot = pdf_new_obj_from_str(ctx, doc, objstr);
@@ -911,17 +962,20 @@ static pdf_obj *Z_pdf_addSign_annot_ap_xobj_frm(Z_PdfSignContext *signctx)
     fz_rect *rect = &signctx->range;
 
     const char *imagename = "ntkoimage";
-    const char *script = "q /%s gs 1 0 0 1 1 0.00 0.00 cm\n"   \
-            "100.00 0 0 100.00 0 0 cm /%s Do Q\n"              \
-            "q 0.9 0 0 0.9 5 5 cm /n3 Do Q";
+    const char *script = "q /%s gs 1 0 0 1 0 0 cm\n"   \
+            "100.00 0 0 100.00 0 0 cm /%s Do Q\n";//      \
+            // "q 0.9 0 0 0.9 5 5 cm /n3 Do Q";
 
     pdf_obj *xobj = NULL;
     pdf_obj *resobj = NULL;
     pdf_obj *subobj = NULL;
 
-     xobj = pdf_new_dict(ctx, doc, 10); // mainobj
+    xobj = pdf_new_dict(ctx, doc, 10); // mainobj
+    pdf_dict_puts_drop(ctx, xobj, "Type", PDF_NAME_XObject);
+    pdf_dict_puts_drop(ctx, xobj, "Subtype", PDF_NAME_Form);
     /* "/BBox[]" */
-    subobj = pdf_new_rect(ctx, doc, &signctx->range);
+    fz_rect r = {0, 0, 100, 100};
+    subobj = pdf_new_rect(ctx, doc, &r);
     pdf_dict_put_drop(ctx, xobj, PDF_NAME_BBox, subobj);
 
     /* "/Matrix[] */
@@ -930,23 +984,6 @@ static pdf_obj *Z_pdf_addSign_annot_ap_xobj_frm(Z_PdfSignContext *signctx)
 
     // /Resources
     resobj = pdf_new_dict(ctx, doc, 10);
-
-    // /Resources/ExtGState/ntkoext 
-#if 0
-    if(!signctx->extgstate) {
-        signctx->extgstate = Z_pdf_add_ntko_extgstate(ctx, doc);
-    }
-#if 0
-    char pathbuf[64];
-    memset(pathbuf, 0, sizeof(pathbuf));
-    snprintf(pathbuf, sizeof(pathbuf), "ExtGState/%s", ntkoextobjname);
-    pdf_dict_putp(ctx, resobj, pathbuf, signctx->extgstate);
-#else
-   subobj = pdf_new_dict(ctx, doc, 1);
-   pdf_dict_puts(ctx, subobj, ntkoextobjname, signctx->extgstate);
-   pdf_dict_put_drop(ctx, resobj, PDF_NAME_ExtGState, subobj);
-#endif
-#endif
 
     /* /Resources<</ProcSet [/PDF/ImageB/ImageC/ImageI] */
     subobj = pdf_new_array(ctx, doc, 5);
@@ -968,20 +1005,23 @@ static pdf_obj *Z_pdf_addSign_annot_ap_xobj_frm(Z_PdfSignContext *signctx)
     pdf_dict_puts(ctx, subobj, "n1", signctx->dsblankobj);
     pdf_dict_puts(ctx, subobj, "n2", signctx->dsblankobj);
     pdf_dict_puts(ctx, subobj, "n3", signctx->dsblankobj);
+    pdf_dict_puts(ctx, subobj, "n4", signctx->dsblankobj);
+
+    pdf_dict_puts_drop(ctx, xobj, "FormType", pdf_new_int(ctx, doc, 1));
 
     if( !signctx->imagectx.obj) {
+        // if doc->resources not exist, must init res table first,  
+        // or calling pdf_add_image cause crash!!
         if(!doc->resources) 
             pdf_init_resource_tables(ctx, doc);
         signctx->imagectx.obj = pdf_add_image(ctx, doc, image, 0);
     }
 
-    char *uniqeName = new_unique_string(ctx, imagename, NULL);
+    char *uniqeName = new_unique_string(ctx, (char*)imagename, NULL);
     pdf_dict_puts(ctx, subobj, uniqeName, signctx->imagectx.obj);
 
     pdf_dict_put_drop(ctx, resobj, PDF_NAME_XObject, subobj);
     pdf_dict_put_drop(ctx, xobj, PDF_NAME_Resources, resobj);
-//    pdf_dict_put_drop(ctx, xobj, PDF_NAME_Filter,
-//            pdf_new_name(ctx, doc, "FlateDecode") );
 
     xobj = pdf_add_object_drop(ctx, doc, xobj);
 
@@ -989,6 +1029,7 @@ static pdf_obj *Z_pdf_addSign_annot_ap_xobj_frm(Z_PdfSignContext *signctx)
     fz_buffer_printf(ctx, buff, script, ntkoextobjname, uniqeName);
     pdf_update_stream(ctx, doc, xobj, buff, 1);
     fz_drop_buffer(ctx, buff); buff=NULL;
+
 
     return xobj;
 }
@@ -1016,7 +1057,7 @@ int Z_pdf_add_sign(Z_PdfSignContext *signctx)
     if(!signctx) return 0;
     const char *ocobjstr = "<</Type/OCG/Name(Copyright notice)/Usage<</Print<</PrintState/OFF>>>>>>"; 
     char path[64] = {0};
-    snprintf(path, 64, "Resources/ExtGstate/%s", ntkoextobjname);
+    snprintf(path, 64, "Resources/ExtGState/%s", ntkoextobjname);
 
     fz_context *ctx = signctx->ctx;
     pdf_document *doc = signctx->doc;
@@ -1064,27 +1105,27 @@ int Z_pdf_add_sign(Z_PdfSignContext *signctx)
         fields = pdf_new_array(ctx, doc, 1);
         pdf_dict_put_drop(ctx, acroform, PDF_NAME_Fields, fields);
     }
-   pdf_array_push(ctx, fields, signctx->annot);
+    pdf_array_push(ctx, fields, signctx->annot);
 
-   pdf_obj *signflag = pdf_dict_get(ctx, acroform, PDF_NAME_SigFlags);
-   if(!signflag) {
-       pdf_dict_put_drop(ctx, acroform, PDF_NAME_SigFlags, pdf_new_int(ctx, doc, 3));
-   }
+    pdf_obj *signflag = pdf_dict_get(ctx, acroform, PDF_NAME_SigFlags);
+    if(!signflag) {  
+        pdf_dict_put_drop(ctx, acroform, PDF_NAME_SigFlags, pdf_new_int(ctx, doc, 3));
+    }
 
-   pdf_drop_page(ctx, page); 
+    pdf_drop_page(ctx, page); 
 
-   fz_try(ctx){
-#pragma message("there should init openssl first, or program crush!!")
-       Z_sign_device *signdev = Z_openssl_SignDev_new(ctx,
-               "/Users/zl03jsj/Documents/mupdf/source/z_/Test/user/zl.pfx",
-               "111111");
-       pdf_signature_set_value(ctx, doc, signctx->annot, signdev);
-       Z_signdev_drop(signdev, ctx);
-   }
-   fz_catch(ctx){
-       printf("openssl error:%s\n",ctx->error->message);
-   }
-   return 1;
+    fz_try(ctx){
+        Z_InitOpenSSL(ctx);
+        Z_sign_device *signdev = Z_openssl_SignDev_new(ctx,
+                "/Users/zl03jsj/Documents/mupdf/source/z_/Test/user/zl.pfx",
+                "111111");
+        signctx->signobj = pdf_signature_set_value(ctx, doc, signctx->annot, signdev);
+        Z_signdev_drop(signdev, ctx);
+    }
+    fz_catch(ctx){
+        printf("openssl error:%s\n",ctx->error->message);
+    }
+    return 1;
 } 
 
 void Z_PdfSignCtxDisplay(Z_PdfSignContext *signctx)
@@ -1113,6 +1154,51 @@ void Z_PdfSignCtxDisplay(Z_PdfSignContext *signctx)
     fz_drop_output(ctx, o);
 }
 
+void Z_InitOpenSSL(fz_context *ctx) {
+    ERR_load_crypto_strings();
+    OpenSSL_add_all_algorithms();
+//    EVP_add_digest(EVP_md5());
+//    EVP_add_digest(EVP_sha1());
+    ERR_clear_error();
+}  
+
+char *base64(const void *input, int length)  
+{  
+    BIO *bmem, *b64;  
+    BUF_MEM *bptr;
+
+    b64 = BIO_new(BIO_f_base64());  
+    bmem = BIO_new(BIO_s_mem());  
+    b64 = BIO_push(b64, bmem);  
+    BIO_write(b64, input, length);  
+    BIO_flush(b64);  
+    BIO_get_mem_ptr(b64, &bptr);  
+    char *buff = (char*)malloc(bptr->length);  
+    memcpy(buff, bptr->data, bptr->length-1);  
+    buff[bptr->length-1] = 0;  
+
+    BIO_free_all(b64);  
+
+    return buff;  
+}  
+  
+int decodeBase64(char *inb64, void *obf, int obflen)
+{  
+    BIO *b64, *bmem;  
+
+    b64 = BIO_new(BIO_f_base64());  
+    bmem = BIO_new_mem_buf(inb64, strlen((const char*)inb64));  
+    bmem = BIO_push(b64, bmem);   
+    int err=0;  
+    int i=0;  
+    do{  
+        err = BIO_read(bmem, (void *)( (char *)obf+i++), 1);  
+    } while( err==1 && i<obflen );  
+    BIO_free_all(bmem);  
+
+    return --i;
+}  
+
 #else /* HAVE_OPENSSL */
 #pragma message("HAVE_OPENSSL is not defined!!!")
 int Z_pdf_signatures_supported(fz_context *ctx){return 0;}
@@ -1122,9 +1208,21 @@ int Z_signdev_drop(Z_sign_device *this, fz_context *ctx){return 0;}
 void Z_pdf_signComplete(Z_sign_device *signdev, fz_context *ctx,
         pdf_document *doc, const char *filename, pdf_obj *byterange,
         int ofs, int size){return;}
-fz_buffer *Z_sign(Z_sign_device *this, fz_context *ctx, pdf_document *doc,
+fz_buffer *Z_sign(Z_sign_device *signdev, fz_context *ctx, pdf_document *doc,
         const char *filename, pdf_obj *byterange){return NULL;}
+void Z_InitOpenSSL(fz_context *ctx) {
+    fz_throw(ctx, FZ_ERROR_GENERIC, "no openssl supporeted!!");
+};
 #endif /* HAVE_OPENSSL */
+
+
+
+
+
+
+
+
+
 
 void Z_writeSign(fz_context *ctx, const char*file, fz_buffer *buff, 
         int ofs, int size)
@@ -1147,4 +1245,3 @@ void Z_writeSign(fz_context *ctx, const char*file, fz_buffer *buff,
         fprintf(f, "%02x", data[i]);
     fclose(f);
 }
-

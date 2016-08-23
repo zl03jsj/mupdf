@@ -190,8 +190,8 @@ pdf_obj *pdf_add_extstate(fz_context *ctx, pdf_document *doc)
 	pdf_obj *extobj = pdf_new_dict(ctx, doc, 5);
 	pdf_dict_put_drop(ctx, extobj, PDF_NAME_Type, PDF_NAME_ExtGState);
 	pdf_dict_put_drop(ctx, extobj, PDF_NAME_BM, pdf_new_name(ctx, doc, "Darken"));
-	pdf_dict_put_drop(ctx, extobj, pdf_new_name(ctx, doc, "OP") , pdf_new_name(ctx, doc, "true"));
-	pdf_dict_put_drop(ctx, extobj, pdf_new_name(ctx, doc, "AIS"), pdf_new_name(ctx, doc, "false"));
+	pdf_dict_put_drop(ctx, extobj, pdf_new_name(ctx, doc, "OP") , pdf_new_bool(ctx, doc, 1));
+	pdf_dict_put_drop(ctx, extobj, pdf_new_name(ctx, doc, "AIS"), pdf_new_bool(ctx, doc, 0));
 	pdf_dict_put_drop(ctx, extobj, PDF_NAME_ca, pdf_new_real(ctx, doc, 1.0));
 	return pdf_add_object_drop(ctx, doc, extobj);
 } 
@@ -227,10 +227,10 @@ pdf_obj *pdf_add_content(fz_context *ctx, pdf_document *doc,
 	char* xobjname, int x, int y, int w, int h)
 {
 	char bf[256] = { 0 };
-	const char* fmt = "q /%s gs 1 0 0 1 0.00 0.00 cm\n"	\
-		"%d 0 0 %d %d %d cm /%s Do Q";
-	int size = snprintf(bf, 255, fmt, ntkoextobjname, w, h, x, y,
-		xobjname);
+    const char* fmt = "q /%s gs 1 0 0 1 0.00 0.00 cm\n"	\
+        "%d 0 0 %d %d %d cm /%s Do Q";
+    int size = snprintf(bf, 255, fmt, ntkoextobjname, w, h, x, y,
+        xobjname);
 	fz_buffer *buffer = fz_new_buffer(ctx, size);
 	memcpy(buffer->data, bf, size);
 	buffer->len = size;
@@ -422,7 +422,6 @@ int pdf_add_content_Stream(fz_context *ctx, pdf_document *doc, pdf_obj *page,
 //    fz_drop_output(ctx, o);
 	return ret;
 }
-
 
 /**
  * @Synopsis 

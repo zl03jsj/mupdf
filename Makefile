@@ -435,9 +435,10 @@ nuke:
 release:
 	$(MAKE) build=release
 debug:
-	@echo "the libs!!!!!!!=$(LIBS)"
-	@echo "the cflags!!!!!!!=$(CFLAGS)"
-	@echo "the cccmd!!!!=$(CC_CMD)"
-	$(MAKE) build=debug
+	@echo makedebug!!!!!=====
+	@echo libs=${LIBS}
+	@echo flags=${CFLAGS}
+	$(MAKE) build=debug 
+	@echo make down!!!!!=====
 
 .PHONY: all clean nuke install third libs apps generate

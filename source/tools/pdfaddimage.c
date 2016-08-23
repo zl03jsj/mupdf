@@ -4,6 +4,10 @@
 #include "mupdf/pdf.h"
 #include "../../thirdparty/zlib/zlib.h"
 
+static void useage(){
+    printf("mutool addimg -x -y -h -w -n infile imagefile outfile\n");
+}
+
 int muaddimage_main(int argc, char *argv[]) 
 {
 	char *infile = NULL;
@@ -20,11 +24,11 @@ int muaddimage_main(int argc, char *argv[])
 		case 'w': w = atoi(fz_optarg); break;
 		case 'h': h = atoi(fz_optarg); break;
 		case 'n': n = atoi(fz_optarg); break;
-		default: break;
+		default: useage(); break;
 		}
 	}
 	if (argc - fz_optind < 2) {
-		// argument not enough!
+        useage();
 		return 0;
 	}
 	infile = argv[fz_optind++];
@@ -40,6 +44,7 @@ int muaddimage_main(int argc, char *argv[])
 		stderr_tofile("err.log");
 		outfile = new_unique_string(ctx, "./", ".pdf");
 		pdf_add_image_with_filename(ctx, infile, imgfile, outfile, n, x, y, w, h, NULL);
+        printf("outfile=%s\n", outfile);
 		fz_free(ctx, outfile);
 	}
 	fz_catch(ctx) {

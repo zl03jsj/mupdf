@@ -1439,11 +1439,48 @@ int pdf_signature_widget_contents(fz_context *ctx, pdf_document *doc, pdf_widget
 	return pdf_to_str_len(ctx, c);
 }
 
+// add by zl [2016-08-17 14:52:47]
+// create pdf string object of sign time, /M element of /Sig object,like:
+// <<Type/Sig/M(D:20160817145247+08'00')
+pdf_obj *Z_pdf_new_obj_sig_M(fz_context *ctx, pdf_document *doc)
+{
+    char buf[64];
+    char *ts;
+
+    memset(buf, 0, sizeof(buf));
+    ts = new_time_string(ctx);
+    int size = snprintf(buf, 64, "D:%s+%02d'%02d'", ts,
+            -(int)(timezone/(60*60)),   // time zone hour
+            (int)((timezone/60)%60) ); // time zone second
+    fz_free(ctx, ts);
+
+    return pdf_new_string(ctx, doc, buf, size);
+}
+
+// add by zl [2016-08-17 15:46:47]
+// create /Prop_Build element of /Sig object
+pdf_obj *Z_pdf_new_obj_sig_propbuild(fz_context *ctx, pdf_document *doc)
+{
+    const char *appname = "ntko digtal signature system";
+    pdf_obj *propbuild;
+    pdf_obj *app;
+   
+    propbuild =  pdf_new_dict(ctx, doc, 2);
+    pdf_dict_puts_drop(ctx, propbuild, "TrustedMode", pdf_new_bool(ctx, doc, 1));
+
+    app = pdf_new_dict(ctx, doc, 1);
+    pdf_dict_puts_drop(ctx, app, "Name", pdf_new_name(ctx, doc, appname));
+
+    pdf_dict_puts_drop(ctx, propbuild, "App", app);
+    return propbuild; 
+}
+
 // modified by zl [2016-08-12 17:13:18]
 // for compatible"Z_pdf_sign_" macro is defiend
 // if Z_pdf_sign_ is defined type of dev is (Z_sign_device*), or pdf_signer*!
+// the returned pdf object need to pdf_drop_obj.
 // void pdf_signature_set_value(fz_context *ctx, pdf_document *doc, pdf_obj *field, pdf_signer *signer)
-void pdf_signature_set_value(fz_context *ctx, pdf_document *doc, pdf_obj *field, void *dev)
+pdf_obj *pdf_signature_set_value(fz_context *ctx, pdf_document *doc, pdf_obj *field, void *dev)
 {
 	pdf_obj *v;
 	pdf_obj *indv;
@@ -1456,7 +1493,7 @@ void pdf_signature_set_value(fz_context *ctx, pdf_document *doc, pdf_obj *field,
 
 	vnum = pdf_create_object(ctx, doc);
 	indv = pdf_new_indirect(ctx, doc, vnum, 0);
-	pdf_dict_put_drop(ctx, field, PDF_NAME_V, indv);
+	pdf_dict_put(ctx, field, PDF_NAME_V, indv);
 
 	fz_var(v);
 	fz_try(ctx)
@@ -1480,10 +1517,25 @@ void pdf_signature_set_value(fz_context *ctx, pdf_document *doc, pdf_obj *field,
 	pdf_dict_put_drop(ctx, v, PDF_NAME_Contents, contents);
 
 	pdf_dict_put_drop(ctx, v, PDF_NAME_Filter, PDF_NAME_Adobe_PPKLite);
-	pdf_dict_put_drop(ctx, v, PDF_NAME_SubFilter, PDF_NAME_adbe_pkcs7_detached);
+    pdf_dict_put_drop(ctx, v, PDF_NAME_SubFilter, PDF_NAME_adbe_pkcs7_detached);
+    pdf_dict_put_drop(ctx, v, PDF_NAME_Type, pdf_new_name(ctx, doc, "Sig"));
+
+#ifdef Z_pdf_sign_
+    // Z_sign_device *signdev = dev;
+    const char *contactinfo = "http://www.ntko.com";
+    const char *signreason = "ntko pdf security signature";
+    const char *signername = "ntko";
+
+    pdf_dict_puts_drop(ctx, v, "ContactInfo", pdf_new_string(ctx, doc, contactinfo, strlen(contactinfo)));
+    pdf_dict_puts_drop(ctx, v, "Reason", pdf_new_string(ctx, doc, signreason, strlen(signreason)));
+    pdf_dict_puts_drop(ctx, v, "M", Z_pdf_new_obj_sig_M(ctx, doc));
+    pdf_dict_puts_drop(ctx, v, "Name", pdf_new_string(ctx, doc, signername, strlen(signername)));
+    pdf_dict_puts_drop(ctx, v, "Prop_Build", Z_pdf_new_obj_sig_propbuild(ctx, doc));
+#endif
 
 	/* Record details within the document structure so that contents
 	 * and byte_range can be updated with their correct values at
 	 * saving time */
 	pdf_xref_store_unsaved_signature(ctx, doc, field, dev);
+    return indv;
 }
