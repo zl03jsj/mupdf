@@ -64,7 +64,7 @@ void Z_writeSign(fz_context *ctx, const char*file, fz_buffer *buff, int ofs, int
 Z_PdfSignContext *Z_PdfSignCtxInit(fz_context *ctx, pdf_document *doc, 
         int pageno, int stmtype, void *stm, fz_rect r);
 int Z_PdfSignCtxClear(Z_PdfSignContext *signCtx);
-int Z_pdf_add_sign(Z_PdfSignContext *signctx);
+int Z_pdf_add_sign(Z_PdfSignContext *signctx, Z_sign_device *sigdev);
 void Z_InitOpenSSL(fz_context *ctx);
 
 #ifdef __cplusplus

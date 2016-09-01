@@ -1896,6 +1896,14 @@ static void writexrefsubsect(fz_context *ctx, pdf_write_state *opts, int from, i
 	}
 }
 
+// add by zl [2016-09-01 09:30:32]
+// check if pdf_document is hybird-reference xref file
+static int pdf_trailer_is_hybrid(fz_context *ctx, pdf_document *doc) {
+    pdf_obj *trailer = pdf_trailer(ctx, doc);
+    pdf_obj *obj = pdf_dict_gets(ctx, trailer, "XRefStm");
+    return obj==NULL?0:1; 
+}
+
 static void writexref(fz_context *ctx, pdf_document *doc, pdf_write_state *opts, int from, int to, int first, int main_xref_offset, int startxref)
 {
 	pdf_obj *trailer = NULL;
@@ -1939,11 +1947,11 @@ static void writexref(fz_context *ctx, pdf_document *doc, pdf_write_state *opts,
 	{
 		if (opts->do_incremental)
 		{
+            // modified by zl [2016-08-31 18:12:32]
+            // trailer object of hybird-reference file has XRefStm, must delete
 			trailer = pdf_keep_obj(ctx, pdf_trailer(ctx, doc));
-            // modified by zl[2016-08-16 15:23:31], 
-            // this is a bug!!
-            // must delete /XRefStm sub object!!!, 
             pdf_dict_dels(ctx, trailer, "XRefStm");
+
 			pdf_dict_put_drop(ctx, trailer, PDF_NAME_Size, pdf_new_int(ctx, doc, pdf_xref_len(ctx, doc)));
 			pdf_dict_put_drop(ctx, trailer, PDF_NAME_Prev, pdf_new_int(ctx, doc, doc->startxref));
 			doc->startxref = startxref;
@@ -2614,6 +2622,8 @@ static void complete_signatures(fz_context *ctx, pdf_document *doc, pdf_write_st
 				{
 					usig->byte_range_start = bstr - buf + 10 + opts->ofs_list[pnum];
 					usig->byte_range_end = cstr - buf + opts->ofs_list[pnum];
+#pragma message("if tight flag is true, 'Contents' start has a space char after '<',\n" \
+                "/Cotents <000000000......>, not /Contents<....\n")
 					usig->contents_start = cstr - buf + 9 + opts->ofs_list[pnum];
 					usig->contents_end = fstr - buf + opts->ofs_list[pnum];
 				}
@@ -2937,17 +2947,15 @@ void pdf_save_document(fz_context *ctx, pdf_document *doc, const char *filename,
 				}
 
 				opts.first_xref_offset = fz_tell_output(ctx, opts.out);
-#pragma message("there are some bug in writexrefstream, wait for fixing!")
-#if 1
-                writexref(ctx, doc, &opts, 0, xref_len, 1, 0, opts.first_xref_offset);
-#else
-                // there are some bug in writexrefstream!!!!!!
-                // todo: fix bug in writexrefstream!!!!!!!!!!
-                if (doc->has_xref_streams)
+#pragma message("if pdf file is hybird-reference,wrietexrefstream, adobe reader notice an error!")
+                // modified by zl [2016-08-31 18:07:21]
+                // if pdf file is hybrid-reference, writexrefstream case an adobe reader an error!!
+                // hybird file use old xref!!! 
+                // todo: fix bug in writexrefstream on hybrid-reference xref file
+                if (doc->has_xref_streams && 0==pdf_trailer_is_hybrid(ctx, doc))
                     writexrefstream(ctx, doc, &opts, 0, xref_len, 1, 0, opts.first_xref_offset);
                 else
                     writexref(ctx, doc, &opts, 0, xref_len, 1, 0, opts.first_xref_offset);
-#endif
 
 				doc->xref_sections[doc->xref_base].end_ofs = fz_tell_output(ctx, opts.out);
 			}

@@ -67,6 +67,7 @@ int pdf_save_incremental_tofile(fz_context *ctx, pdf_document *doc,char *filenam
 	fz_unlock(ctx, FZ_LOCK_FREETYPE);
 
 	pdf_write_options opts = { 0 };
+    // opts.do_pretty = 1; // write tightly
 	opts.do_incremental = 1;
 	pdf_save_document(ctx, doc, filename, &opts);
 	return z_okay;

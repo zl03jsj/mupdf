@@ -30,6 +30,8 @@ typedef struct bsegs_struct
 	int seg_pos;
 } BIO_SEGS_CTX;
 
+int OpensslInited = 0;
+
 static int bsegs_read(BIO *b, char *buf, int size)
 {
 	BIO_SEGS_CTX *ctx = (BIO_SEGS_CTX *)b->ptr;
@@ -429,8 +431,10 @@ static int Z_signdev_drop_inner(Z_sign_device *signDev, fz_context *ctx);
 static Z_sign_device *Z_signdev_keep_inner(Z_sign_device *signDev, fz_context *ctx);
 static BIO* Z_file_segment_BIO(fz_context *ctx, const char *filename, pdf_obj *byterange);
 static fz_buffer* Z_openssl_sign_bio(fz_context *ctx, Z_openssl_signer *signer, BIO *bio);
-static pdf_obj *Z_pdf_addSign_annot_ap_xobj_frm(Z_PdfSignContext *signctx);
+static pdf_obj *Z_pdf_addSign_annot_ap_image (Z_PdfSignContext *signctx);
+static pdf_obj *Z_pdf_addSign_annot_ap_script(Z_PdfSignContext *signctx);
 static pdf_obj *Z_pdf_addSign_annot_appearence(fz_context *ctx, pdf_document *doc, pdf_page *page);
+static pdf_obj *Z_pdf_addSign_annot_oc(fz_context * ctx, pdf_document *doc);
 
 struct Z_sign_device_context_s
 {
@@ -448,6 +452,7 @@ Z_sign_device *Z_openssl_SignDev_new(fz_context *ctx, const char *file, const ch
     Z_openssl_signer *signer = NULL;
     fz_try(ctx)
     {
+        Z_InitOpenSSL(ctx);
         signer = Z_openssl_signer_new(ctx, file, pw);
 
         signDev = fz_malloc_struct(ctx, Z_sign_device);
@@ -497,7 +502,6 @@ static int Z_signdev_drop_inner(Z_sign_device *this, fz_context *ctx)
 static Z_sign_device *Z_signdev_keep_inner(Z_sign_device *signdev, fz_context *ctx)
 {
     signdev->ref++;
-    Z_openssl_keep_signer(ctx, (Z_openssl_signer*)signdev->signer);
     return signdev;
 }
 
@@ -801,6 +805,7 @@ struct Z_pdf_SignContext_s
         fz_image *image;
         pdf_obj *obj;
     };
+
     union {
         struct IMAGE_CTX imagectx;
         fz_buffer *scriptbuf;
@@ -943,18 +948,22 @@ static pdf_obj *Z_pdf_addSign_annot(fz_context *ctx, pdf_document *doc,
     return annot;
 }
 
-static pdf_obj *Z_pdf_addSign_annot_ap_xobj_frm_from_scriptbuffer(fz_context *ctx,
-        pdf_document *doc, pdf_page *page, fz_buffer *bf)
+static pdf_obj *Z_pdf_addSign_annot_ap_script(Z_PdfSignContext *signctx)
 {
+    fz_context *ctx = signctx->ctx;
+    pdf_document *doc = signctx->doc;
+    fz_buffer *bf = signctx->scriptbuf;
+
     char *objstr = "<</Type/XObject/Subtype/Form/FormType 1/Filter/FlateDecode>>";
     pdf_obj *frm = NULL;
+
     frm = pdf_new_obj_from_str(ctx, doc, objstr);
     frm = pdf_add_object_drop(ctx, doc, frm);
     pdf_update_stream(ctx, doc, frm, bf, 1); 
     return frm;
 }
 
-static pdf_obj *Z_pdf_addSign_annot_ap_xobj_frm(Z_PdfSignContext *signctx) 
+static pdf_obj *Z_pdf_addSign_annot_ap_image(Z_PdfSignContext *signctx) 
 {
     fz_context *ctx = signctx->ctx;
     pdf_document *doc = signctx->doc; 
@@ -962,9 +971,9 @@ static pdf_obj *Z_pdf_addSign_annot_ap_xobj_frm(Z_PdfSignContext *signctx)
     fz_rect *rect = &signctx->range;
 
     const char *imagename = "ntkoimage";
-    const char *script = "q /%s gs 1 0 0 1 0 0 cm\n"   \
-            "100.00 0 0 100.00 0 0 cm /%s Do Q\n";//      \
-            // "q 0.9 0 0 0.9 5 5 cm /n3 Do Q";
+    const char *script = "q /%s gs 1 0 0 1 0 0 cm\n"    \
+            "100.00 0 0 100.00 0 0 cm /%s Do Q\n"       \
+            "q 0.9 0 0 0.9 5 5 cm /n3 Do Q";
 
     pdf_obj *xobj = NULL;
     pdf_obj *resobj = NULL;
@@ -1010,10 +1019,6 @@ static pdf_obj *Z_pdf_addSign_annot_ap_xobj_frm(Z_PdfSignContext *signctx)
     pdf_dict_puts_drop(ctx, xobj, "FormType", pdf_new_int(ctx, doc, 1));
 
     if( !signctx->imagectx.obj) {
-        // if doc->resources not exist, must init res table first,  
-        // or calling pdf_add_image cause crash!!
-        if(!doc->resources) 
-            pdf_init_resource_tables(ctx, doc);
         signctx->imagectx.obj = pdf_add_image(ctx, doc, image, 0);
     }
 
@@ -1029,7 +1034,6 @@ static pdf_obj *Z_pdf_addSign_annot_ap_xobj_frm(Z_PdfSignContext *signctx)
     fz_buffer_printf(ctx, buff, script, ntkoextobjname, uniqeName);
     pdf_update_stream(ctx, doc, xobj, buff, 1);
     fz_drop_buffer(ctx, buff); buff=NULL;
-
 
     return xobj;
 }
@@ -1052,10 +1056,18 @@ static pdf_obj *Z_pdf_addSign_annot_appearence(fz_context *ctx, pdf_document *do
     return apobj;
 }
 
-int Z_pdf_add_sign(Z_PdfSignContext *signctx)
+static pdf_obj *Z_pdf_addSign_annot_oc(fz_context * ctx, pdf_document *doc)
 {
-    if(!signctx) return 0;
-    const char *ocobjstr = "<</Type/OCG/Name(Copyright notice)/Usage<</Print<</PrintState/OFF>>>>>>"; 
+    const char *objstr = "<</Type/OCG/Name(Copyright notice)/Usage<</Print<</PrintState/OFF>>>>>>"; 
+    pdf_obj *obj = pdf_new_obj_from_str(ctx, doc, objstr);
+    return pdf_add_object_drop(ctx, doc, obj); 
+}
+
+int Z_pdf_add_sign(Z_PdfSignContext *signctx, Z_sign_device *signdev)
+{
+    if(!signctx || !signdev)
+        return 0; 
+
     char path[64] = {0};
     snprintf(path, 64, "Resources/ExtGState/%s", ntkoextobjname);
 
@@ -1065,17 +1077,15 @@ int Z_pdf_add_sign(Z_PdfSignContext *signctx)
     
     signctx->dsblankobj = Z_pdf_add_dsblankfrm(ctx, doc);
     signctx->extgstate = Z_pdf_add_ntko_extgstate(ctx, doc);
+
     if(1==signctx->stmtype)
-        signctx->annotfrm = Z_pdf_addSign_annot_ap_xobj_frm(signctx);
+        signctx->annotfrm = Z_pdf_addSign_annot_ap_image(signctx);
     if(2==signctx->stmtype)
-        signctx->annotfrm = Z_pdf_addSign_annot_ap_xobj_frm_from_scriptbuffer(
-                ctx, doc, page, signctx->scriptbuf);
+        signctx->annotfrm = Z_pdf_addSign_annot_ap_script(signctx);
 
     signctx->annot = Z_pdf_addSign_annot(ctx, doc, signctx->pageno, &signctx->range);
     signctx->annotap = Z_pdf_addSign_annot_appearence(ctx, doc, page);
-    signctx->annotoc = pdf_add_object_drop(ctx, doc, 
-            pdf_new_obj_from_str(ctx, doc, ocobjstr));
-
+    signctx->annotoc = Z_pdf_addSign_annot_oc(ctx, doc);
     pdf_dict_putp(ctx, signctx->annotap, "Resources/XObject/FRM", signctx->annotfrm);
     pdf_dict_putp(ctx, signctx->annotfrm, path, signctx->extgstate);
     pdf_dict_putp(ctx, signctx->annot, "AP/N", signctx->annotap);
@@ -1115,12 +1125,7 @@ int Z_pdf_add_sign(Z_PdfSignContext *signctx)
     pdf_drop_page(ctx, page); 
 
     fz_try(ctx){
-        Z_InitOpenSSL(ctx);
-        Z_sign_device *signdev = Z_openssl_SignDev_new(ctx,
-                "/Users/zl03jsj/Documents/mupdf/source/z_/Test/user/zl.pfx",
-                "111111");
         signctx->signobj = pdf_signature_set_value(ctx, doc, signctx->annot, signdev);
-        Z_signdev_drop(signdev, ctx);
     }
     fz_catch(ctx){
         printf("openssl error:%s\n",ctx->error->message);
@@ -1155,11 +1160,14 @@ void Z_PdfSignCtxDisplay(Z_PdfSignContext *signctx)
 }
 
 void Z_InitOpenSSL(fz_context *ctx) {
+    if(1==OpensslInited) {
+        return; 
+    }
     ERR_load_crypto_strings();
+    // add all digest and chiphers
     OpenSSL_add_all_algorithms();
-//    EVP_add_digest(EVP_md5());
-//    EVP_add_digest(EVP_sha1());
     ERR_clear_error();
+    OpensslInited = 1;
 }  
 
 char *base64(const void *input, int length)  

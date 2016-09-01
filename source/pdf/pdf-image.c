@@ -333,7 +333,17 @@ pdf_add_image(fz_context *ctx, pdf_document *doc, fz_image *image, int mask)
 		/* Before we add this image as a resource check if the same image
 		 * already exists in our resources for this doc.  If yes, then
 		 * hand back that reference */
-		imref = pdf_find_resource(ctx, doc, doc->resources->image, image, digest);
+        if(!doc->resources) {
+            pdf_init_resource_tables(ctx, doc);
+        }
+        /* if image obj is find,  rerturns a ref of the image object
+         * modified by zl [2016-08-26 14:46:05] */
+        imref = pdf_find_resource(ctx, doc, doc->resources->image, image, digest);
+        if(imref) {
+            if(!pdf_is_indirect(ctx, imref)) {
+                imref = pdf_new_indirect(ctx, doc, pdf_obj_parent_num(ctx, imref), 0); 
+            }
+        }
 		if (imref == NULL)
 		{
 			if (cbuffer != NULL && cbuffer->params.type != FZ_IMAGE_PNG && cbuffer->params.type != FZ_IMAGE_TIFF)
