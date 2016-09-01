@@ -1,9 +1,14 @@
 #include "mupdf/pdf.h"
 
-#define HAVE_OPENSSL 
+// #define HAVE_OPENSSL 
 #ifdef HAVE_OPENSSL
-
 #pragma message("HAVE_OPENSSL is defined!!!")
+
+#ifdef Z_pdf_sign_ 
+#pragma message("Z_pdf_sign_ is defined!!!")
+#else
+#pragma message("Z_pdf_sign_ is not defined!!!")
+#endif
 
 #include "openssl/err.h"
 #include "openssl/bio.h"

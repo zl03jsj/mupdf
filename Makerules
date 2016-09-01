@@ -244,4 +244,4 @@ CFLAGS += -DHAVE_PTHREADS
 LIBS += -lpthread
 endif
 
-Use_Z_test ?= yes
+USE_Z_SIGN ?= yes

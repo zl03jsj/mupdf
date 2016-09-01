@@ -1,4 +1,4 @@
-# GNU Makefile
+# GNU Makefile 
 
 build ?= release
 
@@ -21,9 +21,10 @@ LIBS += $(XLIBS) -lm
 ifeq "$(HAVE_OPENSSL)" "yes"
 OPENSSL_CFLAGS = $(SYS_OPENSSL_CFLAGS)
 OPENSSL_LIBS = $(SYS_OPENSSL_LIBS)
+OPENSSL_CFLAGS+=-DHAVE_OPENSSL
 
-ifeq  "$(Use_Z_test)" "yes"
-	OPENSSL_CFLAGS += -DZ_pdf_sign_
+ifeq  "$(USE_Z_SIGN)" "yes"
+	OPENSSL_CFLAGS+=-DZ_pdf_sign_
 endif
 
 endif
@@ -433,11 +434,17 @@ nuke:
 	rm -rf build/* $(GEN) $(NAME_GEN)
 
 release:
+	@echo makerelease!!!!!=====
+	@echo libs=${LIBS}
+	@echo flags=${CFLAGS}
+	@echo opensslflags=${OPENSSL_CFLAGS}
 	$(MAKE) build=release
+	@echo make down!!!!!=====
 debug:
 	@echo makedebug!!!!!=====
 	@echo libs=${LIBS}
 	@echo flags=${CFLAGS}
+	@echo opensslflags=${OPENSSL_CFLAGS}
 	$(MAKE) build=debug 
 	@echo make down!!!!!=====
 
