@@ -426,6 +426,7 @@ typedef struct Z_openssl_signer_s
 
 Z_openssl_signer* Z_openssl_signer_new(fz_context *ctx, const char *pfile, const char *pass);
 Z_openssl_signer* Z_keep_signer(fz_context *ctx,  Z_openssl_signer *signer);
+static void Z_InitOpenSSL(fz_context *ctx);
 static void Z_openssl_drop_signer(fz_context *ctx, Z_openssl_signer *signer);
 static Z_openssl_signer *Z_openssl_keep_signer(fz_context *ctx, Z_openssl_signer *signer);
 typedef int(Z_SignDev_drop_fn)(Z_sign_device *signDev, fz_context *ctx);
@@ -440,6 +441,7 @@ static pdf_obj *Z_pdf_addSign_annot_ap_image (Z_PdfSignContext *signctx);
 static pdf_obj *Z_pdf_addSign_annot_ap_script(Z_PdfSignContext *signctx);
 static pdf_obj *Z_pdf_addSign_annot_appearence(fz_context *ctx, pdf_document *doc, pdf_page *page);
 static pdf_obj *Z_pdf_addSign_annot_oc(fz_context * ctx, pdf_document *doc);
+// static void *Z_didSignedCallback(fz_context *ctx, Z_sign_device *signdev, char *signeddata, int len);
 
 struct Z_sign_device_context_s
 {

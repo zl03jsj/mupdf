@@ -10,7 +10,7 @@
  *       Revision:  none
  *       Compiler:  gcc
  *
- *         Author:  YOUR NAME (), 
+ *         Author:  YOUR NAME (),
  *   Organization:  
  *
  * =====================================================================================
@@ -65,7 +65,7 @@ Z_PdfSignContext *Z_PdfSignCtxInit(fz_context *ctx, pdf_document *doc,
         int pageno, int stmtype, void *stm, fz_rect r);
 int Z_PdfSignCtxClear(Z_PdfSignContext *signCtx);
 int Z_pdf_add_sign(Z_PdfSignContext *signctx, Z_sign_device *sigdev);
-void Z_InitOpenSSL(fz_context *ctx);
+// void Z_InitOpenSSL(fz_context *ctx);
 
 #ifdef __cplusplus
 }

@@ -52,7 +52,9 @@ mkdir -p "$BUILT_PRODUCTS_DIR"
 if [ "$HAVE_OPENSSL" = "yes" ] 
 then
 echo copy openssl libs
-cp -f  ../../thirdparty/openssl/ios/$ARCHS/lib*.a $BUILT_PRODUCTS_DIR
+echo cp -f  ../../thirdparty/openssl/ios/$ARCHS/lib*.a $BUILT_PRODUCTS_DIR
+#cp -f  ../../thirdparty/openssl/ios/$ARCHS/lib*.a $BUILT_PRODUCTS_DIR
+cp -f  ../../thirdparty/openssl/ios/lib*.a $BUILT_PRODUCTS_DIR
 else
 echo "HAVE_OPENSSL=${HAVE_OPENSSL}"
 fi
