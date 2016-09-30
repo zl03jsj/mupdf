@@ -14,8 +14,8 @@ fi
 export OS=ios
 export build=$(echo $CONFIGURATION | tr A-Z a-z)
 
-export HAVE_OPENSSL=yes
-export USE_Z_SIGN=yes
+#export HAVE_OPENSSL=yes
+#export USE_Z_SIGN=yes
 
 echo HAVE_OPENSSL=$HAVE_OPENSSL
 echo USE_Z_SIGN=$USE_Z_SIGN
@@ -52,11 +52,12 @@ mkdir -p "$BUILT_PRODUCTS_DIR"
 if [ "$HAVE_OPENSSL" = "yes" ] 
 then
 echo copy openssl libs
-echo cp -f  ../../thirdparty/openssl/ios/$ARCHS/lib*.a $BUILT_PRODUCTS_DIR
-#cp -f  ../../thirdparty/openssl/ios/$ARCHS/lib*.a $BUILT_PRODUCTS_DIR
 cp -f  ../../thirdparty/openssl/ios/lib*.a $BUILT_PRODUCTS_DIR
-else
-echo "HAVE_OPENSSL=${HAVE_OPENSSL}"
+fi
+
+if [ "$MTokenLib" = "yes" ]
+then
+cp -f ./z/signdevice/mtoken/Lib/lib*.a $BUILT_PRODUCTS_DIR
 fi
 
 cp -f ../../$OUT/lib*.a $BUILT_PRODUCTS_DIR

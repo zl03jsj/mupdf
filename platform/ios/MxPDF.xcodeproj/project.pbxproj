@@ -7,12 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		6810362E1D9E637C004EBEF8 /* common.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 6810362D1D9E637C004EBEF8 /* common.xcconfig */; };
+		6810362F1D9E637C004EBEF8 /* common.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 6810362D1D9E637C004EBEF8 /* common.xcconfig */; };
+		681036301D9E6444004EBEF8 /* libmTokenK5.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 685AB6E21D864604001893A0 /* libmTokenK5.a */; };
+		681036321D9E6818004EBEF8 /* MuTextFieldController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 681036311D9E6818004EBEF8 /* MuTextFieldController.xib */; };
 		68398CC61D8949E500C00BBF /* SigndeviceMTokenView.m in Sources */ = {isa = PBXBuildFile; fileRef = 68398CC31D8949E500C00BBF /* SigndeviceMTokenView.m */; };
 		68398CCA1D894A6700C00BBF /* CtnPickerview.m in Sources */ = {isa = PBXBuildFile; fileRef = 68398CC91D894A6700C00BBF /* CtnPickerview.m */; };
 		68398CCB1D894DAA00C00BBF /* CtnPickerview.m in Sources */ = {isa = PBXBuildFile; fileRef = 68398CC91D894A6700C00BBF /* CtnPickerview.m */; };
-		684A0B0F1D7D764C00BAA411 /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 684A0B0E1D7D764C00BAA411 /* CoreBluetooth.framework */; };
 		686ED0711D8654790063F392 /* SignDevice.m in Sources */ = {isa = PBXBuildFile; fileRef = 6811AC6E1D8641B900887464 /* SignDevice.m */; };
-		686ED0771D8657560063F392 /* libmTokenK5.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 685AB6E21D864604001893A0 /* libmTokenK5.a */; };
 		687B17F01D8FFE5F00345A80 /* uilabel_designable.m in Sources */ = {isa = PBXBuildFile; fileRef = 687B17EF1D8FFE5F00345A80 /* uilabel_designable.m */; };
 		687B17F11D8FFE5F00345A80 /* uilabel_designable.m in Sources */ = {isa = PBXBuildFile; fileRef = 687B17EF1D8FFE5F00345A80 /* uilabel_designable.m */; };
 		6887ECF71D93D4C400B006DC /* SigndeviceDiscoveryView.m in Sources */ = {isa = PBXBuildFile; fileRef = 6887ECF61D93D4C400B006DC /* SigndeviceDiscoveryView.m */; };
@@ -24,8 +26,6 @@
 		68A14F9B1D87A9700013B0AC /* uibutton_designable.m in Sources */ = {isa = PBXBuildFile; fileRef = 68A14F9A1D87A9700013B0AC /* uibutton_designable.m */; };
 		68A14F9C1D87A9700013B0AC /* uibutton_designable.m in Sources */ = {isa = PBXBuildFile; fileRef = 68A14F9A1D87A9700013B0AC /* uibutton_designable.m */; };
 		68A14F9D1D87AA380013B0AC /* uiview_designable.m in Sources */ = {isa = PBXBuildFile; fileRef = 68CF0B711D868E82005AC761 /* uiview_designable.m */; };
-		68C2DD171D9D05F0005B070F /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 684A0B171D7E5D1D00BAA411 /* libcrypto.a */; };
-		68C2DD181D9D05F0005B070F /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 684A0B191D7E5D3500BAA411 /* libssl.a */; };
 		68C2DD191D9D0F53005B070F /* SigndeviceMTokenView.m in Sources */ = {isa = PBXBuildFile; fileRef = 68398CC31D8949E500C00BBF /* SigndeviceMTokenView.m */; };
 		68C3CC861D9127B0008DE360 /* SignDeviceDiscoveryView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 68C3CC851D9127B0008DE360 /* SignDeviceDiscoveryView.xib */; };
 		68C3CC871D9127B0008DE360 /* SignDeviceDiscoveryView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 68C3CC851D9127B0008DE360 /* SignDeviceDiscoveryView.xib */; };
@@ -37,7 +37,6 @@
 		68DFA9E81D86951000AC9FF6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 68DFA9E71D86951000AC9FF6 /* Assets.xcassets */; };
 		68DFA9EB1D86951000AC9FF6 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 68DFA9E91D86951000AC9FF6 /* LaunchScreen.storyboard */; };
 		68DFA9F31D86955100AC9FF6 /* uiview_designable.m in Sources */ = {isa = PBXBuildFile; fileRef = 68CF0B711D868E82005AC761 /* uiview_designable.m */; };
-		68E7574E1D829AF300610386 /* MuTextFieldController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 68E757501D829AF300610386 /* MuTextFieldController.xib */; };
 		68EEA7FD1D82BDE800A80D71 /* libstdc++.6.0.9.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 68EEA7FC1D82BDE800A80D71 /* libstdc++.6.0.9.dylib */; };
 		7C6152E819DDD6A90095ECAC /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7C6152E719DDD6A90095ECAC /* Images.xcassets */; };
 		7C6152EA19DDF05B0095ECAC /* Launch Screen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 7C6152E919DDF05B0095ECAC /* Launch Screen.xib */; };
@@ -97,12 +96,13 @@
 
 /* Begin PBXFileReference section */
 		680613571D4B4433001F4574 /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../../../openssl/lib/iOS/libssl.a; sourceTree = "<group>"; };
+		6810362D1D9E637C004EBEF8 /* common.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = common.xcconfig; sourceTree = "<group>"; };
+		681036311D9E6818004EBEF8 /* MuTextFieldController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = MuTextFieldController.xib; path = Classes/MuTextFieldController.xib; sourceTree = "<group>"; };
 		6811AC6E1D8641B900887464 /* SignDevice.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = SignDevice.m; path = z/signdevice/SignDevice.m; sourceTree = "<group>"; };
 		68398CC21D8949E500C00BBF /* SigndeviceMTokenView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SigndeviceMTokenView.h; path = z/signdevice/mtoken/SigndeviceMTokenView.h; sourceTree = "<group>"; };
 		68398CC31D8949E500C00BBF /* SigndeviceMTokenView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = SigndeviceMTokenView.m; path = z/signdevice/mtoken/SigndeviceMTokenView.m; sourceTree = "<group>"; };
 		68398CC81D894A6700C00BBF /* CtnPickerview.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CtnPickerview.h; path = z/signdevice/mtoken/CtnPickerview.h; sourceTree = "<group>"; };
 		68398CC91D894A6700C00BBF /* CtnPickerview.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = CtnPickerview.m; path = z/signdevice/mtoken/CtnPickerview.m; sourceTree = "<group>"; };
-		684A0B0E1D7D764C00BAA411 /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS9.3.sdk/System/Library/Frameworks/CoreBluetooth.framework; sourceTree = DEVELOPER_DIR; };
 		684A0B171D7E5D1D00BAA411 /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = ../../thirdparty/openssl/ios/arm64/libcrypto.a; sourceTree = "<group>"; };
 		684A0B191D7E5D3500BAA411 /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../../thirdparty/openssl/ios/arm64/libssl.a; sourceTree = "<group>"; };
 		684A0B291D7E629800BAA411 /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = ../../thirdparty/openssl/ios/libcrypto.a; sourceTree = "<group>"; };
@@ -110,7 +110,6 @@
 		685AB6E21D864604001893A0 /* libmTokenK5.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmTokenK5.a; path = z/signdevice/mtoken/Lib/libmTokenK5.a; sourceTree = "<group>"; };
 		685AB6F91D864DD2001893A0 /* K5AlgoDefs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = K5AlgoDefs.h; path = z/signdevice/mtoken/Include/K5AlgoDefs.h; sourceTree = "<group>"; };
 		685AB6FA1D864DD2001893A0 /* K5SOFApp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = K5SOFApp.h; path = z/signdevice/mtoken/Include/K5SOFApp.h; sourceTree = "<group>"; };
-		687641C21D83CF2F00EC03D3 /* libmTokenK5.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmTokenK5.a; path = z/signkeykit/mtoken/Lib/libmTokenK5.a; sourceTree = "<group>"; };
 		687B17EE1D8FFE5F00345A80 /* uilabel_designable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = uilabel_designable.h; path = z/uidesignable/uilabel_designable.h; sourceTree = "<group>"; };
 		687B17EF1D8FFE5F00345A80 /* uilabel_designable.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = uilabel_designable.m; path = z/uidesignable/uilabel_designable.m; sourceTree = "<group>"; };
 		6887ECF51D93D4C400B006DC /* SigndeviceDiscoveryView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SigndeviceDiscoveryView.h; path = z/signdevice/SigndeviceDiscoveryView.h; sourceTree = "<group>"; };
@@ -123,7 +122,6 @@
 		68A14F921D86A5640013B0AC /* SigndeviceMTokenView.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = SigndeviceMTokenView.xib; path = z/signdevice/mtoken/SigndeviceMTokenView.xib; sourceTree = "<group>"; };
 		68A14F991D87A9700013B0AC /* uibutton_designable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = uibutton_designable.h; path = z/uidesignable/uibutton_designable.h; sourceTree = "<group>"; };
 		68A14F9A1D87A9700013B0AC /* uibutton_designable.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = uibutton_designable.m; path = z/uidesignable/uibutton_designable.m; sourceTree = "<group>"; };
-		68ACFE411D82B39B0011D21F /* libmTokenK5.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmTokenK5.a; path = signkeykit/mtoken/Lib/libmTokenK5.a; sourceTree = "<group>"; };
 		68C3CC851D9127B0008DE360 /* SignDeviceDiscoveryView.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = SignDeviceDiscoveryView.xib; sourceTree = "<group>"; };
 		68CF0B701D868E82005AC761 /* uiview_designable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = uiview_designable.h; path = z/uidesignable/uiview_designable.h; sourceTree = "<group>"; };
 		68CF0B711D868E82005AC761 /* uiview_designable.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = uiview_designable.m; path = z/uidesignable/uiview_designable.m; sourceTree = "<group>"; };
@@ -138,7 +136,6 @@
 		68DFA9E71D86951000AC9FF6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		68DFA9EA1D86951000AC9FF6 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		68DFA9EC1D86951000AC9FF6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		68E7574F1D829AF300610386 /* en */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = en; path = en.lproj/MuTextFieldController.xib; sourceTree = "<group>"; };
 		68EEA7FC1D82BDE800A80D71 /* libstdc++.6.0.9.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libstdc++.6.0.9.dylib"; path = "../../../../../../usr/lib/libstdc++.6.0.9.dylib"; sourceTree = "<group>"; };
 		7C6152E719DDD6A90095ECAC /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = MuPDF/Images.xcassets; sourceTree = "<group>"; };
 		7C6152E919DDF05B0095ECAC /* Launch Screen.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = "Launch Screen.xib"; path = "MuPDF/Launch Screen.xib"; sourceTree = "<group>"; };
@@ -223,13 +220,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				68C2DD171D9D05F0005B070F /* libcrypto.a in Frameworks */,
-				68C2DD181D9D05F0005B070F /* libssl.a in Frameworks */,
-				686ED0771D8657560063F392 /* libmTokenK5.a in Frameworks */,
+				681036301D9E6444004EBEF8 /* libmTokenK5.a in Frameworks */,
 				68EEA7FD1D82BDE800A80D71 /* libstdc++.6.0.9.dylib in Frameworks */,
 				96C8ED1C1779A9AF00A30AF4 /* libmupdf.a in Frameworks */,
 				96C8ED1B1779A9AF00A30AF4 /* libmupdfthird.a in Frameworks */,
-				684A0B0F1D7D764C00BAA411 /* CoreBluetooth.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -296,6 +290,7 @@
 				681EF3291D83D69B00BAF640 /* src */,
 				681EF3251D83D24800BAF640 /* uidesignable */,
 				681EF3241D83D21A00BAF640 /* signdevice */,
+				6810362D1D9E637C004EBEF8 /* common.xcconfig */,
 			);
 			name = z;
 			sourceTree = "<group>";
@@ -362,14 +357,11 @@
 				689D28EA1D9923A3005A869C /* UIKit.framework */,
 				689D28E81D992326005A869C /* CoreBluetooth.framework */,
 				685AB6E21D864604001893A0 /* libmTokenK5.a */,
-				687641C21D83CF2F00EC03D3 /* libmTokenK5.a */,
 				68EEA7FC1D82BDE800A80D71 /* libstdc++.6.0.9.dylib */,
-				68ACFE411D82B39B0011D21F /* libmTokenK5.a */,
 				684A0B291D7E629800BAA411 /* libcrypto.a */,
 				684A0B2A1D7E629800BAA411 /* libssl.a */,
 				684A0B191D7E5D3500BAA411 /* libssl.a */,
 				684A0B171D7E5D1D00BAA411 /* libcrypto.a */,
-				684A0B0E1D7D764C00BAA411 /* CoreBluetooth.framework */,
 				680613571D4B4433001F4574 /* libssl.a */,
 			);
 			name = Frameworks;
@@ -439,7 +431,7 @@
 				DAB20D4718045AC40030623F /* MuDialogCreator.h */,
 				DA4C061F187B1EA200755D0D /* MuTextFieldController.h */,
 				DA4C0620187B1EA200755D0D /* MuTextFieldController.m */,
-				68E757501D829AF300610386 /* MuTextFieldController.xib */,
+				681036311D9E6818004EBEF8 /* MuTextFieldController.xib */,
 				DAFF9978187C12430081C756 /* MuChoiceFieldController.h */,
 				DAFF9979187C12430081C756 /* MuChoiceFieldController.m */,
 				DAFF997A187C12430081C756 /* MuChoiceFieldController.xib */,
@@ -554,7 +546,9 @@
 				68DFA9EB1D86951000AC9FF6 /* LaunchScreen.storyboard in Resources */,
 				68A14F931D86A5640013B0AC /* SigndeviceMTokenView.xib in Resources */,
 				68DFA9E81D86951000AC9FF6 /* Assets.xcassets in Resources */,
+				6810362E1D9E637C004EBEF8 /* common.xcconfig in Resources */,
 				68DFA9E31D86951000AC9FF6 /* Main.storyboard in Resources */,
+				681036321D9E6818004EBEF8 /* MuTextFieldController.xib in Resources */,
 				68C3CC861D9127B0008DE360 /* SignDeviceDiscoveryView.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -568,13 +562,13 @@
 				68C3CC871D9127B0008DE360 /* SignDeviceDiscoveryView.xib in Resources */,
 				DA7AAA3B18E4683600A577E3 /* ic_annotation.png in Resources */,
 				DA7AAA3C18E4683600A577E3 /* ic_print.png in Resources */,
-				68E7574E1D829AF300610386 /* MuTextFieldController.xib in Resources */,
 				DAFF997C187C12430081C756 /* MuChoiceFieldController.xib in Resources */,
 				96E1CDF31779A60700FCF717 /* x_alt_blue.png in Resources */,
 				7C6152E819DDD6A90095ECAC /* Images.xcassets in Resources */,
 				96E1CDF41779A60700FCF717 /* x_alt_blue@2x.png in Resources */,
 				DAB9F4BB17F1B24000117D2E /* ic_arrow_left.png in Resources */,
 				DAB9F4BC17F1B24000117D2E /* ic_arrow_right.png in Resources */,
+				6810362F1D9E637C004EBEF8 /* common.xcconfig in Resources */,
 				DAB9F4BD17F1B24000117D2E /* ic_cancel.png in Resources */,
 				DAB9F4BE17F1B24000117D2E /* ic_link.png in Resources */,
 				DAB9F4BF17F1B24000117D2E /* ic_list.png in Resources */,
@@ -703,15 +697,6 @@
 			name = LaunchScreen.storyboard;
 			sourceTree = "<group>";
 		};
-		68E757501D829AF300610386 /* MuTextFieldController.xib */ = {
-			isa = PBXVariantGroup;
-			children = (
-				68E7574F1D829AF300610386 /* en */,
-			);
-			name = MuTextFieldController.xib;
-			path = Classes;
-			sourceTree = "<group>";
-		};
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
@@ -759,6 +744,7 @@
 		};
 		68DFA9EF1D86951000AC9FF6 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 6810362D1D9E637C004EBEF8 /* common.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -798,6 +784,7 @@
 		963AD8CC17D5FFD9000B0779 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				IPHONEOS_DEPLOYMENT_TARGET = 6.1;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 			};
@@ -805,7 +792,9 @@
 		};
 		963AD8CD17D5FFD9000B0779 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 6810362D1D9E637C004EBEF8 /* common.xcconfig */;
 			buildSettings = {
+				IPHONEOS_DEPLOYMENT_TARGET = 6.1;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 			};
@@ -848,6 +837,7 @@
 		};
 		968E1E591779A54F0050CEA3 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 6810362D1D9E637C004EBEF8 /* common.xcconfig */;
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_MODULES_AUTOLINK = YES;
@@ -909,6 +899,7 @@
 		};
 		968E1E5C1779A54F0050CEA3 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 6810362D1D9E637C004EBEF8 /* common.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
@@ -945,7 +936,7 @@
 				68DFA9EF1D86951000AC9FF6 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		963AD8CE17D5FFD9000B0779 /* Build configuration list for PBXLegacyTarget "Generate" */ = {
 			isa = XCConfigurationList;
@@ -954,7 +945,7 @@
 				963AD8CD17D5FFD9000B0779 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		968E1E381779A54F0050CEA3 /* Build configuration list for PBXProject "MxPDF" */ = {
 			isa = XCConfigurationList;
@@ -963,7 +954,7 @@
 				968E1E591779A54F0050CEA3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		968E1E5A1779A54F0050CEA3 /* Build configuration list for PBXNativeTarget "MxPDF" */ = {
 			isa = XCConfigurationList;
@@ -972,7 +963,7 @@
 				968E1E5C1779A54F0050CEA3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 

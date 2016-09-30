@@ -1,0 +1,10 @@
+//
+//  common.xcconfig
+//  MxPDF
+//
+//  Created by 曾亮 on 30/09/2016.
+//  Copyright © 2016 Artifex Software, Inc. All rights reserved.
+//
+HAVE_OPENSSL = no
+USE_Z_SIGN = no
+MTokenLib =  no

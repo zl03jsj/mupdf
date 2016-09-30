@@ -414,7 +414,7 @@ void pdf_xref_store_unsaved_signature(fz_context *ctx, pdf_document *doc, pdf_ob
 #ifdef Z_pdf_sign_
     unsaved_sig->signDev = Z_signdev_keep((Z_sign_device*)dev, ctx);
 #else
-	unsaved_sig->signer = pdf_keep_signer(ctx, (pdf_signer*)signdev);
+	unsaved_sig->signer = pdf_keep_signer(ctx, (pdf_signer*)dev);
 #endif
 
 	unsaved_sig->next = NULL;

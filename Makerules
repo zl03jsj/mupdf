@@ -51,7 +51,7 @@ HAVE_X11 ?= no
 # Mac OS X doesn't have pkg-config so we hard code paths.
 else ifeq "$(OS)" "MACOS"
 
-HAVE_X11 ?= yes
+HAVE_X11 ?= no
 HAVE_PTHREADS ?= yes
 
 # Mac OS X deprecated openssl, so the default is to not include it.
@@ -146,6 +146,7 @@ CFLAGS += -O3 -mfpu=neon -mcpu=cortex-a8 -mfloat-abi=softfp -ftree-vectorize -ff
 CROSSCOMPILE=yes
 HAVE_PTHREADS ?= yes
 endif
+
 
 ifeq "$(OS)" "webos-pre-cross"
 CC = arm-none-linux-gnueabi-gcc
