@@ -14,15 +14,6 @@ fi
 export OS=ios
 export build=$(echo $CONFIGURATION | tr A-Z a-z)
 
-#export HAVE_OPENSSL=yes
-#export USE_Z_SIGN=yes
-
-echo HAVE_OPENSSL=$HAVE_OPENSSL
-echo USE_Z_SIGN=$USE_Z_SIGN
-
-echo 'configuration:'$CONFIGURATION 
-echo 'build':$build
-
 FLAGS="-Wno-unused-function -Wno-empty-body -Wno-implicit-function-declaration"
 for A in $ARCHS
 do
@@ -43,23 +34,11 @@ fi
 OUT=build/$build-$OS-$(echo $ARCHS | tr ' ' '-')
 
 echo Compiling libraries for $ARCHS.
-echo make -j4 -C ../.. OUT=$OUT XCFLAGS="$FLAGS" XLDFLAGS="$FLAGS" third libs
+echo make -j4 -C ../.. OUT=$OUT XCFLAGS="$FLAGS" XLDFLAGS="$FLAGS" third libs || exit 1
 make -j4 -C ../.. OUT=$OUT XCFLAGS="$FLAGS" XLDFLAGS="$FLAGS" third libs || exit 1
 
 echo Copying library to $BUILT_PRODUCTS_DIR/.
 mkdir -p "$BUILT_PRODUCTS_DIR"
-
-if [ "$HAVE_OPENSSL" = "yes" ] 
-then
-echo copy openssl libs
-cp -f  ../../thirdparty/openssl/ios/lib*.a $BUILT_PRODUCTS_DIR
-fi
-
-if [ "$MTokenLib" = "yes" ]
-then
-cp -f ./z/signdevice/mtoken/Lib/lib*.a $BUILT_PRODUCTS_DIR
-fi
-
 cp -f ../../$OUT/lib*.a $BUILT_PRODUCTS_DIR
 ranlib $BUILT_PRODUCTS_DIR/lib*.a
 
