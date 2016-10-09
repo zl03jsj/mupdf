@@ -549,8 +549,10 @@ scale_row_to_temp(unsigned char *dst, unsigned char *src, fz_weights *weights)
 	}
 }
 
-#ifdef ARCH_ARM
-
+#pragma message("not use asm code, becase of invalid asm instruction")
+// #if defined(ARMV7) || defined(ARM64)
+// #ifdef ARCH_ARM
+#if 0
 static void
 scale_row_to_temp1(unsigned char *dst, unsigned char *src, fz_weights *weights)
 __attribute__((naked));
@@ -946,6 +948,7 @@ scale_row_from_temp(unsigned char *dst, unsigned char *src, fz_weights *weights,
 	);
 }
 #else
+#pragma message("ARCH_ARM is not defined")
 
 static void
 scale_row_to_temp1(unsigned char *dst, unsigned char *src, fz_weights *weights)

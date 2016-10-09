@@ -51,7 +51,7 @@ HAVE_X11 ?= no
 # Mac OS X doesn't have pkg-config so we hard code paths.
 else ifeq "$(OS)" "MACOS"
 
-HAVE_X11 ?= no
+HAVE_X11 ?= yes
 HAVE_PTHREADS ?= yes
 
 # Mac OS X deprecated openssl, so the default is to not include it.
@@ -203,11 +203,18 @@ endif
 # The following section works for both device and simulator builds.
 
 ifeq "$(OS)" "ios"
+
+ifeq "$(HAVE_OPENSSL)" "yes"
+SYS_OPENSSL_CFLAGS = -DHAVE_OPENSSL
+SYS_OPENSSL_LIBS  = -L./thirdparty/openssl/macos -lcrypto -lssl
+endif
+
 CC = xcrun cc
 AR = xcrun ar
 LD = xcrun ld
 RANLIB_CMD = xcrun ranlib $@
 CROSSCOMPILE=yes
+
 endif
 
 ifeq "$(OS)" "tizen-arm"

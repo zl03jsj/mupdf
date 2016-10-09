@@ -18,21 +18,15 @@ include Makethird
 CFLAGS += $(XCFLAGS) -Iinclude -I$(GEN)
 LIBS += $(XLIBS) -lm
 
-ifeq "$(HAVE_OPENSSL)" "yes"
 OPENSSL_CFLAGS = $(SYS_OPENSSL_CFLAGS)
 OPENSSL_LIBS = $(SYS_OPENSSL_LIBS)
-OPENSSL_CFLAGS+=-DHAVE_OPENSSL
 
 ifeq  "$(USE_Z_SIGN)" "yes"
 	OPENSSL_CFLAGS+=-DZ_pdf_sign_
 endif
 
-endif
-
-ifeq "$(HAVE_X11)" "yes"
 X11_CFLAGS = $(SYS_X11_CFLAGS)
 X11_LIBS = $(SYS_X11_LIBS)
-endif
 
 LIBS += $(FREETYPE_LIBS)
 LIBS += $(HARFBUZZ_LIBS)
@@ -386,7 +380,7 @@ docdir ?= $(prefix)/share/doc/mupdf
 
 third: $(THIRD_LIB)
 extra: $(CURL_LIB) $(GLFW_LIB)
-libs: $(INSTALL_LIBS)
+libs: $(INSTALL_LIBS) compileinfo
 apps: $(INSTALL_APPS)
 
 install: libs apps
@@ -448,4 +442,9 @@ debug:
 	$(MAKE) build=debug 
 	@echo make down!!!!!=====
 
+compileinfo:
+	@echo  =================
+	@echo flags=${CFLAGS}
+	@echo opensslflags=${OPENSSL_CFLAGS}
+	@echo =================
 .PHONY: all clean nuke install third libs apps generate
