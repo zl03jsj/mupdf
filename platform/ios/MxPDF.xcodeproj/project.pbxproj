@@ -163,7 +163,7 @@
 		68398CC81D894A6700C00BBF /* CtnPickerview.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CtnPickerview.h; path = z/signdevice/mtoken/CtnPickerview.h; sourceTree = "<group>"; };
 		68398CC91D894A6700C00BBF /* CtnPickerview.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = CtnPickerview.m; path = z/signdevice/mtoken/CtnPickerview.m; sourceTree = "<group>"; };
 		6849926C1DA8EC6B0070C0B5 /* MxPDF_sign_supported.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MxPDF_sign_supported.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		6849926D1DA8EC6B0070C0B5 /* MaxPDF_sign_supported.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = MaxPDF_sign_supported.plist; path = /Users/zl03jsj/Documents/mupdf/platform/ios/MaxPDF_sign_supported.plist; sourceTree = "<absolute>"; };
+		6849926D1DA8EC6B0070C0B5 /* MxPDF_sign_supported.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = MxPDF_sign_supported.plist; path = /Users/zl03jsj/Documents/mupdf/platform/ios/MxPDF_sign_supported.plist; sourceTree = "<absolute>"; };
 		684A0B171D7E5D1D00BAA411 /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = ../../thirdparty/openssl/ios/arm64/libcrypto.a; sourceTree = "<group>"; };
 		684A0B191D7E5D3500BAA411 /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../../thirdparty/openssl/ios/arm64/libssl.a; sourceTree = "<group>"; };
 		684A0B291D7E629800BAA411 /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = ../../thirdparty/openssl/ios/libcrypto.a; sourceTree = "<group>"; };
@@ -406,7 +406,7 @@
 				68DFA9D71D86951000AC9FF6 /* uidesignable */,
 				968E1E3F1779A54F0050CEA3 /* Frameworks */,
 				968E1E3E1779A54F0050CEA3 /* Products */,
-				6849926D1DA8EC6B0070C0B5 /* MaxPDF_sign_supported.plist */,
+				6849926D1DA8EC6B0070C0B5 /* MxPDF_sign_supported.plist */,
 			);
 			sourceTree = "<group>";
 			usesTabs = 1;
