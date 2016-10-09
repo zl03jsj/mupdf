@@ -204,6 +204,8 @@ endif
 
 ifeq "$(OS)" "ios"
 
+HAVE_OPENSSL ?= no
+
 ifeq "$(HAVE_OPENSSL)" "yes"
 SYS_OPENSSL_CFLAGS = -DHAVE_OPENSSL
 SYS_OPENSSL_LIBS  = -L./thirdparty/openssl/macos -lcrypto -lssl

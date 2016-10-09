@@ -5,7 +5,6 @@
 //  Created by 曾亮 on 9/8/16.
 //  Copyright © 2016 Artifex Software, Inc. All rights reserved.
 //
-
 #import "SigndeviceMTokenView.h"
 
 @interface SigndeviceMTokenView() <K5SOFAppDelegate> {

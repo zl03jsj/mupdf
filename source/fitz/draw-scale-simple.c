@@ -948,8 +948,6 @@ scale_row_from_temp(unsigned char *dst, unsigned char *src, fz_weights *weights,
 	);
 }
 #else
-#pragma message("ARCH_ARM is not defined")
-
 static void
 scale_row_to_temp1(unsigned char *dst, unsigned char *src, fz_weights *weights)
 {

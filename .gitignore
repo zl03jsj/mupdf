@@ -63,3 +63,11 @@ platform/android/*/.settings
 *.exe
 *.log
 tags_stl
+pdftest
+source/z_/pdftest.dSYM/Contents/Info.plist
+thirdparty/openssl/ios/arm64/libcrypto.a
+thirdparty/openssl/ios/arm64/libssl.a
+thirdparty/openssl/ios/x86_64/libcrypto.a
+thirdparty/openssl/ios/x86_64/libssl.a
+thirdparty/openssl/macos/libcrypto.a
+thirdparty/openssl/macos/libssl.a

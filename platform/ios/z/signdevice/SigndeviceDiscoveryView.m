@@ -5,7 +5,6 @@
 //  Created by 曾亮 on 22/09/2016.
 //  Copyright © 2016 Artifex Software, Inc. All rights reserved.
 //
-
 #import "SigndeviceDiscoveryView.h"
 #import "mtoken/SigndeviceMTokenView.h"
 
@@ -53,7 +52,7 @@ static NSArray *supprotedDevicenames;
 	_devices = [[NSMutableDictionary alloc]init];
 	
 	K5SOFApp *k5sofapp = [[K5SOFApp alloc]init];
-	k5sofapp.delegate = self;
+	[k5sofapp setDelegate:self];
 	
 	_devices[NSStringFromClass([k5sofapp class])] = k5sofapp;
 	[k5sofapp release];
@@ -151,7 +150,6 @@ static NSArray *supprotedDevicenames;
 	if( _deviceView ){
 		[_deviceView release];
 	}
-	
 	_connectedDeivceclass = NSStringFromClass([K5SOFApp class]);
 
 	SigndeviceMTokenView *devView = [SigndeviceMTokenView loadFromNib];

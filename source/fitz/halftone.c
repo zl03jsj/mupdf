@@ -275,7 +275,6 @@ do_threshold_1(const unsigned char * restrict ht_line, const unsigned char * res
 	);
 }
 #else
-#pragma message("ARCH_ARM is not defined")
 static void do_threshold_1(const unsigned char * restrict ht_line, const unsigned char * restrict pixmap, unsigned char * restrict out, int w, int ht_len)
 {
 	int h;
