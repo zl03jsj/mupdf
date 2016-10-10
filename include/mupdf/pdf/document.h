@@ -148,6 +148,8 @@ void pdf_update_page(fz_context *ctx, pdf_document *doc, pdf_page *page);
 */
 int pdf_has_unsaved_changes(fz_context *ctx, pdf_document *doc);
 
+typedef struct Z_sign_device_context_s Z_sign_device;
+// typedef struct Z_signer_s Z_signer;
 typedef struct pdf_signer_s pdf_signer;
 
 /* Unsaved signature fields */
@@ -160,7 +162,12 @@ struct pdf_unsaved_sig_s
 	int byte_range_end;
 	int contents_start;
 	int contents_end;
-	pdf_signer *signer;
+#ifdef Z_pdf_sign_
+// #pragma message("Z_Pdf_sign is defined!!!")
+	Z_sign_device *signDev;
+#else
+    pdf_signer *signer;
+#endif
 	pdf_unsaved_sig *next;
 };
 

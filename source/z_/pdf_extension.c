@@ -67,6 +67,7 @@ int pdf_save_incremental_tofile(fz_context *ctx, pdf_document *doc,char *filenam
 	fz_unlock(ctx, FZ_LOCK_FREETYPE);
 
 	pdf_write_options opts = { 0 };
+    // opts.do_pretty = 1; // write tightly
 	opts.do_incremental = 1;
 	pdf_save_document(ctx, doc, filename, &opts);
 	return z_okay;
@@ -190,8 +191,8 @@ pdf_obj *pdf_add_extstate(fz_context *ctx, pdf_document *doc)
 	pdf_obj *extobj = pdf_new_dict(ctx, doc, 5);
 	pdf_dict_put_drop(ctx, extobj, PDF_NAME_Type, PDF_NAME_ExtGState);
 	pdf_dict_put_drop(ctx, extobj, PDF_NAME_BM, pdf_new_name(ctx, doc, "Darken"));
-	pdf_dict_put_drop(ctx, extobj, pdf_new_name(ctx, doc, "OP") , pdf_new_name(ctx, doc, "true"));
-	pdf_dict_put_drop(ctx, extobj, pdf_new_name(ctx, doc, "AIS"), pdf_new_name(ctx, doc, "false"));
+	pdf_dict_put_drop(ctx, extobj, pdf_new_name(ctx, doc, "OP") , pdf_new_bool(ctx, doc, 1));
+	pdf_dict_put_drop(ctx, extobj, pdf_new_name(ctx, doc, "AIS"), pdf_new_bool(ctx, doc, 0));
 	pdf_dict_put_drop(ctx, extobj, PDF_NAME_ca, pdf_new_real(ctx, doc, 1.0));
 	return pdf_add_object_drop(ctx, doc, extobj);
 } 
@@ -213,6 +214,7 @@ pdf_obj *pdf_add_pixmap(fz_context *ctx, pdf_document *doc, fz_pixmap *pixmap)
 	buffer = fz_pixmap_rgb(ctx, pixmap);
 	fz_buffer *bfCompressed_rgb = deflate_buffer_fromdata(ctx,
             (char*)(buffer->data), buffer->len);
+    fz_drop_buffer(ctx, buffer);
 	xi.colorspace = "DeviceRGB";
 	xi.data = bfCompressed_rgb;
 	xi.maskobj = maskobj;
@@ -226,10 +228,10 @@ pdf_obj *pdf_add_content(fz_context *ctx, pdf_document *doc,
 	char* xobjname, int x, int y, int w, int h)
 {
 	char bf[256] = { 0 };
-	const char* fmt = "q /%s gs 1 0 0 1 0.00 0.00 cm\n"	\
-		"%d 0 0 %d %d %d cm /%s Do Q";
-	int size = snprintf(bf, 255, fmt, ntkoextobjname, w, h, x, y,
-		xobjname);
+    const char* fmt = "q /%s gs 1 0 0 1 0.00 0.00 cm\n"	\
+        "%d 0 0 %d %d %d cm /%s Do Q";
+    int size = snprintf(bf, 255, fmt, ntkoextobjname, w, h, x, y,
+        xobjname);
 	fz_buffer *buffer = fz_new_buffer(ctx, size);
 	memcpy(buffer->data, bf, size);
 	buffer->len = size;
@@ -350,6 +352,9 @@ int pdf_add_image_with_filename(fz_context *ctx, char *pdffile, char *imgfile,
 	return code;
 }
 
+// #define redirect_error_output
+#ifdef redirect_error_output
+// Simulator code
 // stderr fileno is 2!!
 static FILE *stderr_new = NULL;
 static int oldfd = 0;
@@ -365,6 +370,10 @@ void stderr_restore() {
 	fflush(stderr_new); stderr_new = NULL;
 	_dup2(oldfd, 2);
 }
+#else
+void stderr_tofile(char *filename){};
+void stderr_restore() {};
+#endif
 
 fz_rect pdf_page_box(fz_context *ctx, pdf_document *doc, int pageno) {
 	pdf_obj *page = pdf_lookup_page_obj(ctx, doc, pageno);
@@ -404,16 +413,64 @@ int pdf_add_content_Stream(fz_context *ctx, pdf_document *doc, pdf_obj *page,
     if( ret == z_error ) {
         pdf_delete_object(ctx, doc, pdf_to_num(ctx, contentobjref));
         pdf_drop_obj(ctx, contentobj);
-    }
-	
+    }	
 //	fz_output *o = fz_new_output_with_file_ptr(ctx, stdout, 0);
 //	pdf_print_obj(ctx, o, extobjref, 1); printf("\n");
 //	pdf_print_obj(ctx, o, pdf_resolve_indirect(ctx, extobjref), 1); printf("\n");
 //	pdf_print_obj(ctx, o, contentobjref, 1); printf("\n");
 //	pdf_print_obj(ctx, o, contentobj, 1); printf("\n");
 //	pdf_print_obj(ctx, o, page, 1); printf("\n");
+//    fz_drop_output(ctx, o);
 	return ret;
 }
+
+/**
+ * @Synopsis 
+ *
+ * @Param ctx context
+ * @Param doc pdf documenbt
+ * @Param buf the stream of pdf_object
+ * @Param cp  is compress buf
+ *
+ * @Returns  pdf_obj if success, or NULL
+ */
+pdf_obj *
+Z_pdf_add_stream(fz_context *ctx, pdf_document *doc, fz_buffer *buf, int cp)
+{
+	pdf_obj *obj = pdf_add_object_drop(ctx, doc, pdf_new_dict(ctx, doc, 4));
+    fz_buffer *buftmp = NULL;
+	fz_try(ctx) {
+        if(cp){
+            buftmp = deflate_buffer_fromdata(ctx, (char*)buf->data, buf->len);
+            buf = buftmp;
+            pdf_dict_put_drop(ctx, obj, PDF_NAME_Filter, 
+                pdf_new_name(ctx, doc, "FlateDecode"));
+        }
+		pdf_update_stream(ctx, doc, obj, buf, 0);
+        if(buftmp) 
+            fz_drop_buffer(ctx, buftmp);
+    }
+	fz_catch(ctx) {
+		pdf_drop_obj(ctx, obj);
+        obj = NULL;
+    }
+	return obj;
+}
+
+void Z_pdf_obj_display(fz_context *ctx, pdf_obj *obj) 
+{
+    printf("===pdf object content display====\n");
+    fz_output *o = fz_new_output_with_file_ptr(ctx, stdout, 0);
+    pdf_print_obj(ctx, o, obj, 1);
+    printf("\n");
+    if(pdf_is_indirect(ctx, obj)) {
+        pdf_print_obj(ctx, o, pdf_resolve_indirect(ctx, obj), 1);
+        printf("\n");
+    }
+    fz_drop_output(ctx, o);
+}
+
+
 
 
 

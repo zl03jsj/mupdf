@@ -158,11 +158,31 @@ pdf_load_image_imp(fz_context *ctx, pdf_document *doc, pdf_obj *rdb, pdf_obj *di
 		{
 			/* Just load the compressed image data now and we can
 			 * decode it on demand. */
-			int num = pdf_to_num(ctx, dict);
-			int gen = pdf_to_gen(ctx, dict);
-			buffer = pdf_load_compressed_stream(ctx, doc, num, gen);
-			image = fz_new_image_from_compressed_buffer(ctx, w, h, bpc, colorspace, 96, 96, interpolate, imagemask, decode, use_colorkey ? colorkey : NULL, buffer, mask);
-			image->invert_cmyk_jpeg = 0;
+            /*-----------------------------------
+             * this block is modified by zl
+             * or when dict is direct image obj, the program crush!
+             *-----------------------------------*/
+            int num = 0, gen = 0;
+            if( pdf_is_indirect(ctx, dict) ) {
+                num = pdf_to_num(ctx, dict);
+                gen = pdf_to_gen(ctx, dict);
+            }
+            else {
+                num = pdf_obj_parent_num(ctx, dict);
+                pdf_xref_entry *x = pdf_get_xref_entry(ctx, doc, num);
+                if(x) {
+                    gen = x->gen;
+                }
+            }
+            if( 0!=num ) {
+                buffer = pdf_load_compressed_stream(ctx, doc, num, gen);
+                image = fz_new_image_from_compressed_buffer(ctx, w, h, bpc, colorspace, 96, 96, interpolate, imagemask, decode, use_colorkey ? colorkey : NULL, buffer, mask);
+                image->invert_cmyk_jpeg = 0;
+            }
+            else {
+                fz_throw(ctx, FZ_ERROR_GENERIC, "the num is 0, can't load iamge");
+            }
+            //////////////////////////////////////////////////////////
 		}
 		else
 		{
@@ -313,7 +333,17 @@ pdf_add_image(fz_context *ctx, pdf_document *doc, fz_image *image, int mask)
 		/* Before we add this image as a resource check if the same image
 		 * already exists in our resources for this doc.  If yes, then
 		 * hand back that reference */
-		imref = pdf_find_resource(ctx, doc, doc->resources->image, image, digest);
+        if(!doc->resources) {
+            pdf_init_resource_tables(ctx, doc);
+        }
+        /* if image obj is find,  rerturns a ref of the image object
+         * modified by zl [2016-08-26 14:46:05] */
+        imref = pdf_find_resource(ctx, doc, doc->resources->image, image, digest);
+        if(imref) {
+            if(!pdf_is_indirect(ctx, imref)) {
+                imref = pdf_new_indirect(ctx, doc, pdf_obj_parent_num(ctx, imref), 0); 
+            }
+        }
 		if (imref == NULL)
 		{
 			if (cbuffer != NULL && cbuffer->params.type != FZ_IMAGE_PNG && cbuffer->params.type != FZ_IMAGE_TIFF)

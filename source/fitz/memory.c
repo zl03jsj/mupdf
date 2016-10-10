@@ -210,7 +210,10 @@ fz_strdup_no_throw(fz_context *ctx, const char *s)
 static void *
 fz_malloc_default(void *opaque, unsigned int size)
 {
-	return malloc(size);
+    void *p = malloc(size);
+    if(p) 
+        memset(p, 0, size);
+	return p;
 }
 
 static void *

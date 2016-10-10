@@ -70,13 +70,13 @@
 	if (curState == UIGestureRecognizerStateBegan) {
 			[curves addObject:[NSMutableArray array]];
 			curve = [curves lastObject];
-			lastwidth = z_insertPoint(curve, lastpoint , lastms, lastwidth, point, ms);
+			lastwidth = z_IOS_insertPoint(curve, lastpoint , lastms, lastwidth, point, ms);
 	}
 	else{
 		curve = [curves lastObject];
 		int lastIndex = (int)([curve count] - 1);
 		if( curState == UIGestureRecognizerStateEnded){
-			z_insertLastPoint(curve, point);
+			z_IOS_insertLastPoint(curve, point);
 		}
 		else { // UIGestureRecognizerStateChanged
 			if( (ms - lastms) < 35 ){
@@ -85,7 +85,7 @@
 			if( 3>distanceBetweenPoints(point, lastpoint) ){
 				return;
 			}
-			lastwidth = z_insertPoint(curve, lastpoint, lastms, lastwidth, point, ms);
+			lastwidth = z_IOS_insertPoint(curve, lastpoint, lastms, lastwidth, point, ms);
 		}
 		if ( nil==_imageContext ){
 			[self initImageContext];

@@ -49,6 +49,8 @@ int pdf_add_image_with_document(fz_context *ctx, pdf_document *doc, fz_buffer*im
 void stderr_tofile(char *filename);
 void stderr_restore();
 int pdf_add_content_Stream(fz_context *ctx, pdf_document *doc, pdf_obj *page, fz_buffer *buffer);
+
+
 #ifdef __cplusplus
 }
 #endif

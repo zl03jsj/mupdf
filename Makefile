@@ -1,4 +1,4 @@
-# GNU Makefile
+# GNU Makefile 
 
 build ?= release
 
@@ -18,6 +18,12 @@ include Makethird
 CFLAGS += $(XCFLAGS) -Iinclude -I$(GEN)
 LIBS += $(XLIBS) -lm
 
+OPENSSL_CFLAGS = $(SYS_OPENSSL_CFLAGS)
+OPENSSL_LIBS = $(SYS_OPENSSL_LIBS)
+
+X11_CFLAGS = $(SYS_X11_CFLAGS)
+X11_LIBS = $(SYS_X11_LIBS)
+
 LIBS += $(FREETYPE_LIBS)
 LIBS += $(HARFBUZZ_LIBS)
 LIBS += $(JBIG2DEC_LIBS)
@@ -26,6 +32,8 @@ LIBS += $(MUJS_LIBS)
 LIBS += $(OPENJPEG_LIBS)
 LIBS += $(OPENSSL_LIBS)
 LIBS += $(ZLIB_LIBS)
+LIBS += $(X11_LIBS)
+
 
 CFLAGS += $(FREETYPE_CFLAGS)
 CFLAGS += $(HARFBUZZ_CFLAGS)
@@ -35,6 +43,10 @@ CFLAGS += $(MUJS_CFLAGS)
 CFLAGS += $(OPENJPEG_CFLAGS)
 CFLAGS += $(OPENSSL_CFLAGS)
 CFLAGS += $(ZLIB_CFLAGS)
+CFLAGS += $(X11_CFLAGS)
+#CFLAGS += -DZ_pdf_sign_
+#CFLAGS += -DHAVE_OPENSSL
+
 
 # --- Commands ---
 
@@ -261,9 +273,9 @@ $(OUT)/cmapdump.o : include/mupdf/pdf/cmap.h source/fitz/context.c source/fitz/e
 # --- Tools and Apps ---
 
 MUTOOL := $(addprefix $(OUT)/, mutool)
-MUTOOL_OBJ := $(addprefix $(OUT)/tools/, mutool.o muconvert.o mudraw.o murun.o pdfclean.o pdfcreate.o pdfextract.o pdfinfo.o pdfmerge.o pdfposter.o pdfpages.o pdfshow.o)
+MUTOOL_OBJ := $(addprefix $(OUT)/tools/, mutool.o muconvert.o mudraw.o murun.o pdfclean.o pdfcreate.o pdfextract.o pdfinfo.o pdfmerge.o pdfposter.o pdfpages.o pdfshow.o pdfaddimage.o)
 $(MUTOOL_OBJ): $(FITZ_HDR) $(PDF_HDR)
-$(MUTOOL) : $(MUPDF_LIB) $(THIRD_LIB)
+$(MUTOOL) : $(MUPDF_LIB) $(THIRD_LIB) 
 $(MUTOOL) : $(MUTOOL_OBJ)
 	$(LINK_CMD)
 
@@ -278,6 +290,14 @@ $(MUJSTEST_OBJ) : $(FITZ_HDR) $(PDF_HDR)
 $(MUJSTEST) : $(MUPDF_LIB) $(THIRD_LIB)
 $(MUJSTEST) : $(MUJSTEST_OBJ)
 	$(LINK_CMD)
+
+# ifeq "$(Z_test_)" "yes"
+# Z_test := $(OUT)/z_test
+# Z_test_obj :=
+# $(Z_test_obj) : $(FITZ_HDR) $(PDF_HDR)
+# $(Z_test) : $(MUPDF_LIB) $(THIRD_LIB)
+# $(Z_test) : $(Z_test_obj)
+	# $(LINK_CMD) 
 
 ifeq "$(HAVE_X11)" "yes"
 MUVIEW_X11 := $(OUT)/mupdf-x11
@@ -357,7 +377,7 @@ docdir ?= $(prefix)/share/doc/mupdf
 
 third: $(THIRD_LIB)
 extra: $(CURL_LIB) $(GLFW_LIB)
-libs: $(INSTALL_LIBS)
+libs: $(INSTALL_LIBS) compileinfo
 apps: $(INSTALL_APPS)
 
 install: libs apps
@@ -400,13 +420,28 @@ cscope.out: cscope.files
 all: libs apps
 
 clean:
-	rm -rf $(OUT)
+	rm -rf build/*
 nuke:
 	rm -rf build/* $(GEN) $(NAME_GEN)
 
 release:
+	@echo makerelease!!!!!=====
+	@echo libs=${LIBS}
+	@echo flags=${CFLAGS}
+	@echo opensslflags=${OPENSSL_CFLAGS}
 	$(MAKE) build=release
+	@echo make down!!!!!=====
 debug:
-	$(MAKE) build=debug
+	@echo makedebug!!!!!=====
+	@echo libs=${LIBS}
+	@echo flags=${CFLAGS}
+	@echo opensslflags=${OPENSSL_CFLAGS}
+	$(MAKE) build=debug 
+	@echo make down!!!!!=====
 
+compileinfo:
+	@echo  =================
+	@echo flags=${CFLAGS}
+	@echo opensslflags=${OPENSSL_CFLAGS}
+	@echo =================
 .PHONY: all clean nuke install third libs apps generate

@@ -66,3 +66,11 @@ tags_stl
 platform/java/src/
 platform/java/.idea/
 platform/java/mupdf_z_algorithm.iml
+pdftest
+source/z_/pdftest.dSYM/Contents/Info.plist
+thirdparty/openssl/ios/arm64/libcrypto.a
+thirdparty/openssl/ios/arm64/libssl.a
+thirdparty/openssl/ios/x86_64/libcrypto.a
+thirdparty/openssl/ios/x86_64/libssl.a
+thirdparty/openssl/macos/libcrypto.a
+thirdparty/openssl/macos/libssl.a

@@ -55,7 +55,13 @@ static void pdf_drop_xref_sections(fz_context *ctx, pdf_document *doc)
 		{
 			xref->unsaved_sigs = usig->next;
 			pdf_drop_obj(ctx, usig->field);
-			pdf_drop_signer(ctx, usig->signer);
+#ifdef Z_pdf_sign_
+            Z_signdev_drop(usig->signDev, ctx);
+            usig->signDev = NULL;
+#else
+            pdf_drop_signer(ctx, usig->signer);
+            usig->signer = NULL;
+#endif
 			fz_free(ctx, usig);
 		}
 	}
@@ -394,7 +400,7 @@ int pdf_xref_is_incremental(fz_context *ctx, pdf_document *doc, int num)
 	return num < xref->num_objects && sub->table[num].type;
 }
 
-void pdf_xref_store_unsaved_signature(fz_context *ctx, pdf_document *doc, pdf_obj *field, pdf_signer *signer)
+void pdf_xref_store_unsaved_signature(fz_context *ctx, pdf_document *doc, pdf_obj *field, void *dev)
 {
 	pdf_xref *xref = &doc->xref_sections[0];
 	pdf_unsaved_sig *unsaved_sig;
@@ -404,7 +410,13 @@ void pdf_xref_store_unsaved_signature(fz_context *ctx, pdf_document *doc, pdf_ob
 	 * saving time */
 	unsaved_sig = fz_malloc_struct(ctx, pdf_unsaved_sig);
 	unsaved_sig->field = pdf_keep_obj(ctx, field);
-	unsaved_sig->signer = pdf_keep_signer(ctx, signer);
+
+#ifdef Z_pdf_sign_
+    unsaved_sig->signDev = Z_signdev_keep((Z_sign_device*)dev, ctx);
+#else
+	unsaved_sig->signer = pdf_keep_signer(ctx, (pdf_signer*)dev);
+#endif
+
 	unsaved_sig->next = NULL;
 	if (xref->unsaved_sigs_end == NULL)
 		xref->unsaved_sigs_end = &xref->unsaved_sigs;

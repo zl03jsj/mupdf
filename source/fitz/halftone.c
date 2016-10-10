@@ -146,7 +146,10 @@ static void make_ht_line(unsigned char *buf, fz_halftone *ht, int x, int y, int 
 /* Inner mono thresholding code */
 typedef void (threshold_fn)(const unsigned char *ht_line, const unsigned char *pixmap, unsigned char *out, int w, int ht_len);
 
-#ifdef ARCH_ARM
+#pragma message("not use asm code, becase of invalid asm instruction")
+// #if defined(ARMV7) || defined(ARM64)
+// #ifdef ARCH_ARM
+#if 0
 static void
 do_threshold_1(const unsigned char * restrict ht_line, const unsigned char * restrict pixmap, unsigned char *restrict out, int w, int ht_len)
 __attribute__((naked));
