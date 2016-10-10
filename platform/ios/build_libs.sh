@@ -21,10 +21,15 @@ if [ "$SIGN_SUPPORTED" = "yes" ]
 then
     FLAGS="$FLAGS -DSIGN_SUPPORTED"
 
-if [ "$MTOKEN_KEY_SUPPORTED" = "yes" ]
-then
-    FLAGS="$FLAGS -DMTOKEN_KEY_SUPPORTED"
-fi
+    if [ "$MTOKEN_KEY_SUPPORTED" = "yes" ]
+    then
+        FLAGS="$FLAGS -DMTOKEN_KEY_SUPPORTED"
+    fi
+
+    if [ "$SIGN_METHOD_ZL_SUPPORT" = "yes" ]
+    then
+        FLAGS="$FLAGS -DZ_pdf_sign_"
+    fi
 
 fi
 

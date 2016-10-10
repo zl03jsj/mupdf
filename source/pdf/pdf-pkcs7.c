@@ -30,7 +30,40 @@ static int bsegs_read(BIO *b, char *buf, int size)
 {
 	BIO_SEGS_CTX *ctx = (BIO_SEGS_CTX *)b->ptr;
 	int read = 0;
+	while (size > 0 && ctx->current_seg < ctx->nsegs)
+	{
+		int nb = ctx->seg[ctx->current_seg][SEG_SIZE] - ctx->seg_pos;
 
+		if (nb > size)
+			nb = size;
+
+		if (nb > 0)
+		{
+			if (ctx->seg_pos == 0)
+				(void)BIO_seek(b->next_bio, ctx->seg[ctx->current_seg][SEG_START]);
+
+			(void)BIO_read(b->next_bio, buf, nb);
+			ctx->seg_pos += nb;
+			read += nb;
+			buf += nb;
+			size -= nb;
+		}
+		else
+		{
+			ctx->current_seg++;
+
+			if (ctx->current_seg < ctx->nsegs)
+				ctx->seg_pos = 0;
+		}
+	}
+
+	return read;
+}
+
+static int bsegs_gets(BIO *b, char *buf, int size)
+{
+	BIO_SEGS_CTX *ctx = (BIO_SEGS_CTX *)b->ptr;
+	int read = 0;
 	while (size > 0 && ctx->current_seg < ctx->nsegs)
 	{
 		int nb = ctx->seg[ctx->current_seg][SEG_SIZE] - ctx->seg_pos;
@@ -63,6 +96,28 @@ static int bsegs_read(BIO *b, char *buf, int size)
 
 static long bsegs_ctrl(BIO *b, int cmd, long arg1, void *arg2)
 {
+	BIO_SEGS_CTX *ctx = (BIO_SEGS_CTX *)b->ptr;
+    long ofs;
+
+    switch (cmd) {
+        case BIO_CTRL_RESET:
+        case BIO_C_FILE_SEEK: {
+            int i;
+            i = 0;
+            ofs = cmd==BIO_CTRL_RESET ? 0:arg1;
+            while( i<ctx->nsegs ) {
+                if( ofs < ctx->seg[i][1] ) {
+                    break;
+                }
+                ofs -= ctx->seg[i][1];
+                i ++;
+            }
+            ctx->current_seg = i;
+            ctx->seg_pos = fz_min(ofs, ctx->seg[i][1]-1);
+            arg1 = ctx->seg[i][0] + ctx->seg_pos;
+            }
+            break;
+    }
 	return BIO_ctrl(b->next_bio, cmd, arg1, arg2);
 }
 
@@ -91,8 +146,11 @@ static int bsegs_free(BIO *b)
 {
 	if (b == NULL)
 		return 0;
-
-	free(b->ptr);
+    BIO_SEGS_CTX *ctx = b->ptr;
+    if(ctx) {
+        free(ctx->seg);
+        free(ctx);
+    }
 	b->ptr = NULL;
 	b->init = 0;
 	b->flags = 0;
@@ -102,16 +160,16 @@ static int bsegs_free(BIO *b)
 
 static long bsegs_callback_ctrl(BIO *b, int cmd, bio_info_cb *fp)
 {
-	return BIO_callback_ctrl(b->next_bio, cmd, fp);
+    return BIO_callback_ctrl(b->next_bio, cmd, fp);
 }
 
 static BIO_METHOD methods_bsegs =
 {
-	0,"segment reader",
+	0, "segment reader",
 	NULL,
 	bsegs_read,
 	NULL,
-	NULL,
+	bsegs_gets,
 	bsegs_ctrl,
 	bsegs_new,
 	bsegs_free,
@@ -774,6 +832,48 @@ void pdf_sign_signature(fz_context *ctx, pdf_document *doc, pdf_widget *widget, 
 int pdf_signatures_supported(fz_context *ctx)
 {
 	return 1;
+}
+
+BIO *Z_file_segment_BIO(fz_context *ctx, const char *filename,
+        pdf_obj *byterange)
+{
+	BIO *bdata = NULL;
+	BIO *bsegs = NULL;
+	FILE *f = NULL;
+
+	int (*brange)[2] = NULL;
+	int brange_len = pdf_array_len(ctx, byterange)/2;
+
+	fz_var(bdata);
+	fz_var(bsegs);
+	fz_var(f);
+
+	fz_try(ctx)
+	{
+		int i;
+		brange = fz_calloc(ctx, brange_len, sizeof(*brange));
+		for (i = 0; i < brange_len; i++)
+		{
+			brange[i][0] = pdf_to_int(ctx, pdf_array_get(ctx, byterange, 2*i));
+			brange[i][1] = pdf_to_int(ctx, pdf_array_get(ctx, byterange, 2*i+1));
+		}
+        bdata = BIO_new_file(filename, "rb");
+		bsegs = BIO_new(BIO_f_segments());
+		if (bsegs == NULL)
+			fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to create segment filter");
+
+		bsegs->next_bio = bdata;
+		BIO_set_segments(bsegs, brange, brange_len);
+    }
+    fz_always(ctx) {
+        if(f) fclose(f);
+    }
+    fz_catch(ctx) {
+        if(brange) fz_free(ctx, brange);
+        fz_rethrow(ctx);
+
+    }
+    return bsegs;
 }
 
 #else /* HAVE_OPENSSL */

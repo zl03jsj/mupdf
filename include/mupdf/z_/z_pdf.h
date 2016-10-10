@@ -67,6 +67,11 @@ int Z_PdfSignCtxClear(Z_PdfSignContext *signCtx);
 int Z_pdf_add_sign(Z_PdfSignContext *signctx, Z_sign_device *sigdev);
 // void Z_InitOpenSSL(fz_context *ctx);
 
+#if defined(HAVE_OPENSSL)
+#include "openssl/bio.h"
+BIO *Z_file_segment_BIO(fz_context *ctx, const char *filename, pdf_obj *byterange);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

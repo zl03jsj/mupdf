@@ -912,6 +912,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				SDKROOT = iphoneos;
+				SIGN_METHOD_ZL_SUPPORT = yes;
 				SIGN_SUPPORTED = yes;
 				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -946,6 +947,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				SDKROOT = iphoneos;
+				SIGN_METHOD_ZL_SUPPORT = yes;
 				SIGN_SUPPORTED = yes;
 				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -1141,15 +1143,16 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/z/signdevice/mtoken/Lib",
 				);
-				MTokenLib = no;
+				MTOKEN_EKEY_SUPPORTED = no;
 				PRODUCT_BUNDLE_IDENTIFIER = com.zl.mxpdf;
 				PRODUCT_NAME = MxPDF;
 				PROVISIONING_PROFILE = "";
 				SDKROOT = iphoneos;
+				SIGN_METHOD_ZL_SUPPORT = no;
+				SIGN_SUPPORTED = no;
 				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				USER_HEADER_SEARCH_PATHS = ../../include;
-				USE_Z_SIGN = no;
 				VALID_ARCHS = "arm64 armv7";
 			};
 			name = Debug;
@@ -1173,15 +1176,16 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/z/signdevice/mtoken/Lib",
 				);
-				MTokenLib = no;
+				MTOKEN_EKEY_SUPPORTED = no;
 				PRODUCT_BUNDLE_IDENTIFIER = com.zl.mxpdf;
 				PRODUCT_NAME = MxPDF;
 				PROVISIONING_PROFILE = "";
 				SDKROOT = iphoneos;
+				SIGN_METHOD_ZL_SUPPORT = no;
+				SIGN_SUPPORTED = no;
 				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				USER_HEADER_SEARCH_PATHS = ../../include;
-				USE_Z_SIGN = no;
 				VALID_ARCHS = "arm64 armv7";
 			};
 			name = Release;
