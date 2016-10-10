@@ -495,7 +495,6 @@
     <ClCompile Include="..\..\source\pdf\pdf-write.c" />
     <ClCompile Include="..\..\source\pdf\pdf-xobject.c" />
     <ClCompile Include="..\..\source\pdf\pdf-xref.c" />
-    <ClCompile Include="..\..\source\pdf\pdf_extension.c" />
     <ClCompile Include="..\..\source\svg\svg-color.c" />
     <ClCompile Include="..\..\source\svg\svg-doc.c" />
     <ClCompile Include="..\..\source\svg\svg-parse.c" />
@@ -512,6 +511,9 @@
     <ClCompile Include="..\..\source\xps\xps-tile.c" />
     <ClCompile Include="..\..\source\xps\xps-util.c" />
     <ClCompile Include="..\..\source\xps\xps-zip.c" />
+    <ClCompile Include="..\..\source\z_\pdf_add_contentstream.c" />
+    <ClCompile Include="..\..\source\z_\pdf_extension.c" />
+    <ClCompile Include="..\..\source\z_\z_algorithm.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\mupdf\fitz.h" />
@@ -588,6 +590,9 @@
     <ClInclude Include="..\..\include\mupdf\pdf\widget.h" />
     <ClInclude Include="..\..\include\mupdf\pdf\xref.h" />
     <ClInclude Include="..\..\include\mupdf\xps.h" />
+    <ClInclude Include="..\..\include\mupdf\z_\pdf_extension.h" />
+    <ClInclude Include="..\..\include\mupdf\z_\z_algorithm.h" />
+    <ClInclude Include="..\..\include\mupdf\z_\z_pdf.h" />
     <ClInclude Include="..\..\source\fitz\draw-imp.h" />
     <ClInclude Include="..\..\source\fitz\jmemcust.h" />
     <ClInclude Include="..\..\source\fitz\paint-glyph.h" />

@@ -1,5 +1,4 @@
 #include "common.h"
-#include "mupdf/z_/z_algorithm.h"
 
 fz_context *ctx;
 dispatch_queue_t queue;
@@ -80,7 +79,7 @@ z_point_width z_point_width_new(float x, float y, float w) {
 }
 
 static float z_lineWidth(z_point_time bt, z_point_time et, float bwidth,float step){
-	const float max_speed = 4.0f;
+	const float max_speed = 2.0f;
 	// const float min_speed = 0.2f;
 	float d = z_distance(bt.p, et.p);
 	float s = d / (et.t - bt.t); s = s > max_speed ? max_speed : s;
@@ -99,37 +98,40 @@ static float z_lineWidth(z_point_time bt, z_point_time et, float bwidth,float st
 
 float z_insertPoint(NSMutableArray *arr, CGPoint lastpoint, UInt64 lastms,
 	float lastwidth, CGPoint point, UInt64 ms) {
+	
 	if(!arr) return 0;
 	long count = [arr count];
 	z_point zp = {point.x, point.y};
 	if( 0==count ){
-		z_point_width p = {zp, 0.3};
+		z_point_width p = {zp, 0.4};
 		[arr addObject:[NSValue valueWithBytes:&p objCType:@encode(z_point_width)]];
-		return 0.1;
+		return p.w;
 	}
-	float step = count > 4 ? 0.01: 0.04;
+	float step = count > 4 ? 0.01: 0.1;
 	z_point_time bt = { {lastpoint.x,lastpoint.y}, lastms};
 	z_point_time et = { zp, ms};
-	float w = z_lineWidth(bt, et, lastwidth, step);
+	float w = (z_lineWidth(bt, et, lastwidth, step) + lastwidth) / 2;
 	z_points *points = z_points_new(51);
+	z_points_add(points, z_stored_point(arr, (int)[arr count]-1));
 	if( 1==count ) {
-		z_point_width p = { {(bt.p.x + et.p.x + 1) / 2, (bt.p.y + et.p.y +1) / 2},
-			(w + lastwidth) / 2};
+		z_point_width p = { {(bt.p.x + et.p.x + 1) / 2, (bt.p.y + et.p.y +1) / 2}, w};
 		z_points_add_differentation(points, p);
+		w = p.w;
 	}
 	else {
 		z_point_width bw;
 		[[arr lastObject] getValue:&bw];
 		z_point c =  {lastpoint.x,lastpoint.y};
-		z_point_width ew = {{(lastpoint.x + point.x)/2, (lastpoint.y + point.y)/2},
-			(lastwidth + w) / 2};
+		z_point_width ew = {{(lastpoint.x + point.x)/2, (lastpoint.y + point.y)/2}, w};
 		z_square_bezier(points, bw, c, ew);
 	}
 	
-	for(int i=0; i<points->count; i++) {
+	// escape the first point
+	for(int i=1; i<points->count; i++) {
 		[arr addObject:[NSValue valueWithBytes:(points->data+i) objCType:@encode(z_point_width)]];
 	}
 	z_points_release(points);
+	
 	return w;
 }
 
@@ -187,5 +189,26 @@ CGRect CGRectExpendTo(CGRect r, CGPoint p){
 	return CGRectMake(o.x, o.y, s.width, s.height);
 }
 
-
-
+#define pi 3.14159265358979323846
+#define degreesToRadian(x)  (pi * x / 180.0)
+#define radiansToDegrees(x) (180.0 * x / pi)
+CGFloat distanceBetweenPoints (CGPoint first, CGPoint second) {
+	CGFloat deltaX = second.x - first.x;
+	CGFloat deltaY = second.y - first.y;
+	return sqrt(deltaX*deltaX + deltaY*deltaY );
+};
+CGFloat angleBetweenPoints(CGPoint first, CGPoint second) {
+	CGFloat height = second.y - first.y;
+	CGFloat width = first.x - second.x;
+	CGFloat rads = atan(height/width);
+	return radiansToDegrees(rads);
+	//degs = degrees(atan((top - bottom)/(right - left)))
+}
+CGFloat angleBetweenLines(CGPoint line1Start, CGPoint line1End, CGPoint line2Start, CGPoint line2End) {
+	CGFloat a = line1End.x - line1Start.x;
+	CGFloat b = line1End.y - line1Start.y;
+	CGFloat c = line2End.x - line2Start.x;
+	CGFloat d = line2End.y - line2Start.y;
+	CGFloat rads = acos(((a*c) + (b*d)) / ((sqrt(a*a + b*b)) * (sqrt(c*c + d*d))));
+	return radiansToDegrees(rads);
+}

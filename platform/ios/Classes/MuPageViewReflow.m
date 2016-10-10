@@ -123,6 +123,7 @@ NSString *textAsHtml(fz_document *doc, int pageNum)
 -(void) inkModeOff {}
 -(void) saveSelectionAsMarkup:(int)type {}
 -(void) saveInk {}
+-(void) saveContentStream {}
 -(void) deselectAnnotation {}
 -(void) deleteSelectedAnnotation {}
 -(void) update {}

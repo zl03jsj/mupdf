@@ -63,3 +63,6 @@ platform/android/*/.settings
 *.exe
 *.log
 tags_stl
+platform/java/src/
+platform/java/.idea/
+platform/java/mupdf_z_algorithm.iml

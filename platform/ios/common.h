@@ -8,6 +8,7 @@
 #undef MAX
 
 #include "mupdf/fitz.h"
+#include "mupdf/z_/z_pdf.h"
 
 extern fz_context *ctx;
 extern dispatch_queue_t queue;
@@ -28,6 +29,11 @@ float z_insertPoint(NSMutableArray *arr, CGPoint lastpoint, UInt64 lastms,
 void z_insertLastPoint(NSMutableArray *arr, CGPoint e);
 CGPoint z_get_stored_CGPoint(NSArray *arr, int index);
 float   z_get_stored_Width  (NSArray *arr, int index);
-
+z_point_width z_stored_point(NSArray *arr, int index);
 CGRect CGRectExpendTo(CGRect r, CGPoint p);
+
+
+CGFloat distanceBetweenPoints(CGPoint first, CGPoint second);
+CGFloat angleBetweenPoints(CGPoint first, CGPoint second);
+CGFloat angleBetweenLines(CGPoint line1Start, CGPoint line1End, CGPoint line2Start, CGPoint line2End);
 #endif
