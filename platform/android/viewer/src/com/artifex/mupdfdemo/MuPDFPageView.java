@@ -28,6 +28,26 @@ enum SignatureState {
 	Signed
 }
 
+class AnnotAddParam {
+	public PointF[][] points;
+	public Integer pageno;
+	public String password;
+	public AnnotAddParam (PointF[][] _points, int _pageno, String _password) {
+		points = _points;
+		pageno = new Integer(_pageno);
+		password = _password;
+	}
+}
+
+class AnnotDelParam {
+	public Integer index;
+	public String password;
+
+	public AnnotDelParam (int _index, String _password) {
+		index = new Integer(_index);
+		password = _password;
+	}
+}
 abstract class PassClickResultVisitor {
 	public abstract void visitText(PassClickResultText result);
 	public abstract void visitChoice(PassClickResultChoice result);
@@ -107,8 +127,8 @@ public class MuPDFPageView extends PageView implements MuPDFView {
 	private AsyncTask<String,Void,Boolean> mSetWidgetText;
 	private AsyncTask<String,Void,Void> mSetWidgetChoice;
 	private AsyncTask<PointF[],Void,Void> mAddStrikeOut;
-	private AsyncTask<PointF[][],Void,Void> mAddInk;
-	private AsyncTask<Integer,Void,Void> mDeleteAnnotation;
+	private AsyncTask<AnnotAddParam,Void,Void> mAddInk;
+	private AsyncTask<AnnotDelParam,Void,Void> mDeleteAnnotation;
 	private AsyncTask<Void,Void,String> mCheckSignature;
 	private AsyncTask<Void,Void,Boolean> mSign;
 	private Runnable changeReporter;
@@ -496,10 +516,10 @@ public class MuPDFPageView extends PageView implements MuPDFView {
 			if (mDeleteAnnotation != null)
 				mDeleteAnnotation.cancel(true);
 
-			mDeleteAnnotation = new AsyncTask<Integer,Void,Void>() {
+			mDeleteAnnotation = new AsyncTask<AnnotDelParam,Void,Void>() {
 				@Override
-				protected Void doInBackground(Integer... params) {
-					mCore.deleteAnnotation(mPageNumber, params[0]);
+				protected Void doInBackground(AnnotDelParam... params) {
+					mCore.deleteAnnotation(mPageNumber, params[0].index, params[0].password);
 					return null;
 				}
 
@@ -510,7 +530,8 @@ public class MuPDFPageView extends PageView implements MuPDFView {
 				}
 			};
 
-			mDeleteAnnotation.execute(mSelectedAnnotationIndex);
+			//TODO: replace "12345678" use real input password
+			mDeleteAnnotation.execute(new AnnotDelParam(mSelectedAnnotationIndex, "12345678"));
 
 			mSelectedAnnotationIndex = -1;
 			setItemSelectBox(null);
@@ -532,10 +553,10 @@ public class MuPDFPageView extends PageView implements MuPDFView {
 			mAddInk.cancel(true);
 			mAddInk = null;
 		}
-		mAddInk = new AsyncTask<PointF[][],Void,Void>() {
+		mAddInk = new AsyncTask<AnnotAddParam,Void,Void>() {
 			@Override
-			protected Void doInBackground(PointF[][]... params) {
-				mCore.addInkAnnotation(mPageNumber, params[0]);
+			protected Void doInBackground(AnnotAddParam... params) {
+				mCore.addInkAnnotation(params[0].pageno, params[0].points, params[0].password);
 				return null;
 			}
 
@@ -547,7 +568,8 @@ public class MuPDFPageView extends PageView implements MuPDFView {
 
 		};
 
-		mAddInk.execute(getDraw());
+		//TODO: replace "12345678" use real input password
+		mAddInk.execute(new AnnotAddParam(getDraw(), mPageNumber, "12345678"));
 		cancelDraw();
 
 		return true;

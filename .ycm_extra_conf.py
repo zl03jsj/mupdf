@@ -55,6 +55,8 @@ flags = [
 '-x', 'c',
 '-I', '.',
 '-isystem', '/Users/zl03jsj/Documents/mupdf/include',
+'-isystem', '/Users/zl03jsj/Library/Android/sdk/ndk-bundle/platforms/android-24/arch-arm64/usr/include',
+# '-isystem', '/Users/zl03jsj/Documents/mupdf/include/openssl',
 '-isystem', '/usr/include',
 '-isystem', '/usr/local/include',
 '-isystem', '/Library/Developer/CommandLineTools/usr/include',

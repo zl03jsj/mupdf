@@ -61,8 +61,8 @@ public class MuPDFCore
 	private native TextChar[][][][] text();
 	private native byte[] textAsHtml();
 	private native void addMarkupAnnotationInternal(PointF[] quadPoints, int type);
-	private native void addInkAnnotationInternal(PointF[][] arcs);
-	private native void deleteAnnotationInternal(int annot_index);
+	private native void addInkAnnotationInternal(PointF[][] arcs,String password);
+	private native void deleteAnnotationInternal(int annot_index, String password);
 	private native int passClickEventInternal(int page, float x, float y);
 	private native void setFocusedWidgetChoiceSelectedInternal(String [] selected);
 	private native String [] getFocusedWidgetChoiceSelected();
@@ -98,7 +98,7 @@ public class MuPDFCore
 	private native Separation getSepInternal(int page, int sep);
 	// for add image to document on android
 	// 2016/5/27 by zl03jsj
-	private native boolean addPdfImage(int pageno, int x, int y, int w, int h, byte[] imgdata);
+	private native boolean addPdfImage(int pageno, int x, int y, int w, int h, byte[] imgdata) throws java.lang.Exception;
 	public native boolean javascriptSupported();
 
 	public class Cookie
@@ -334,14 +334,14 @@ public class MuPDFCore
 		addMarkupAnnotationInternal(quadPoints, type.ordinal());
 	}
 
-	public synchronized void addInkAnnotation(int page, PointF[][] arcs) {
+	public synchronized void addInkAnnotation(int page, PointF[][] arcs, String password) {
 		gotoPage(page);
-		addInkAnnotationInternal(arcs);
+		addInkAnnotationInternal(arcs, password);
 	}
 
-	public synchronized void deleteAnnotation(int page, int annot_index) {
+	public synchronized void deleteAnnotation(int page, int annot_index, String password) {
 		gotoPage(page);
-		deleteAnnotationInternal(annot_index);
+		deleteAnnotationInternal(annot_index, password);
 	}
 
 	public synchronized boolean hasOutline() {
