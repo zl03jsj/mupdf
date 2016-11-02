@@ -8,6 +8,7 @@
 
 #import <UIKit/UIKit.h>
 #import "mtoken/Include/K5SOFApp.h"
+#import "../../common.h"
 
 @protocol SigndeviceView <NSObject>
 @required
@@ -17,4 +18,5 @@
 
 @interface SigndeviceDiscoveryView : UIView <K5SOFAppDelegate>
 + (id) loadFromNib;
+@property (nonatomic, assign) z_pdf_sign_param *signParam;
 @end

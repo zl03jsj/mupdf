@@ -1944,6 +1944,9 @@ pdf_add_cid_font(fz_context *ctx, pdf_document *doc, fz_font *font)
 
 	fz_try(ctx)
 	{
+        if(!doc->resources) {
+            pdf_init_resource_tables(ctx, doc);
+        }
 		/* Before we add this font as a resource check if the same font
 		 * already exists in our resources for this doc. If yes, then
 		 * hand back that reference */
@@ -2019,6 +2022,9 @@ pdf_add_simple_font(fz_context *ctx, pdf_document *doc, fz_font *font)
 
 	fz_try(ctx)
 	{
+        if(!doc->resources) {
+            pdf_init_resource_tables(ctx, doc);
+        }
 		/* Before we add this font as a resource check if the same font
 		 * already exists in our resources for this doc. If yes, then
 		 * hand back that reference */

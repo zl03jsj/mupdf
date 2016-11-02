@@ -1911,6 +1911,7 @@ static void writexref(fz_context *ctx, pdf_document *doc, pdf_write_state *opts,
 	pdf_obj *nobj = NULL;
 
 	fz_puts(ctx, opts->out, "xref\n");
+	fz_puts(ctx, opts->out, "0 1\n0000000000 65535 f \n");
 	opts->first_xref_entry_offset = fz_tell_output(ctx, opts->out);
 
 	if (opts->do_incremental)
@@ -2023,6 +2024,11 @@ static void writexrefstreamsubsect(fz_context *ctx, pdf_document *doc, pdf_write
 		fz_write_buffer_byte(ctx, fzbuf, opts->ofs_list[num]);
 		fz_write_buffer_byte(ctx, fzbuf, opts->gen_list[num]);
 	}
+}
+
+static void z_wreite_hybird_xref(fz_context *ctx, pdf_document *doc, pdf_write_state *opts, int from, int to, int first, int main_xref_offset, int startxref)
+{
+    fz_throw(ctx, FZ_ERROR_GENERIC, "Not implement hi-bird xref.");
 }
 
 static void writexrefstream(fz_context *ctx, pdf_document *doc, pdf_write_state *opts, int from, int to, int first, int main_xref_offset, int startxref)
@@ -2584,6 +2590,7 @@ static void presize_unsaved_signature_byteranges(fz_context *ctx, pdf_document *
 	}
 }
 
+static void z_compelete_sign(fz_context *ctx, pdf_document *doc, z_device *device);
 static void complete_signatures(fz_context *ctx, pdf_document *doc, pdf_write_state *opts, const char *filename)
 {
 	pdf_unsaved_sig *usig;
@@ -2664,26 +2671,19 @@ static void complete_signatures(fz_context *ctx, pdf_document *doc, pdf_write_st
 			/* Write the digests into the file */
 			for (usig = xref->unsaved_sigs; usig; usig = usig->next)
             {
-#ifdef  Z_pdf_sign_
-                Z_pdf_signComplete(usig->signDev, ctx, doc, 
-                    filename, byte_range, usig->contents_start,
-                    usig->contents_end - usig->contents_start);
-#else
-				pdf_write_digest(ctx, doc, filename, byte_range, usig->contents_start, usig->contents_end - usig->contents_start, usig->signer);
-#endif
+                z_device *device = usig->device;
+                fz_buffer *digest = device->get_digest(ctx, doc, device, (char*)filename, byte_range);
+                z_pdf_write_sign(ctx, (char*)filename, digest, usig->contents_start+1, usig->contents_end - usig->contents_start);
+                fz_drop_buffer(ctx, digest);
+                digest = NULL;
+
             }
 			/* delete the unsaved_sigs records */
 			while ((usig = xref->unsaved_sigs) != NULL)
 			{
 				xref->unsaved_sigs = usig->next;
 				pdf_drop_obj(ctx, usig->field);
-#ifdef Z_pdf_sign_
-                Z_signdev_drop(usig->signDev, ctx);
-                usig->signDev = NULL;
-#else
-				pdf_drop_signer(ctx, usig->signer);
-                usig->signer = NULL;
-#endif
+                z_drop_device(ctx, usig->device);
 				fz_free(ctx, usig);
 			}
 		}
@@ -2949,10 +2949,13 @@ void pdf_save_document(fz_context *ctx, pdf_document *doc, const char *filename,
 				opts.first_xref_offset = fz_tell_output(ctx, opts.out);
 #pragma message("if pdf file is hybird-reference,wrietexrefstream, adobe reader notice an error!")
                 // modified by zl [2016-08-31 18:07:21]
-                // if pdf file is hybrid-reference, writexrefstream case an adobe reader an error!!
+                // if pdf file is hybrid-reference, writexrefstream cause an adobe reader an error!!
                 // hybird file use old xref!!! 
                 // todo: fix bug in writexrefstream on hybrid-reference xref file
-                if (doc->has_xref_streams && 0==pdf_trailer_is_hybrid(ctx, doc))
+                if (doc->has_xref_streams && pdf_dict_get(ctx, pdf_trailer(ctx, doc), PDF_NAME_XRefStm) )
+                    writexref(ctx, doc, &opts, 0, xref_len, 1, 0, opts.first_xref_offset);
+                    // z_wreite_hybird_xref(ctx, doc, &opts, 0, xref_len, 1, 0, opts.first_xref_offset);
+                else if (doc->has_xref_streams)
                     writexrefstream(ctx, doc, &opts, 0, xref_len, 1, 0, opts.first_xref_offset);
                 else
                     writexref(ctx, doc, &opts, 0, xref_len, 1, 0, opts.first_xref_offset);

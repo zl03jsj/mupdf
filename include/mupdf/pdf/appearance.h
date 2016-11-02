@@ -40,4 +40,8 @@ void pdf_set_markup_appearance(fz_context *ctx, pdf_document *doc, pdf_annot *an
 
 void pdf_set_signature_appearance(fz_context *ctx, pdf_document *doc, pdf_annot *annot, char *name, char *dn, char *date);
 
+typedef struct z_pdf_sign_appearance_s z_pdf_sign_appearance;
+void z_pdf_set_signature_appearance_with_image(fz_context *ctx, pdf_document *doc, pdf_annot *annot, z_pdf_sign_appearance *app);
+void z_pdf_set_signature_appearance_with_path(fz_context *ctx, pdf_document *doc, pdf_annot *annot, z_pdf_sign_appearance *app);
+
 #endif

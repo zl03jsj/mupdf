@@ -17,7 +17,6 @@
 
 - (void)viewDidLoad {
 	[super viewDidLoad];
-	
 	NSLog(@"%s",__func__);
 	SigndeviceDiscoveryView *subView = [[[NSBundle mainBundle]loadNibNamed:@"SignDeviceDiscoveryView" owner:nil options:nil]lastObject];
 	subView.frame = CGRectInset(self.view.bounds, 20, 40);

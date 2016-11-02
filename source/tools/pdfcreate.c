@@ -26,18 +26,29 @@ static void usage(void)
 static fz_context *ctx = NULL;
 static pdf_document *doc = NULL;
 
+//#define PDF_ADD_CJKFONT
+
 static void add_font_res(pdf_obj *resources, char *name, char *path)
 {
 	const char *data;
-	int size;
+	int size, index = 0;
 	fz_font *font;
 	pdf_obj *subres, *ref;
-
-	data = fz_lookup_base14_font(ctx, path, &size);
-	if (data)
-		font = fz_new_font_from_memory(ctx, path, data, size, 0, 0);
-	else
-		font = fz_new_font_from_file(ctx, NULL, path, 0, 0);
+	// data = fz_lookup_base14_font(ctx, path, &size);
+    // "\xBF\xAC\xCC\xE5_GB2312", "simkai,regular",
+    // data = fz_lookup_noto_font(ctx, UCDN_SCRIPT_HAN, 0, &size);
+#if defined(PDF_ADD_CJKFONT)
+    data = fz_lookup_cjk_font(ctx, FZ_ADOBE_GB_1, 0, 1, &size, &index);
+#else
+    data = fz_lookup_base14_font(ctx, path, &size);
+#endif
+    if (data) {
+        font = fz_new_font_from_memory(ctx, name, data, size, index, 0);
+        font->ft_substitute = 1;
+        font->ft_stretch = 0; 
+    }
+    else
+        font = fz_new_font_from_file(ctx, name, path, 0, 0);
 
 	subres = pdf_dict_get(ctx, resources, PDF_NAME_Font);
 	if (!subres)
@@ -45,11 +56,13 @@ static void add_font_res(pdf_obj *resources, char *name, char *path)
 		subres = pdf_new_dict(ctx, doc, 10);
 		pdf_dict_put_drop(ctx, resources, PDF_NAME_Font, subres);
 	}
-
+#if defined(PDF_ADD_CJKFONT)
+    ref = pdf_add_cid_font(ctx, doc, font);
+#else
 	ref = pdf_add_simple_font(ctx, doc, font);
+#endif
 	pdf_dict_puts(ctx, subres, name, ref);
 	pdf_drop_obj(ctx, ref);
-
 	fz_drop_font(ctx, font);
 }
 
@@ -66,7 +79,6 @@ static void add_image_res(pdf_obj *resources, char *name, char *path)
 		subres = pdf_new_dict(ctx, doc, 10);
 		pdf_dict_put_drop(ctx, resources, PDF_NAME_XObject, subres);
 	}
-
 	ref = pdf_add_image(ctx, doc, image, 0);
 	pdf_dict_puts(ctx, subres, name, ref);
 	pdf_drop_obj(ctx, ref);
@@ -88,7 +100,7 @@ static void create_page(char *input)
 	int rotate = 0;
 
 	char line[4096];
-	char *s, *p;
+	char *s, *p, *t, *n;
 	fz_stream *stm;
 
 	fz_buffer *contents;
@@ -126,6 +138,13 @@ static void create_page(char *input)
 				s = fz_strsep(&p, " ");
 				add_image_res(resources, s, p);
 			}
+            else if(!strcmp(s, "%%Text")){
+				s = fz_strsep(&p, " ");
+                if(s && p) {
+                    n = fz_strdup(ctx, s);
+                    t = fz_strdup(ctx, p);
+                }
+            }
 		}
 		else
 		{
@@ -136,6 +155,19 @@ static void create_page(char *input)
 	fz_drop_stream(ctx, stm);
 
 	page = pdf_add_page(ctx, doc, &mediabox, rotate, resources, contents);
+
+    const char *fmt = "BT\n/%s 24 Tf\n100 500 Td\n(%s) Tj\nET";
+    if(t && n) {
+        fz_buffer *tb = fz_new_buffer(ctx, 128);
+        fz_buffer_printf(ctx, tb, fmt, n, t);
+        pdf_update_stream(ctx, doc, 
+                pdf_dict_get(ctx, page, PDF_OBJ_ENUM_NAME_Contents),
+                tb, 1);
+        fz_drop_buffer(ctx, tb);
+        fz_free(ctx, t);
+        fz_free(ctx, n); 
+    }
+
 	pdf_insert_page(ctx, doc, -1, page);
 	pdf_drop_obj(ctx, page);
 
@@ -169,9 +201,7 @@ int pdfcreate_main(int argc, char **argv)
 		fprintf(stderr, "cannot initialise context\n");
 		exit(1);
 	}
-
 	pdf_parse_write_options(ctx, &opts, flags);
-
 	doc = pdf_create_document(ctx);
 
 	for (i = fz_optind; i < argc; ++i)

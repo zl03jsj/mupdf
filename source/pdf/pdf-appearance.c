@@ -2335,6 +2335,7 @@ static void insert_signature_appearance_layers(fz_context *ctx, pdf_document *do
 	}
 }
 
+static const char *z_pdf_add_sign_annot_da(fz_context *ctx, pdf_document *doc, pdf_obj *annot);
 /* MuPDF blue */
 static float logo_color[3] = {(float)0x25/(float)0xFF, (float)0x72/(float)0xFF, (float)0xAC/(float)0xFF};
 
@@ -2342,7 +2343,7 @@ void pdf_set_signature_appearance(fz_context *ctx, pdf_document *doc, pdf_annot 
 {
 	const fz_matrix *page_ctm = &annot->page->ctm;
 	pdf_obj *obj = annot->obj;
-	pdf_obj *dr = pdf_dict_getl(ctx, pdf_trailer(ctx, doc), PDF_NAME_Root, PDF_NAME_AcroForm, PDF_NAME_DR, NULL);
+	pdf_obj *dr = NULL;// pdf_dict_getl(ctx, pdf_trailer(ctx, doc), PDF_NAME_Root, PDF_NAME_AcroForm, PDF_NAME_DR, NULL);
 	fz_display_list *dlist = NULL;
 	fz_device *dev = NULL;
 	font_info font_rec;
@@ -2351,8 +2352,8 @@ void pdf_set_signature_appearance(fz_context *ctx, pdf_document *doc, pdf_annot 
 	fz_path *path = NULL;
 	fz_buffer *fzbuf = NULL;
 
-	if (!dr)
-		pdf_dict_putl_drop(ctx, pdf_trailer(ctx, doc), pdf_new_dict(ctx, doc, 1), PDF_NAME_Root, PDF_NAME_AcroForm, PDF_NAME_DR, NULL);
+//	if (!dr)
+//		pdf_dict_putl_drop(ctx, pdf_trailer(ctx, doc), pdf_new_dict(ctx, doc, 1), PDF_NAME_Root, PDF_NAME_AcroForm, PDF_NAME_DR, NULL);
 
 	memset(&font_rec, 0, sizeof(font_rec));
 
@@ -2364,7 +2365,9 @@ void pdf_set_signature_appearance(fz_context *ctx, pdf_document *doc, pdf_annot 
 	fz_var(fzbuf);
 	fz_try(ctx)
 	{
-		char *da = pdf_to_str_buf(ctx, pdf_dict_get(ctx, obj, PDF_NAME_DA));
+		// char *da =  pdf_to_str_buf(ctx, pdf_dict_get(ctx, obj, PDF_NAME_DA));
+		char *da = (char*)z_pdf_add_sign_annot_da(ctx, doc, obj);
+        dr = pdf_dict_getp(ctx, pdf_trailer(ctx, doc), "Root/AcroForm/DR");
 		fz_rect rect = annot->rect;
 		fz_rect logo_bounds;
 		fz_matrix logo_tm;
@@ -2438,6 +2441,257 @@ void pdf_set_signature_appearance(fz_context *ctx, pdf_document *doc, pdf_annot 
 	}
 }
 
+pdf_obj *z_pdf_add_base14_font(fz_context *ctx, pdf_document *doc, pdf_obj *fontobj, char *name, char *fontname) 
+{
+    pdf_obj *ref = NULL;
+    fz_font *font = NULL;
+    fz_try(ctx) 
+    {
+        ref = pdf_dict_gets(ctx, fontobj, name);
+        if(!ref) {
+            const char *data;
+            int size=0;
+            data = fz_lookup_base14_font(ctx, fontname, &size); 
+            font = fz_new_font_from_memory(ctx, name, data, size, 0, 0);
+            ref = pdf_add_simple_font(ctx, doc, font);
+            pdf_dict_puts_drop(ctx, fontobj, name, ref); 
+        }
+    }
+    fz_always(ctx) {
+        if(font) fz_drop_font(ctx, font); 
+    }
+    fz_catch(ctx) {
+    }
+    return ref;
+}
+
+static const char *z_pdf_add_sign_annot_da(fz_context *ctx, pdf_document *doc, pdf_obj *annot)
+{
+    const char *da = NULL;
+    char *name = NULL;;
+    fz_buffer *buf = NULL;
+    
+    fz_try(ctx) 
+    {
+        pdf_obj *daobj = pdf_dict_get(ctx, annot, PDF_NAME_DA);
+
+        if(!daobj) 
+        {
+            pdf_obj *font = pdf_dict_getp(ctx, pdf_trailer(ctx, doc), "Root/AcroForm/DR/Font");
+            if( !font ) 
+            {
+                font = pdf_new_dict(ctx, doc, 1);
+                pdf_dict_putp_drop(ctx, pdf_trailer(ctx, doc), "Root/AcroForm/DR/Font", font );
+            }
+
+            if( 0==pdf_dict_len(ctx, font) ){
+                name = fz_strdup(ctx, "Helv");
+                font = z_pdf_add_base14_font(ctx, doc, font, name, "Helvetica");
+            }
+            else {
+                name = fz_strdup(ctx, pdf_to_name(ctx, pdf_dict_get_key(ctx, font, 0)));
+            }
+            buf = fz_new_buffer(ctx, 128);
+            fz_buffer_printf(ctx, buf, "BT\n/%s 12 Tf\n10 10 Td\n(ntko signature) Tj\nET", name);
+            pdf_dict_put_drop(ctx, annot, PDF_NAME_DA, pdf_new_string(ctx, doc, buf->data, buf->len));
+        }
+
+        da = pdf_to_str_buf(ctx, pdf_dict_get(ctx, annot, PDF_NAME_DA));
+    }
+    fz_always(ctx) {
+        if(name) fz_free(ctx, name);
+        if(buf) fz_drop_buffer(ctx, buf);
+    }
+    fz_catch(ctx) {
+        fz_rethrow(ctx);
+    }
+
+    return da;
+}
+
+
+#define PDF_SIGN_APPEARANCE_NO_TEXT
+#ifdef  PDF_SIGN_APPEARANCE_NO_TEXT
+void z_pdf_set_signature_appearance_with_image(fz_context *ctx, pdf_document *doc,
+    pdf_annot *annot, z_pdf_sign_appearance *app) 
+{
+	const fz_matrix *page_ctm = &annot->page->ctm;
+	fz_display_list *dlist = NULL;
+	fz_device *dev = NULL;
+
+
+	fz_var(dlist);
+	fz_var(dev);
+	fz_try(ctx)
+	{
+        fz_rect rect = annot->rect;
+		dlist = fz_new_display_list(ctx);
+		dev = fz_new_list_device(ctx, dlist);
+
+        // fill image
+        fz_fill_image(ctx, dev, (fz_image*)app->app, page_ctm, 0.8f);
+
+		fz_transform_rect(&rect, page_ctm);
+		pdf_set_annot_appearance(ctx, doc, annot, &rect, dlist);
+
+		/* Drop the cached xobject from the annotation structure to
+		 * force a redraw on next pdf_update_page call */
+		pdf_drop_xobject(ctx, annot->ap);
+		annot->ap = NULL;
+
+		insert_signature_appearance_layers(ctx, doc, annot);
+	}
+	fz_always(ctx)
+	{
+		fz_drop_device(ctx, dev);
+		fz_drop_display_list(ctx, dlist);
+	}
+	fz_catch(ctx)
+	{
+		fz_rethrow(ctx);
+	}
+}
+#else
+void z_pdf_set_signature_appearance_with_image(fz_context *ctx, pdf_document *doc,
+    pdf_annot *annot, z_pdf_sign_appearance *app) 
+{
+	const fz_matrix *page_ctm = &annot->page->ctm;
+	pdf_obj *obj = annot->obj;
+	pdf_obj *dr = NULL;
+	fz_display_list *dlist = NULL;
+	fz_device *dev = NULL;
+	font_info font_rec;
+	fz_text *text = NULL;
+	fz_colorspace *cs = NULL;
+
+
+	fz_var(dlist);
+	fz_var(dev);
+    fz_var(cs);
+	fz_try(ctx)
+	{
+		const char *da = z_pdf_add_sign_annot_da(ctx, doc, obj);
+        dr = pdf_dict_getp(ctx, pdf_trailer(ctx, doc), "Root/AcroForm/DR");
+        if(!dr) {
+            fz_throw(ctx, FZ_ERROR_GENERIC, "No defualt resource(/DR) tag in AcroForm.");
+        }
+        fz_rect rect = annot->rect;
+		dlist = fz_new_display_list(ctx);
+		dev = fz_new_list_device(ctx, dlist);
+
+        // fill image
+        fz_fill_image(ctx, dev, (fz_image*)app->app, page_ctm, 0.8f);
+
+		get_font_info(ctx, doc, dr, da, &font_rec);
+		switch (font_rec.da_rec.col_size)
+        {
+            case 1: cs = fz_device_gray(ctx); break;
+            case 3: cs = fz_device_rgb(ctx); break;
+            case 4: cs = fz_device_cmyk(ctx); break;
+        }
+		/* Display the distinguished name in the right-hand half */
+		rect.x0 = (rect.x0 + rect.x1)/2.0f;
+		text = fit_text(ctx, &font_rec, app->text, &rect);
+		fz_fill_text(ctx, dev, text, page_ctm, cs, font_rec.da_rec.col, 1.0f);
+
+		rect = annot->rect;
+		fz_transform_rect(&rect, page_ctm);
+		pdf_set_annot_appearance(ctx, doc, annot, &rect, dlist);
+
+		/* Drop the cached xobject from the annotation structure to
+		 * force a redraw on next pdf_update_page call */
+		pdf_drop_xobject(ctx, annot->ap);
+		annot->ap = NULL;
+
+		insert_signature_appearance_layers(ctx, doc, annot);
+	}
+	fz_always(ctx)
+	{
+		fz_drop_device(ctx, dev);
+		fz_drop_display_list(ctx, dlist);
+		font_info_fin(ctx, &font_rec);
+		fz_drop_text(ctx, text);
+		fz_drop_colorspace(ctx, cs);
+	}
+	fz_catch(ctx)
+	{
+		fz_rethrow(ctx);
+	}
+}
+#endif
+
+//TODO: implement new signature appearance
+void z_pdf_set_signature_appearance_with_path(fz_context *ctx, pdf_document *doc, pdf_annot *annot, z_pdf_sign_appearance *app) 
+{
+
+	const fz_matrix *page_ctm = &annot->page->ctm;
+	pdf_obj *obj = annot->obj;
+	pdf_obj *dr = NULL;
+	fz_display_list *dlist = NULL;
+	fz_device *dev = NULL;
+	font_info font_rec;
+	fz_text *text = NULL;
+	fz_colorspace *cs = NULL;
+
+	memset(&font_rec, 0, sizeof(font_rec));
+
+	fz_var(dlist);
+	fz_var(dev);
+	fz_var(text);
+	fz_var(cs);
+	fz_try(ctx)
+	{
+		const char *da = z_pdf_add_sign_annot_da(ctx, doc, obj);
+        dr = pdf_dict_getp(ctx, pdf_trailer(ctx, doc), "Root/AcroForm/DR");
+        if(!dr) {
+            fz_throw(ctx, FZ_ERROR_GENERIC, "No defualt resource(/DR) tag in AcroForm.");
+        }
+        fz_rect rect = annot->rect;
+		dlist = fz_new_display_list(ctx);
+		dev = fz_new_list_device(ctx, dlist);
+
+        // fill image
+        fz_fill_image(ctx, dev, (fz_image*)app->app, page_ctm, 0.8f);
+
+		get_font_info(ctx, doc, dr, da, &font_rec);
+		switch (font_rec.da_rec.col_size)
+        {
+            case 1: cs = fz_device_gray(ctx); break;
+            case 3: cs = fz_device_rgb(ctx); break;
+            case 4: cs = fz_device_cmyk(ctx); break;
+        }
+		/* Display the distinguished name in the right-hand half */
+		rect.x0 = (rect.x0 + rect.x1)/2.0f;
+		text = fit_text(ctx, &font_rec, app->text, &rect);
+		fz_fill_text(ctx, dev, text, page_ctm, cs, font_rec.da_rec.col, 1.0f);
+		fz_drop_text(ctx, text);
+		text = NULL;
+
+		rect = annot->rect;
+		fz_transform_rect(&rect, page_ctm);
+		pdf_set_annot_appearance(ctx, doc, annot, &rect, dlist);
+
+		/* Drop the cached xobject from the annotation structure to
+		 * force a redraw on next pdf_update_page call */
+		pdf_drop_xobject(ctx, annot->ap);
+		annot->ap = NULL;
+
+		insert_signature_appearance_layers(ctx, doc, annot);
+	}
+	fz_always(ctx)
+	{
+		fz_drop_device(ctx, dev);
+		fz_drop_display_list(ctx, dlist);
+		font_info_fin(ctx, &font_rec);
+		fz_drop_text(ctx, text);
+		fz_drop_colorspace(ctx, cs);
+	}
+	fz_catch(ctx)
+	{
+		fz_rethrow(ctx);
+	}
+}
+
 void pdf_update_appearance(fz_context *ctx, pdf_document *doc, pdf_annot *annot)
 {
 	pdf_obj *obj = annot->obj;
@@ -2492,6 +2746,7 @@ void pdf_update_appearance(fz_context *ctx, pdf_document *doc, pdf_annot *annot)
 			case PDF_WIDGET_TYPE_COMBOBOX:
 				pdf_update_combobox_appearance(ctx, doc, obj);
 				break;
+            // case PDF_WIDGET_TYPE_SIGNATURE:
 			}
 			break;
 		case FZ_ANNOT_TEXT:

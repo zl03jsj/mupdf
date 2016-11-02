@@ -37,7 +37,9 @@ pdf_signer *pdf_read_pfx(fz_context *ctx, const char *sigfile, const char *passw
 pdf_signer *pdf_keep_signer(fz_context *ctx, pdf_signer *signer);
 void pdf_drop_signer(fz_context *ctx, pdf_signer *signer);
 pdf_designated_name *pdf_signer_designated_name(fz_context *ctx, pdf_signer *signer);
+
 void pdf_write_digest(fz_context *ctx, pdf_document *doc, const char *filename, pdf_obj *byte_range, int digest_offset, int digest_length, pdf_signer *signer);
+
 
 /*
 	pdf_signature_widget_byte_range: retrieve the byte range for a signature widget
@@ -58,5 +60,7 @@ int pdf_check_signature(fz_context *ctx, pdf_document *doc, pdf_widget *widget, 
 	pdf_sign_signature: sign a signature form field
 */
 void pdf_sign_signature(fz_context *ctx, pdf_document *doc, pdf_widget *widget, const char *sigfile, const char *password);
+
+z_device * z_openssl_new_device(fz_context *ctx, char *pfxfile, char *pfxpassword);
 
 #endif

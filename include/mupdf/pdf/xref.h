@@ -102,11 +102,8 @@ void pdf_replace_xref(fz_context *ctx, pdf_document *doc, pdf_xref_entry *entrie
 void pdf_xref_ensure_incremental_object(fz_context *ctx, pdf_document *doc, int num);
 int pdf_xref_is_incremental(fz_context *ctx, pdf_document *doc, int num);
 
-// modified by zl [2016-08-10 11:31:56]
-// for compatible"Z_pdf_sign_" macro is defiend
-// if Z_pdf_sign_ is defined type of dev is (Z_sign_device*), or pdf_signer*!
-void pdf_xref_store_unsaved_signature(fz_context *ctx, pdf_document *doc, pdf_obj *field, void* dev);
-//void pdf_xref_store_unsaved_signature(fz_context *ctx, pdf_document *doc, pdf_obj *field, pdf_signer *signer);
+void pdf_xref_store_unsaved_signature(fz_context *ctx, pdf_document *doc, pdf_obj *field, z_device* device);
+
 int pdf_xref_obj_is_unsaved_signature(pdf_document *doc, pdf_obj *obj);
 
 void pdf_repair_xref(fz_context *ctx, pdf_document *doc);

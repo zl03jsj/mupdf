@@ -300,9 +300,17 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		680944D61DAE415E00C44D1C /* openssl */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = openssl;
+			sourceTree = "<group>";
+		};
 		681EF3241D83D21A00BAF640 /* signdevice */ = {
 			isa = PBXGroup;
 			children = (
+				680944D61DAE415E00C44D1C /* openssl */,
 				6811AC6E1D8641B900887464 /* SignDevice.m */,
 				681EF3261D83D27200BAF640 /* mtoken */,
 				68C3CC851D9127B0008DE360 /* SignDeviceDiscoveryView.xib */,
@@ -900,6 +908,13 @@
 				DEVELOPMENT_TEAM = C4W745U45Q;
 				ENABLE_BITCODE = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(COMMAND_LINE_DEFINES)",
+					HAVE_OPENSSL,
+					MTOKEN_EKEY_SUPPORTED,
+					SIGN_METHOD_ZL_SUPPORT,
+					SIGN_SUPPORTED,
+				);
 				HAVE_OPENSSL = yes;
 				INFOPLIST_FILE = MxPDF_sign_supported.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
@@ -935,6 +950,13 @@
 				DEVELOPMENT_TEAM = C4W745U45Q;
 				ENABLE_BITCODE = NO;
 				GCC_OPTIMIZATION_LEVEL = s;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(COMMAND_LINE_DEFINES)",
+					HAVE_OPENSSL,
+					MTOKEN_EKEY_SUPPORTED,
+					SIGN_METHOD_ZL_SUPPORT,
+					SIGN_SUPPORTED,
+				);
 				HAVE_OPENSSL = yes;
 				INFOPLIST_FILE = MxPDF_sign_supported.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;

@@ -31,6 +31,7 @@ extern "C" {
 
 #include "mupdf/pdf/clean.h"
 #include "mupdf/z_/z_pdf.h"
+#include "mupdf/z_/z_sign.h"
 
 #ifdef __cplusplus
 }

@@ -40,6 +40,7 @@ typedef enum {
 //________________________pdf_add_contentstream.c
 extern const char *ntkoextobjname;
 typedef struct Z_pdf_SignContext_s Z_PdfSignContext;
+typedef struct Z_sign_device_context_s Z_sign_device;
 
 fz_buffer *z_points_to_PdfScriptStream(fz_context *ctx,pdf_document *doc, pdf_page *page, z_points *points);
 int pdf_draw_pointsToPage(fz_context* ctx, pdf_document *doc, z_points *points, int pageno);

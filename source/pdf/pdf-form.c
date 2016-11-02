@@ -1475,12 +1475,8 @@ pdf_obj *Z_pdf_new_obj_sig_propbuild(fz_context *ctx, pdf_document *doc)
     return propbuild; 
 }
 
-// modified by zl [2016-08-12 17:13:18]
-// for compatible"Z_pdf_sign_" macro is defiend
-// if Z_pdf_sign_ is defined type of dev is (Z_sign_device*), or pdf_signer*!
-// the returned pdf object need to pdf_drop_obj.
-// void pdf_signature_set_value(fz_context *ctx, pdf_document *doc, pdf_obj *field, pdf_signer *signer)
-pdf_obj *pdf_signature_set_value(fz_context *ctx, pdf_document *doc, pdf_obj *field, void *dev)
+#define  PDF_SIGN_WITH_NTKO_CUSTOM_DATA
+pdf_obj *pdf_signature_set_value(fz_context *ctx, pdf_document *doc, pdf_obj *field, z_device *device)
 {
 	pdf_obj *v;
 	pdf_obj *indv;
@@ -1520,12 +1516,10 @@ pdf_obj *pdf_signature_set_value(fz_context *ctx, pdf_document *doc, pdf_obj *fi
     pdf_dict_put_drop(ctx, v, PDF_NAME_SubFilter, PDF_NAME_adbe_pkcs7_detached);
     pdf_dict_put_drop(ctx, v, PDF_NAME_Type, pdf_new_name(ctx, doc, "Sig"));
 
-#ifdef Z_pdf_sign_
-    // Z_sign_device *signdev = dev;
+#ifdef PDF_SIGN_WITH_NTKO_CUSTOM_DATA
     const char *contactinfo = "http://www.ntko.com";
     const char *signreason = "ntko pdf security signature";
     const char *signername = "ntko";
-
     pdf_dict_puts_drop(ctx, v, "ContactInfo", pdf_new_string(ctx, doc, contactinfo, strlen(contactinfo)));
     pdf_dict_puts_drop(ctx, v, "Reason", pdf_new_string(ctx, doc, signreason, strlen(signreason)));
     pdf_dict_puts_drop(ctx, v, "M", Z_pdf_new_obj_sig_M(ctx, doc));
@@ -1536,6 +1530,6 @@ pdf_obj *pdf_signature_set_value(fz_context *ctx, pdf_document *doc, pdf_obj *fi
 	/* Record details within the document structure so that contents
 	 * and byte_range can be updated with their correct values at
 	 * saving time */
-	pdf_xref_store_unsaved_signature(ctx, doc, field, dev);
+	pdf_xref_store_unsaved_signature(ctx, doc, field, device);
     return indv;
 }

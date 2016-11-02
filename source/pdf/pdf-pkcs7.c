@@ -1,5 +1,6 @@
 #include "mupdf/pdf.h" // TODO: move this file to pdf module
 
+#define HAVE_OPENSSL
 #ifdef HAVE_OPENSSL
 
 #include "openssl/err.h"
@@ -25,6 +26,12 @@ typedef struct bsegs_struct
 	int current_seg;
 	int seg_pos;
 } BIO_SEGS_CTX;
+
+/////////////////////////////
+typedef struct z_openssl_device_s {
+    z_device supper;
+    pdf_signer *signer;
+} z_openssl_device;
 
 static int bsegs_read(BIO *b, char *buf, int size)
 {
@@ -607,6 +614,7 @@ pdf_designated_name *pdf_signer_designated_name(fz_context *ctx, pdf_signer *sig
 	return (pdf_designated_name *)dn;
 }
 
+
 void pdf_write_digest(fz_context *ctx, pdf_document *doc, const char *filename, pdf_obj *byte_range, int digest_offset, int digest_length, pdf_signer *signer)
 {
 	BIO *bdata = NULL;
@@ -776,6 +784,62 @@ int pdf_check_signature(fz_context *ctx, pdf_document *doc, pdf_widget *widget, 
 	return res;
 }
 
+#if 1
+void pdf_sign_signature(fz_context *ctx, pdf_document *doc, pdf_widget *widget, const char *sigfile, const char *password)
+{
+    z_device *device = NULL;
+	// pdf_signer *signer = pdf_read_pfx(ctx, sigfile, password);
+	pdf_designated_name *dn = NULL;
+	fz_buffer *fzbuf = NULL;
+
+	fz_try(ctx)
+	{
+		char *dn_str;
+		pdf_obj *wobj = ((pdf_annot *)widget)->obj;
+		fz_rect rect = fz_empty_rect;
+
+        device = z_openssl_new_device(ctx, (char*)sigfile, (char*)password);
+		pdf_signature_set_value(ctx, doc, wobj, device);
+
+		pdf_to_rect(ctx, pdf_dict_get(ctx, wobj, PDF_NAME_Rect), &rect);
+		/* Create an appearance stream only if the signature is intended to be visible */
+		if (!fz_is_empty_rect(&rect))
+		{
+			dn = pdf_signer_designated_name(ctx, ((z_openssl_device*)device)->signer);
+			fzbuf = fz_new_buffer(ctx, 256);
+			if (!dn->cn)
+				fz_throw(ctx, FZ_ERROR_GENERIC, "Certificate has no common name");
+
+			fz_buffer_printf(ctx, fzbuf, "cn=%s", dn->cn);
+
+			if (dn->o)
+				fz_buffer_printf(ctx, fzbuf, ", o=%s", dn->o);
+
+			if (dn->ou)
+				fz_buffer_printf(ctx, fzbuf, ", ou=%s", dn->ou);
+
+			if (dn->email)
+				fz_buffer_printf(ctx, fzbuf, ", email=%s", dn->email);
+
+			if (dn->c)
+				fz_buffer_printf(ctx, fzbuf, ", c=%s", dn->c);
+
+			(void)fz_buffer_storage(ctx, fzbuf, (unsigned char **) &dn_str);
+			pdf_set_signature_appearance(ctx, doc, (pdf_annot *)widget, dn->cn, dn_str, NULL);
+		}
+	}
+	fz_always(ctx)
+	{
+        z_drop_device(ctx, device);
+		pdf_drop_designated_name(ctx, dn);
+		fz_drop_buffer(ctx, fzbuf);
+	}
+	fz_catch(ctx)
+	{
+		fz_rethrow(ctx);
+	}
+}
+#else
 void pdf_sign_signature(fz_context *ctx, pdf_document *doc, pdf_widget *widget, const char *sigfile, const char *password)
 {
 	pdf_signer *signer = pdf_read_pfx(ctx, sigfile, password);
@@ -828,14 +892,17 @@ void pdf_sign_signature(fz_context *ctx, pdf_document *doc, pdf_widget *widget, 
 		fz_rethrow(ctx);
 	}
 }
+#endif
+
 
 int pdf_signatures_supported(fz_context *ctx)
 {
 	return 1;
 }
 
-BIO *Z_file_segment_BIO(fz_context *ctx, const char *filename,
-        pdf_obj *byterange)
+
+
+BIO *Z_file_segment_BIO(fz_context *ctx, const char *filename, pdf_obj *byterange)
 {
 	BIO *bdata = NULL;
 	BIO *bsegs = NULL;
@@ -874,6 +941,253 @@ BIO *Z_file_segment_BIO(fz_context *ctx, const char *filename,
 
     }
     return bsegs;
+}
+
+static void z_openssl_dosign_adobe_like(fz_context *ctx, z_device *device, pdf_document *doc, pdf_annot *annot, z_pdf_sign_appearance *app)
+{
+    z_openssl_device *dev = (z_openssl_device*)device;
+    pdf_signer *signer = dev->signer;
+	pdf_designated_name *dn = NULL;
+	fz_buffer *fzbuf = NULL;
+	fz_try(ctx)
+	{
+		char *dn_str;
+		pdf_obj *wobj = annot->obj;
+		fz_rect rect = fz_empty_rect;
+
+		pdf_signature_set_value(ctx, doc, wobj, device);
+
+		pdf_to_rect(ctx, pdf_dict_get(ctx, wobj, PDF_NAME_Rect), &rect);
+		/* Create an appearance stream only if the signature is intended to be visible */
+		if (!fz_is_empty_rect(&rect))
+		{
+			dn = pdf_signer_designated_name(ctx, signer);
+			fzbuf = fz_new_buffer(ctx, 256);
+			if (!dn->cn)
+				fz_throw(ctx, FZ_ERROR_GENERIC, "Certificate has no common name");
+
+			fz_buffer_printf(ctx, fzbuf, "cn=%s", dn->cn);
+
+			if (dn->o)
+				fz_buffer_printf(ctx, fzbuf, ", o=%s", dn->o);
+
+			if (dn->ou)
+				fz_buffer_printf(ctx, fzbuf, ", ou=%s", dn->ou);
+
+			if (dn->email)
+				fz_buffer_printf(ctx, fzbuf, ", email=%s", dn->email);
+
+			if (dn->c)
+				fz_buffer_printf(ctx, fzbuf, ", c=%s", dn->c);
+
+			(void)fz_buffer_storage(ctx, fzbuf, (unsigned char **) &dn_str);
+			pdf_set_signature_appearance(ctx, doc, annot, dn->cn, dn_str, NULL);
+		}
+	}
+	fz_always(ctx)
+	{
+		pdf_drop_designated_name(ctx, dn);
+		fz_drop_buffer(ctx, fzbuf);
+	}
+	fz_catch(ctx)
+	{
+		fz_rethrow(ctx);
+	}
+}
+
+static void z_openssl_dosign(fz_context *ctx, z_device *device, pdf_document* doc, pdf_annot *annot, z_pdf_sign_appearance *app)
+{
+	fz_try(ctx)
+	{
+        fz_rect rect = annot->rect;
+        pdf_obj *wobj = annot->obj;
+		pdf_signature_set_value(ctx, doc, wobj, device);
+		/* Create an appearance stream only if the signature is intended to be visible */
+		if ( !fz_is_empty_rect(&rect) && app)
+		{
+            app->set_app(ctx, doc, annot, app);
+		}
+	}
+	fz_always(ctx) {
+	}
+	fz_catch(ctx) {
+		fz_rethrow(ctx);
+	}
+}
+
+static void z_openssl_release_device(fz_context *ctx, z_device *device)
+{
+    z_openssl_device *openssl_device = (z_openssl_device*)device;
+    pdf_drop_signer(ctx, openssl_device->signer);
+    memset(openssl_device, 0, sizeof(z_openssl_device));
+    fz_free(ctx, openssl_device);
+}
+
+fz_buffer *z_openssl_pdf_get_digest(fz_context *ctx, pdf_document *doc, z_device *device, char *filename, pdf_obj *byte_range)
+{
+    z_openssl_device *openssl_dev = (z_openssl_device*)device;
+    fz_buffer *signbuf = NULL;
+
+	BIO *bdata = NULL;
+	BIO *bsegs = NULL;
+	BIO *bp7in = NULL;
+	BIO *bp7 = NULL;
+	PKCS7 *p7 = NULL;
+	PKCS7_SIGNER_INFO *si;
+
+	int (*brange)[2] = NULL;
+	int brange_len = pdf_array_len(ctx, byte_range)/2;
+
+	fz_var(bdata);
+	fz_var(bsegs);
+	fz_var(bp7in);
+	fz_var(bp7);
+	fz_var(p7);
+
+	fz_try(ctx)
+	{
+		unsigned char *p7_ptr;
+		int p7_len;
+		int i;
+
+        if( !fz_file_exists(ctx, filename) ){
+            z_fz_stream_save(ctx, doc->file, filename);
+        }
+        pdf_signer *signer = openssl_dev->signer;
+		brange = fz_calloc(ctx, brange_len, sizeof(*brange));
+		for (i = 0; i < brange_len; i++)
+		{
+			brange[i][0] = pdf_to_int(ctx, pdf_array_get(ctx, byte_range, 2*i));
+			brange[i][1] = pdf_to_int(ctx, pdf_array_get(ctx, byte_range, 2*i+1));
+		}
+
+		bdata = BIO_new(BIO_s_file());
+		if (bdata == NULL)
+			fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to create file BIO");
+		BIO_read_filename(bdata, filename);
+
+		bsegs = BIO_new(BIO_f_segments());
+		if (bsegs == NULL)
+			fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to create segment filter");
+
+		bsegs->next_bio = bdata;
+		BIO_set_segments(bsegs, brange, brange_len);
+
+		p7 = PKCS7_new();
+		if (p7 == NULL)
+			fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to create p7 object");
+
+		PKCS7_set_type(p7, NID_pkcs7_signed);
+		si = PKCS7_add_signature(p7, signer->x509, signer->pkey, EVP_sha1());
+		if (si == NULL)
+			fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to add signature");
+
+		PKCS7_add_signed_attribute(si, NID_pkcs9_contentType, V_ASN1_OBJECT, OBJ_nid2obj(NID_pkcs7_data));
+		PKCS7_add_certificate(p7, signer->x509);
+
+		PKCS7_content_new(p7, NID_pkcs7_data);
+		PKCS7_set_detached(p7, 1);
+
+		bp7in = PKCS7_dataInit(p7, NULL);
+		if (bp7in == NULL)
+			fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to write to digest");
+
+		while(1)
+		{
+			char buf[4096];
+			int n = BIO_read(bsegs, buf, sizeof(buf));
+			if (n <= 0)
+				break;
+			BIO_write(bp7in, buf, n);
+		}
+
+		if (!PKCS7_dataFinal(p7, bp7in))
+			fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to write to digest");
+
+		BIO_free(bsegs);
+		bsegs = NULL;
+		BIO_free(bdata);
+		bdata = NULL;
+
+		bp7 = BIO_new(BIO_s_mem());
+		if (bp7 == NULL || !i2d_PKCS7_bio(bp7, p7))
+			fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to create memory buffer for digest");
+		p7_len = BIO_get_mem_data(bp7, &p7_ptr);
+#if 1
+        signbuf = fz_new_buffer(ctx, p7_len);
+        fz_write_buffer(ctx, signbuf, p7_ptr, p7_len);
+#else
+        signbuf = fz_new_buffer(ctx, p7_len*2);
+        for(i=0; i<p7_len; i++) {
+            fz_buffer_printf(ctx, signbuf, "%02x", p7_ptr[i]);
+        }
+#endif
+//		if (p7_len*2 + 2 > digest_length)
+//			fz_throw(ctx, FZ_ERROR_GENERIC, "Insufficient space for digest");
+//
+//		f = fz_fopen(filename, "rb+");
+//		if (f == NULL)
+//			fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to write digest");
+//
+//		fz_fseek(f, digest_offset+1, SEEK_SET);
+//
+//		for (i = 0; i < p7_len; i++)
+//			fprintf(f, "%02x", p7_ptr[i]);
+	}
+	fz_always(ctx)
+	{
+		PKCS7_free(p7);
+		BIO_free(bsegs);
+		BIO_free(bdata);
+		BIO_free(bp7in);
+		BIO_free(bp7);
+	}
+	fz_catch(ctx)
+	{
+        fz_drop_buffer(ctx, signbuf); signbuf = NULL;
+		fz_rethrow(ctx);
+	}
+    return signbuf;
+}
+
+z_device * z_openssl_new_device(fz_context *ctx, char *pfxfile, char *pfxpassword)
+{
+    z_openssl_device *device = NULL;
+    z_device *supper = NULL;
+
+    fz_try(ctx){
+        device = fz_malloc_struct(ctx, z_openssl_device);
+        memset(device, 0, sizeof(z_openssl_device));
+
+        supper = &device->supper;
+        supper->refcount = 1;
+        supper->do_sign =  z_openssl_dosign_adobe_like;//z_openssl_dosign;
+        supper->get_digest = z_openssl_pdf_get_digest;
+        supper->release = z_openssl_release_device;
+
+        device->signer = pdf_read_pfx(ctx, pfxfile, pfxpassword);
+    }
+    fz_catch(ctx){
+        z_openssl_release_device(ctx, (z_device*)device);
+    }
+    return (z_device*)device;
+}
+
+void z_openssl_pdf_write_digest(fz_context *ctx, z_openssl_device *dev, pdf_document *doc, char *savefile, pdf_obj* byterange,  int ofs, int length)
+{
+    pdf_signer *signer = dev->signer;
+    fz_try(ctx) {
+        if( !fz_file_exists(ctx, savefile) ){
+            z_fz_stream_save(ctx, doc->file, savefile);
+        }
+        pdf_write_digest(ctx, doc, savefile, byterange, ofs, length, signer);
+    } 
+    fz_always(ctx) {
+
+    }
+    fz_catch(ctx) {
+        fz_rethrow(ctx);
+    }
 }
 
 #else /* HAVE_OPENSSL */

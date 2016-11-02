@@ -26,8 +26,20 @@
 
 void Z_PdfSignCtxDisplay(Z_PdfSignContext *signctx);
 
-void doTestsign(fz_context *ctx, pdf_document *doc, char *ofilename, fz_rect r)
+#if 1
+void doTestPdfSign(fz_context *ctx, pdf_document *doc, int pageno, fz_rect rect, char *savefile) 
 {
+    z_device * device = z_openssl_new_device(ctx, RES_PATH"/user/zl.pfx", "111111");
+    fz_image * image = fz_new_image_from_file(ctx, RES_Image_file); 
+    z_pdf_sign_appearance *app = z_pdf_new_image_sign_appearance(ctx, image,
+            (char*)"Ntko");
+    z_pdf_dosign(ctx, device, doc, pageno, rect, app);
+
+    z_drop_device(ctx, device);
+    pdf_save_incremental_tofile(ctx, doc, savefile);
+}
+#else
+void doTestsign(fz_context *ctx, pdf_document *doc, char *ofilename, fz_rect r) {
     Z_sign_device *signdevice = Z_openssl_SignDev_new(ctx, RES_PATH"/user/zl.pfx", "111111");
     fz_image *image = fz_new_image_from_file(ctx, RES_Image_file);
     Z_PdfSignContext *signctx = Z_PdfSignCtxInit(ctx, doc, 0, 1, image, r);
@@ -39,6 +51,7 @@ void doTestsign(fz_context *ctx, pdf_document *doc, char *ofilename, fz_rect r)
     Z_signdev_drop(signdevice, ctx);
     pdf_save_incremental_tofile(ctx, doc, ofilename);
 }
+#endif
 
 void doTestAddImage(fz_context *ctx, pdf_document *doc)
 {
@@ -184,11 +197,26 @@ static void main_subdata(int argc, char **argv)
     subdata(infile, ofs, size, ofile);
 }
 
+static void printMatrix(fz_matrix *mx)
+{
+    printf("matrix:\n\t[%f,%f]\n\t[%f,%f]\n\t[%f,%f]\n", mx->a, mx->b, mx->c, mx->d, mx->e, mx->f);
+}
+
+void matrixTest() {
+    fz_matrix mx1 = {1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f};  // x 对称
+    fz_matrix mx2 = {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 841.9f};// 
+    fz_matrix r = fz_identity;
+    fz_concat(&r, &mx1, &mx2);
+    printMatrix(&r);
+}
 int main(int argc, char **argv) {
+
+    matrixTest();
     char *infile, *ofile;
-    fz_rect r = {200, 200, 300, 300};// {75, 733, 180, 809};
+    fz_rect r = {108.77, 676.89, 227.23, 795.34};
     int w, h;
-    w = 100; h = 100;
+    w = r.x1 - r.x0;
+    h = r.y1 - r.y0;
     infile = ofile = NULL;
     fz_optind = 1;
     char c;
@@ -212,7 +240,8 @@ int main(int argc, char **argv) {
     fz_context *ctx = fz_new_context(NULL, NULL, FZ_STORE_DEFAULT);
     pdf_document *doc = pdf_open_document(ctx, infile);
     // xref = pdf_get_xref_entry
-    doTestsign(ctx, doc, ofile, r);
+    doTestPdfSign(ctx, doc, 0, r, ofile);
+    // doTestsign(ctx, doc, ofile, r);
     pdf_drop_document(ctx, doc);
     fz_drop_context(ctx);
     printf("====================\n");

@@ -1,4 +1,12 @@
 #include "common.h"
+#import "./z/signdevice/SigndeviceDiscoveryView.h"
+
+#define SIGN_SUPPORTED
+
+#if defined(SIGN_SUPPORTED)
+#include "z/signdevice/mtoken/Include/K5SOFApp.h"
+#include "z/signdevice/mtoken/Include/K5AlgoDefs.h"
+#endif
 
 fz_context *ctx;
 dispatch_queue_t queue;
@@ -194,3 +202,56 @@ CGFloat angleBetweenLines(CGPoint line1Start, CGPoint line1End, CGPoint line2Sta
 	CGFloat rads = acos(((a*c) + (b*d)) / ((sqrt(a*a + b*b)) * (sqrt(c*c + d*d))));
 	return radiansToDegrees(rads);
 }
+
+void z_showNibWithName(UIViewController *parant, char *nibname, char *classname)
+{
+	
+}
+
+
+#if defined(SIGN_SUPPORTED)
+void z_showSigndataDialog(UIViewController *parent, z_pdf_sign_param *param)
+{
+	UIView *parentView = parent.view;
+	SigndeviceDiscoveryView *subView = [[[NSBundle mainBundle]loadNibNamed:@"SignDeviceDiscoveryView" owner:nil options:nil]lastObject];
+	subView.frame = CGRectInset(parentView.bounds, 20, 40);
+	[parentView addSubview:subView];
+}
+#else
+void z_showSigndataDialog(UIViewController *parent,  struct z_pdf_sign_param_s *param)
+{
+	NSLog(@"macro SIGN_SUPPORTED is not defiend.");
+}
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

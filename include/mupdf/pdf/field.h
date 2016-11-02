@@ -46,10 +46,7 @@ void pdf_field_set_button_caption(fz_context *ctx, pdf_document *doc, pdf_obj *f
 void pdf_field_set_fill_color(fz_context *ctx, pdf_document *doc, pdf_obj *field, pdf_obj *col);
 void pdf_field_set_text_color(fz_context *ctx, pdf_document *doc, pdf_obj *field, pdf_obj *col);
 // modified by zl [2016-08-12 17:13:18]
-// for compatible"Z_pdf_sign_" macro is defiend
-// if Z_pdf_sign_ is defined type of dev is (Z_sign_device*), or pdf_signer*!
-// void pdf_signature_set_value(fz_context *ctx, pdf_document *doc, pdf_obj *field, pdf_signer *signer)
-pdf_obj *pdf_signature_set_value(fz_context *ctx, pdf_document *doc, pdf_obj *field, void *dev);
+pdf_obj *pdf_signature_set_value(fz_context *ctx, pdf_document *doc, pdf_obj *field, z_device *device);
 int pdf_field_display(fz_context *ctx, pdf_document *doc, pdf_obj *field);
 char *pdf_field_name(fz_context *ctx, pdf_document *doc, pdf_obj *field);
 void pdf_field_set_display(fz_context *ctx, pdf_document *doc, pdf_obj *field, int d);

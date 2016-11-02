@@ -1,0 +1,70 @@
+/*
+ * =====================================================================================
+ *
+ *       Filename:  z_sign.h
+ *
+ *    Description:  
+ *
+ *        Version:  1.0
+ *        Created:  10/17/2016 17:35:56
+ *       Revision:  none
+ *       Compiler:  gcc
+ *
+ *         Author:  YOUR NAME (), 
+ *   Organization:  
+ *
+ * =====================================================================================
+ */
+#ifndef Z_SIGN_H
+#define Z_SIGN_H
+
+#include "mupdf/pdf.h"
+
+typedef struct z_device_s z_device;
+typedef fz_buffer* (*z_sign_get_digest_fn)(fz_context*, z_device *);
+typedef void (*z_sign_signature_fn)(fz_context*, z_device *);
+typedef void (*z_sign_set_appearance_fn)(fz_context*, z_device *);
+typedef void*(*z_sign_keep_appearance_fn)(fz_context*, void *);
+typedef void (*z_sign_drop_appearance_fn)(fz_context*, void *);
+typedef void (*z_sign_setsign_value_fn)(fz_context*, z_device *);
+typedef void (*z_sign_releasedevice_fn)(fz_context*, z_device *);
+
+typedef struct z_sign_param_s {
+	pdf_document *doc;
+	pdf_page *page;
+    void* appearance;
+	pdf_annot *annot;
+    pdf_obj *byterange;
+    char *savefile;
+    int ofs, len; // digest data ofs(in savefile) and length
+    char *txt;
+} z_sign_param;
+
+typedef struct z_pdf_sign_appearance_s {
+
+}z_pdf_sign_appearance;
+
+struct z_device_s {
+    int refcount;
+	z_sign_param param;
+    z_sign_signature_fn       do_sign;
+	z_sign_get_digest_fn      get_digest;
+    z_sign_set_appearance_fn  set_app;
+    z_sign_keep_appearance_fn keep_app;
+    z_sign_drop_appearance_fn drop_app;
+    z_sign_releasedevice_fn   release;
+};
+
+void z_release_sign_param(fz_context *ctx, z_sign_param *param);
+z_device *z_keep_device(fz_context *ctx, z_device *device);
+void z_drop_device(fz_context *ctx, z_device *device);
+void z_dosign(fz_context *ctx, z_device *dev);
+
+void z_sign_set_appearance_with_signer(fz_context *ctx, z_device *device);
+void z_sign_set_appearance_with_image(fz_context *ctx, z_device *device);
+void z_sign_set_appearance_with_path(fz_context *ctx, z_device *device);
+// utils
+void z_write_file(fz_context *ctx, fz_buffer *buf, int ofs);
+void z_fz_stream_save(fz_context *ctx, fz_stream *stm, char *filename);
+
+#endif
