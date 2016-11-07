@@ -62,6 +62,9 @@ public class MuPDFCore
 	private native byte[] textAsHtml();
 	private native void addMarkupAnnotationInternal(PointF[] quadPoints, int type);
 	private native void addInkAnnotationInternal(PointF[][] arcs,String password);
+	// check if ink annotation has password
+	// 2016/11/6 by zl03jsj
+	private native boolean isAnnotationHasPasswordInternal(int annot_index);
 	private native void deleteAnnotationInternal(int annot_index, String password);
 	private native int passClickEventInternal(int page, float x, float y);
 	private native void setFocusedWidgetChoiceSelectedInternal(String [] selected);
@@ -407,4 +410,7 @@ public class MuPDFCore
 	public synchronized boolean addImage(int page, int x, int y, int w, int h, byte[] image){
 		return addPdfImage(page, x, y, w, h, image);
 	}
+
+
+
 }

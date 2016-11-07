@@ -74,3 +74,6 @@ thirdparty/openssl/ios/x86_64/libcrypto.a
 thirdparty/openssl/ios/x86_64/libssl.a
 thirdparty/openssl/macos/libcrypto.a
 thirdparty/openssl/macos/libssl.a
+*.vim
+.vim_auto_ses
+*.pyc

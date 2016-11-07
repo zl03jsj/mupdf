@@ -1785,6 +1785,47 @@ JNI_FN(MuPDFCore_deleteAnnotationInternal)(JNIEnv * env, jobject thiz, int annot
 	}
 }
 
+JNIEXPORT jboolean JNICALL
+JNI_FN(MuPDFCore_isAnnotationHasPasswordInternal)(JNIEnv * env, jobject thiz, int annot_index)
+{
+	globals *glo = get_globals(env, thiz);
+	fz_context *ctx = glo->ctx;
+	fz_document *doc = glo->doc;
+	pdf_document *idoc = pdf_specifics(ctx, doc);
+	page_cache *pc = &glo->pages[glo->current];
+	fz_annot *annot;
+	int i;
+	jboolean hasPassword = JNI_FALSE;
+
+	fz_try(ctx)
+	{
+	    if (idoc == NULL) {
+			fz_throw(ctx, FZ_ERROR_GENERIC, "Cannot get pdf document.");
+	    }
+		annot = fz_first_annot(ctx, pc->page);
+		for (i = 0; i < annot_index && annot; i++)
+			annot = fz_next_annot(ctx, annot);
+
+		if (annot)
+		{
+            pdf_obj *pswobj = pdf_dict_gets(ctx, ((pdf_annot*)annot)->obj, ANNOT_PASSWORD_NAME);
+            hasPassword = pswobj ? JNI_TRUE :JNI_FALSE;
+		}
+		else {
+			fz_throw(ctx, FZ_ERROR_GENERIC, "Annot index out of range.");
+		}
+	}
+	fz_catch(ctx)
+	{
+		LOGE("IsAnnotationHasPassword: %s", ctx->error->message);
+		jclass cls = (*env)->FindClass(env, "java/lang/Exception");
+		if (cls != NULL)
+			(*env)->ThrowNew(env, cls, ctx->error->message);
+		(*env)->DeleteLocalRef(env, cls);
+	}
+	return hasPassword;
+}
+
 /* Close the document, at least enough to be able to save over it. This
  * may be called again later, so must be idempotent. */
 static void close_doc(globals *glo)
