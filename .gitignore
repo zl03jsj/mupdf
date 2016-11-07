@@ -76,3 +76,4 @@ thirdparty/openssl/macos/libcrypto.a
 thirdparty/openssl/macos/libssl.a
 .session.vim
 .vim_auto_ses
+*.pyc

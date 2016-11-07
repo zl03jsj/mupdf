@@ -34,6 +34,7 @@ void z_drop_device(fz_context *ctx, z_device *device)
     }
 }
 
+fz_rect z_defualt_annot_rect = {0.0f, 0.0f, 100.0f, 100.0f};
 void z_pdf_dosign(fz_context *ctx, z_device *device, pdf_document *doc,int pageno, fz_rect rect, z_pdf_sign_appearance *app)
 {
     pdf_page *page = NULL;
@@ -50,11 +51,11 @@ void z_pdf_dosign(fz_context *ctx, z_device *device, pdf_document *doc,int pagen
         // must add /P(which page the annot belong to) tag, or signature object cannot be display on
         // adobe reader's signature panel
         pdf_dict_put_drop(ctx, annot->obj, PDF_NAME_P, pdf_lookup_page_obj(ctx, doc, pageno));
-        pdf_dict_puts_drop(ctx, annot->obj, "Rect", pdf_new_rect(ctx, doc, &rect));
-        // update rect
-        pdf_to_rect(ctx, pdf_dict_get(ctx, annot->obj, PDF_NAME_Rect), &annot->rect);
-        annot->pagerect = annot->rect;
-        fz_transform_rect(&annot->pagerect, &annot->page->ctm);
+
+        annot->pagerect = rect;
+        annot->rect = rect;
+        fz_transform_rect(&annot->rect, &annot->page->ctm);
+        pdf_dict_puts_drop(ctx, annot->obj, "Rect", pdf_new_rect(ctx, doc, &annot->pagerect));
 
         doc->disallow_new_increments = 1;
         device->do_sign(ctx, device, doc, annot, app);

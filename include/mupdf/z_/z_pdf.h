@@ -37,6 +37,9 @@ typedef enum {
 #include "z_algorithm.h"
 #include "pdf_extension.h"
 
+#define fz_rect_dx(r) ((r)->x1 - (r)->x0)
+#define fz_rect_dy(r) ((r)->y1 - (r)->y0)
+
 //________________________pdf_add_contentstream.c
 extern const char *ntkoextobjname;
 typedef struct Z_pdf_SignContext_s Z_PdfSignContext;

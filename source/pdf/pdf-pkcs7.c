@@ -1161,7 +1161,7 @@ z_device * z_openssl_new_device(fz_context *ctx, char *pfxfile, char *pfxpasswor
 
         supper = &device->supper;
         supper->refcount = 1;
-        supper->do_sign =  z_openssl_dosign_adobe_like;//z_openssl_dosign;
+        supper->do_sign = z_openssl_dosign;
         supper->get_digest = z_openssl_pdf_get_digest;
         supper->release = z_openssl_release_device;
 

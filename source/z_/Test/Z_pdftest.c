@@ -213,7 +213,7 @@ int main(int argc, char **argv) {
 
     matrixTest();
     char *infile, *ofile;
-    fz_rect r = {108.77, 676.89, 227.23, 795.34};
+    fz_rect r = {108.77f, 47.03f, 226.77f, 165.03f};
     int w, h;
     w = r.x1 - r.x0;
     h = r.y1 - r.y0;
