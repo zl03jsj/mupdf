@@ -784,11 +784,9 @@ int pdf_check_signature(fz_context *ctx, pdf_document *doc, pdf_widget *widget, 
 	return res;
 }
 
-#if 1
 void pdf_sign_signature(fz_context *ctx, pdf_document *doc, pdf_widget *widget, const char *sigfile, const char *password)
 {
     z_device *device = NULL;
-	// pdf_signer *signer = pdf_read_pfx(ctx, sigfile, password);
 	pdf_designated_name *dn = NULL;
 	fz_buffer *fzbuf = NULL;
 
@@ -839,60 +837,6 @@ void pdf_sign_signature(fz_context *ctx, pdf_document *doc, pdf_widget *widget, 
 		fz_rethrow(ctx);
 	}
 }
-#else
-void pdf_sign_signature(fz_context *ctx, pdf_document *doc, pdf_widget *widget, const char *sigfile, const char *password)
-{
-	pdf_signer *signer = pdf_read_pfx(ctx, sigfile, password);
-	pdf_designated_name *dn = NULL;
-	fz_buffer *fzbuf = NULL;
-
-	fz_try(ctx)
-	{
-		char *dn_str;
-		pdf_obj *wobj = ((pdf_annot *)widget)->obj;
-		fz_rect rect = fz_empty_rect;
-
-		pdf_signature_set_value(ctx, doc, wobj, signer);
-
-		pdf_to_rect(ctx, pdf_dict_get(ctx, wobj, PDF_NAME_Rect), &rect);
-		/* Create an appearance stream only if the signature is intended to be visible */
-		if (!fz_is_empty_rect(&rect))
-		{
-			dn = pdf_signer_designated_name(ctx, signer);
-			fzbuf = fz_new_buffer(ctx, 256);
-			if (!dn->cn)
-				fz_throw(ctx, FZ_ERROR_GENERIC, "Certificate has no common name");
-
-			fz_buffer_printf(ctx, fzbuf, "cn=%s", dn->cn);
-
-			if (dn->o)
-				fz_buffer_printf(ctx, fzbuf, ", o=%s", dn->o);
-
-			if (dn->ou)
-				fz_buffer_printf(ctx, fzbuf, ", ou=%s", dn->ou);
-
-			if (dn->email)
-				fz_buffer_printf(ctx, fzbuf, ", email=%s", dn->email);
-
-			if (dn->c)
-				fz_buffer_printf(ctx, fzbuf, ", c=%s", dn->c);
-
-			(void)fz_buffer_storage(ctx, fzbuf, (unsigned char **) &dn_str);
-			pdf_set_signature_appearance(ctx, doc, (pdf_annot *)widget, dn->cn, dn_str, NULL);
-		}
-	}
-	fz_always(ctx)
-	{
-		pdf_drop_signer(ctx, signer);
-		pdf_drop_designated_name(ctx, dn);
-		fz_drop_buffer(ctx, fzbuf);
-	}
-	fz_catch(ctx)
-	{
-		fz_rethrow(ctx);
-	}
-}
-#endif
 
 
 int pdf_signatures_supported(fz_context *ctx)
@@ -1113,26 +1057,11 @@ fz_buffer *z_openssl_pdf_get_digest(fz_context *ctx, pdf_document *doc, z_device
 		if (bp7 == NULL || !i2d_PKCS7_bio(bp7, p7))
 			fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to create memory buffer for digest");
 		p7_len = BIO_get_mem_data(bp7, &p7_ptr);
-#if 1
+
+        // the binary data of pdf sig object's content, should be write as hex
+        // mode
         signbuf = fz_new_buffer(ctx, p7_len);
         fz_write_buffer(ctx, signbuf, p7_ptr, p7_len);
-#else
-        signbuf = fz_new_buffer(ctx, p7_len*2);
-        for(i=0; i<p7_len; i++) {
-            fz_buffer_printf(ctx, signbuf, "%02x", p7_ptr[i]);
-        }
-#endif
-//		if (p7_len*2 + 2 > digest_length)
-//			fz_throw(ctx, FZ_ERROR_GENERIC, "Insufficient space for digest");
-//
-//		f = fz_fopen(filename, "rb+");
-//		if (f == NULL)
-//			fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to write digest");
-//
-//		fz_fseek(f, digest_offset+1, SEEK_SET);
-//
-//		for (i = 0; i < p7_len; i++)
-//			fprintf(f, "%02x", p7_ptr[i]);
 	}
 	fz_always(ctx)
 	{

@@ -1968,8 +1968,31 @@ pdf_add_cid_font(fz_context *ctx, pdf_document *doc, fz_font *font)
 			fobj = pdf_new_dict(ctx, doc, 10);
 			pdf_dict_put(ctx, fobj, PDF_NAME_Type, PDF_NAME_Font);
 			pdf_dict_put(ctx, fobj, PDF_NAME_Subtype, PDF_NAME_Type0);
-			pdf_dict_put_drop(ctx, fobj, PDF_NAME_BaseFont, pdf_new_name(ctx, doc, font->name));
 			pdf_dict_put(ctx, fobj, PDF_NAME_Encoding, PDF_NAME_Identity_H);
+            // Fixed by zl [2016-11-11 12:56:54]
+            // The name of the font. If the descendant is a Type 0 CIDFont, this name should be the concatenation of the CIDFont’s BaseFont name, a hyphen, and the CMap name given in the Encoding entry (or the CMapName entry in the CMap). If the descendant is a Type 2 CIDFont, this name should be the same as the CIDFont’s BaseFont name.
+            //NOTE: In principle, this is an arbitrary name, since there is no font program associated directly with a Type 0 font dictionary. The conventions described here ensure maximum compatibility with existing readers
+            char basename[128];
+            memset(basename, 0, 128);
+            strcat(basename, pdf_to_name(ctx, pdf_dict_get(ctx, obj_desc_ref, PDF_NAME_BaseFont)));
+
+            pdf_obj *subtype = pdf_dict_get(ctx, obj_desc_ref, PDF_NAME_Subtype);
+            if (pdf_name_eq(ctx, subtype, PDF_NAME_CIDFontType0)){//  CIDFontType0
+                // or the CMapName entry in the CMap]
+                const char *cmap_name = NULL;
+                pdf_obj *encoding = pdf_dict_get(ctx, fobj, PDF_NAME_Encoding);
+
+                if( pdf_is_name(ctx, encoding))
+                    cmap_name = pdf_to_name(ctx, encoding);
+                else if(pdf_is_stream(ctx, encoding))
+                    cmap_name = pdf_to_name(ctx, pdf_dict_gets(ctx, encoding, "CMapName"));
+
+                if(cmap_name && strlen(cmap_name)!=0) {
+                    strcat(basename, "-");
+                    strcat(basename, cmap_name);
+                }
+            }
+            pdf_dict_put_drop(ctx, fobj, PDF_NAME_BaseFont, pdf_new_name(ctx, doc, basename));
 
 			obj_array = pdf_new_array(ctx, doc, 3);
 			pdf_array_insert(ctx, obj_array, obj_desc_ref, 0);

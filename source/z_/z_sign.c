@@ -34,7 +34,6 @@ void z_drop_device(fz_context *ctx, z_device *device)
     }
 }
 
-fz_rect z_defualt_annot_rect = {0.0f, 0.0f, 100.0f, 100.0f};
 void z_pdf_dosign(fz_context *ctx, z_device *device, pdf_document *doc,int pageno, fz_rect rect, z_pdf_sign_appearance *app)
 {
     pdf_page *page = NULL;

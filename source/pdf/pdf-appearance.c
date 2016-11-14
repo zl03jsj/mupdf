@@ -2343,7 +2343,7 @@ void pdf_set_signature_appearance(fz_context *ctx, pdf_document *doc, pdf_annot 
 {
 	const fz_matrix *page_ctm = &annot->page->ctm;
 	pdf_obj *obj = annot->obj;
-	pdf_obj *dr = NULL;// pdf_dict_getl(ctx, pdf_trailer(ctx, doc), PDF_NAME_Root, PDF_NAME_AcroForm, PDF_NAME_DR, NULL);
+	pdf_obj *dr = NULL;
 	fz_display_list *dlist = NULL;
 	fz_device *dev = NULL;
 	font_info font_rec;
@@ -2351,9 +2351,6 @@ void pdf_set_signature_appearance(fz_context *ctx, pdf_document *doc, pdf_annot 
 	fz_colorspace *cs = NULL;
 	fz_path *path = NULL;
 	fz_buffer *fzbuf = NULL;
-
-//	if (!dr)
-//		pdf_dict_putl_drop(ctx, pdf_trailer(ctx, doc), pdf_new_dict(ctx, doc, 1), PDF_NAME_Root, PDF_NAME_AcroForm, PDF_NAME_DR, NULL);
 
 	memset(&font_rec, 0, sizeof(font_rec));
 
@@ -2441,7 +2438,7 @@ void pdf_set_signature_appearance(fz_context *ctx, pdf_document *doc, pdf_annot 
 	}
 }
 
-pdf_obj *z_pdf_add_base14_font(fz_context *ctx, pdf_document *doc, pdf_obj *fontobj, char *name, char *fontname) 
+pdf_obj *z_pdf_add_chinese_font(fz_context *ctx, pdf_document *doc, pdf_obj *fontobj, char *name) 
 {
     pdf_obj *ref = NULL;
     fz_font *font = NULL;
@@ -2451,9 +2448,9 @@ pdf_obj *z_pdf_add_base14_font(fz_context *ctx, pdf_document *doc, pdf_obj *font
         if(!ref) {
             const char *data;
             int size=0;
-            data = fz_lookup_base14_font(ctx, fontname, &size); 
+            data = fz_lookup_noto_font(ctx, UCDN_SCRIPT_HAN, 0, &size);
             font = fz_new_font_from_memory(ctx, name, data, size, 0, 0);
-            ref = pdf_add_simple_font(ctx, doc, font);
+            ref = pdf_add_cid_font(ctx, doc, font);
             pdf_dict_puts_drop(ctx, fontobj, name, ref); 
         }
     }
@@ -2485,8 +2482,8 @@ static const char *z_pdf_add_sign_annot_da(fz_context *ctx, pdf_document *doc, p
             }
 
             if( 0==pdf_dict_len(ctx, font) ){
-                name = fz_strdup(ctx, "Helv");
-                font = z_pdf_add_base14_font(ctx, doc, font, name, "Helvetica");
+                name = fz_strdup(ctx, "ntkof");
+                font = z_pdf_add_chinese_font(ctx, doc, font, name);
             }
             else {
                 name = fz_strdup(ctx, pdf_to_name(ctx, pdf_dict_get_key(ctx, font, 0)));
@@ -2545,7 +2542,14 @@ void z_pdf_set_signature_appearance_with_image(fz_context *ctx, pdf_document *do
         fz_pre_translate(&image_ctm, rect.x0, rect.y0);
         fz_pre_scale(&image_ctm, fz_rect_dx(&rect), fz_rect_dy(&rect));
 
-        fz_fill_image(ctx, dev, (fz_image*)app->app, &image_ctm, 0.8f);
+        // fz_device_
+        rect = fz_unit_rect;
+        fz_transform_rect(&rect, &image_ctm);
+        /* apply blend group even though we skip the soft mask */
+        fz_begin_group(ctx, dev, &rect, 0, 0, FZ_BLEND_DARKEN, 1);
+
+        fz_fill_image(ctx, dev, (fz_image*)app->app, &image_ctm, 1.0f);
+        fz_end_group(ctx, dev);
 
 		get_font_info(ctx, doc, dr, (char*)da, &font_rec);
 		switch (font_rec.da_rec.col_size)
@@ -2557,8 +2561,9 @@ void z_pdf_set_signature_appearance_with_image(fz_context *ctx, pdf_document *do
 		/* Display the distinguished name in the right-hand half */
 		rect = annot->rect;
 		rect.x0 = (rect.x0 + rect.x1)/2.0f;
+        rect.y0 = (rect.y0 + rect.y1)/2.0f;
 		text = fit_text(ctx, &font_rec, app->text, &rect);
-		fz_fill_text(ctx, dev, text, &annot->page->ctm, cs, font_rec.da_rec.col, 0.9f);
+		fz_fill_text(ctx, dev, text, &annot->page->ctm, cs, font_rec.da_rec.col, 0.5f);
 
 		rect = annot->rect;
 		fz_transform_rect(&rect, page_ctm);
@@ -2585,76 +2590,11 @@ void z_pdf_set_signature_appearance_with_image(fz_context *ctx, pdf_document *do
 	}
 }
 
-//TODO: implement new signature appearance
+//TODO: to implement!!!
 void z_pdf_set_signature_appearance_with_path(fz_context *ctx, pdf_document *doc, pdf_annot *annot, z_pdf_sign_appearance *app) 
 {
-
-	const fz_matrix *page_ctm = &annot->page->ctm;
-	pdf_obj *obj = annot->obj;
-	pdf_obj *dr = NULL;
-	fz_display_list *dlist = NULL;
-	fz_device *dev = NULL;
-	font_info font_rec;
-	fz_text *text = NULL;
-	fz_colorspace *cs = NULL;
-
-	memset(&font_rec, 0, sizeof(font_rec));
-
-	fz_var(dlist);
-	fz_var(dev);
-	fz_var(text);
-	fz_var(cs);
-	fz_try(ctx)
-	{
-		const char *da = z_pdf_add_sign_annot_da(ctx, doc, obj);
-        dr = pdf_dict_getp(ctx, pdf_trailer(ctx, doc), "Root/AcroForm/DR");
-        if(!dr) {
-            fz_throw(ctx, FZ_ERROR_GENERIC, "No defualt resource(/DR) tag in AcroForm.");
-        }
-        fz_rect rect = annot->rect;
-		dlist = fz_new_display_list(ctx);
-		dev = fz_new_list_device(ctx, dlist);
-
-        // fill image
-        fz_fill_image(ctx, dev, (fz_image*)app->app, page_ctm, 0.8f);
-
-		get_font_info(ctx, doc, dr, da, &font_rec);
-		switch (font_rec.da_rec.col_size)
-        {
-            case 1: cs = fz_device_gray(ctx); break;
-            case 3: cs = fz_device_rgb(ctx); break;
-            case 4: cs = fz_device_cmyk(ctx); break;
-        }
-		/* Display the distinguished name in the right-hand half */
-		rect.x0 = (rect.x0 + rect.x1)/2.0f;
-		text = fit_text(ctx, &font_rec, app->text, &rect);
-		fz_fill_text(ctx, dev, text, page_ctm, cs, font_rec.da_rec.col, 1.0f);
-		fz_drop_text(ctx, text);
-		text = NULL;
-
-		rect = annot->rect;
-		fz_transform_rect(&rect, page_ctm);
-		pdf_set_annot_appearance(ctx, doc, annot, &rect, dlist);
-
-		/* Drop the cached xobject from the annotation structure to
-		 * force a redraw on next pdf_update_page call */
-		pdf_drop_xobject(ctx, annot->ap);
-		annot->ap = NULL;
-
-		insert_signature_appearance_layers(ctx, doc, annot);
-	}
-	fz_always(ctx)
-	{
-		fz_drop_device(ctx, dev);
-		fz_drop_display_list(ctx, dlist);
-		font_info_fin(ctx, &font_rec);
-		fz_drop_text(ctx, text);
-		fz_drop_colorspace(ctx, cs);
-	}
-	fz_catch(ctx)
-	{
-		fz_rethrow(ctx);
-	}
+    // fz_stroke_path(ctx, dev, path, 
+    fz_throw(ctx, FZ_ERROR_GENERIC, "No implemented!");
 }
 
 void pdf_update_appearance(fz_context *ctx, pdf_document *doc, pdf_annot *annot)
@@ -2711,7 +2651,8 @@ void pdf_update_appearance(fz_context *ctx, pdf_document *doc, pdf_annot *annot)
 			case PDF_WIDGET_TYPE_COMBOBOX:
 				pdf_update_combobox_appearance(ctx, doc, obj);
 				break;
-            // case PDF_WIDGET_TYPE_SIGNATURE:
+            case PDF_WIDGET_TYPE_SIGNATURE:
+                break;
 			}
 			break;
 		case FZ_ANNOT_TEXT:
