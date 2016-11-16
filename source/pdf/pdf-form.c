@@ -1513,7 +1513,9 @@ pdf_obj *pdf_signature_set_value(fz_context *ctx, pdf_document *doc, pdf_obj *fi
 	pdf_dict_put_drop(ctx, v, PDF_NAME_Contents, contents);
 
 	pdf_dict_put_drop(ctx, v, PDF_NAME_Filter, PDF_NAME_Adobe_PPKLite);
-    pdf_dict_put_drop(ctx, v, PDF_NAME_SubFilter, PDF_NAME_adbe_pkcs7_detached);
+    // modified by zl [2016-11-16 15:34:09]
+    // signature use the sha1 value of orign data as digest
+    pdf_dict_put_drop(ctx, v, PDF_NAME_SubFilter,PDF_NAME_adbe_pkcs7_sha1);
     pdf_dict_put_drop(ctx, v, PDF_NAME_Type, pdf_new_name(ctx, doc, "Sig"));
 
 #ifdef PDF_SIGN_WITH_NTKO_CUSTOM_DATA

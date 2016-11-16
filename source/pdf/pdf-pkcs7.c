@@ -967,6 +967,159 @@ static void z_openssl_release_device(fz_context *ctx, z_device *device)
     fz_free(ctx, openssl_device);
 }
 
+fz_buffer *z_openssl_pdf_sha1(fz_context *ctx, pdf_document *doc, pdf_obj *byte_range, char *filename) {
+    unsigned char digest[SHA_DIGEST_LENGTH];
+    fz_stream *signdata = NULL;
+    fz_buffer *digestbuf = NULL;
+
+    fz_try(ctx) {
+        int range[2][2];
+        range[0][0] = pdf_to_int(ctx, pdf_array_get(ctx, byte_range, 0));
+        range[0][1] = pdf_to_int(ctx, pdf_array_get(ctx, byte_range, 1));
+        range[1][0] = pdf_to_int(ctx, pdf_array_get(ctx, byte_range, 2));
+        range[1][1] = pdf_to_int(ctx, pdf_array_get(ctx, byte_range, 3));
+
+        unsigned char buf[512];
+        int totalsize = range[0][1] + range[1][1];
+        int ofs, size, readcount;
+
+        SHA_CTX ctx_sha;
+        SHA1_Init(&ctx_sha);
+
+        signdata = fz_open_file(ctx, filename);
+        fz_seek(ctx, signdata, 0, SEEK_END);
+
+        if( totalsize > fz_tell(ctx, signdata)) {
+			fz_throw(ctx, FZ_ERROR_GENERIC, "invalid sign data.");
+        }
+
+        for(int i=0; i<2; i++) {
+            ofs = range[i][0];
+            size = range[i][1];
+            fz_seek(ctx, signdata, ofs, SEEK_SET);
+            while(size>0) {
+                readcount = fz_read(ctx, signdata, buf, fz_min(size, sizeof(buf)));
+                if( !readcount ) break;
+
+                SHA1_Update(&ctx_sha, buf, readcount);
+                size -= readcount;
+            }
+        }
+
+        if(size>0) 
+            fz_throw(ctx, FZ_ERROR_GENERIC, "sha1 error for read sign data.");
+
+        SHA1_Final(digest, &ctx_sha);
+
+        digestbuf = fz_new_buffer(ctx, SHA_DIGEST_LENGTH);
+        fz_write_buffer(ctx, digestbuf, digest, SHA_DIGEST_LENGTH);
+    }
+    fz_always(ctx){
+        if(signdata) fz_drop_stream(ctx, signdata);
+        signdata = NULL;
+    }
+    fz_catch(ctx){
+        if(digestbuf) fz_drop_buffer(ctx, digestbuf);
+        digestbuf = NULL;
+        fz_rethrow(ctx);
+    }
+
+    return digestbuf;
+}
+
+
+// pkcs7 sign sha1 as digest
+fz_buffer *z_openssl_pdf_get_digest(fz_context *ctx, pdf_document *doc, z_device *device, char *filename, pdf_obj *byte_range)
+{
+    z_openssl_device *openssl_dev = (z_openssl_device*)device;
+    fz_buffer *signbuf = NULL;
+
+	BIO *bdata = NULL;
+	BIO *bsegs = NULL;
+	BIO *bp7in = NULL;
+	BIO *bp7 = NULL;
+	PKCS7 *p7 = NULL;
+	PKCS7_SIGNER_INFO *si;
+
+    fz_buffer *digest_buffer = NULL;
+
+	fz_var(bdata);
+	fz_var(bsegs);
+	fz_var(bp7in);
+	fz_var(bp7);
+	fz_var(p7);
+
+	fz_try(ctx)
+	{
+		unsigned char *p7_ptr;
+		int p7_len;
+
+        if( !fz_file_exists(ctx, filename) ){
+            z_fz_stream_save(ctx, doc->file, filename);
+        }
+        pdf_signer *signer = openssl_dev->signer;
+
+        digest_buffer = z_openssl_pdf_sha1(ctx, doc, byte_range, filename);
+
+		p7 = PKCS7_new();
+		if (p7 == NULL)
+			fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to create p7 object");
+		PKCS7_set_type(p7, NID_pkcs7_signed);
+		si = PKCS7_add_signature(p7, signer->x509, signer->pkey, EVP_sha1());
+		if (si == NULL)
+			fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to add signature");
+        PKCS7_add_signed_attribute(si, NID_pkcs9_contentType, V_ASN1_OBJECT, OBJ_nid2obj(NID_pkcs7_data));
+        PKCS7_add_certificate(p7, signer->x509);
+        // TODO:add ca cert chain to pkcs7 signature data
+//        for (int i=0; i<sk_X509_num(ca); i++) { 
+//            PKCS7_add_certificate(p7, sk_X509_value(ca, i));
+//        }
+		PKCS7_content_new(p7, NID_pkcs7_data);
+		PKCS7_set_detached(p7, 0);
+
+		bp7in = PKCS7_dataInit(p7, NULL);
+		if (bp7in == NULL)
+			fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to write to digest");
+
+        BIO_write(bp7in, digest_buffer->data, digest_buffer->len);
+
+		if (!PKCS7_dataFinal(p7, bp7in))
+			fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to write to digest");
+
+		BIO_free(bsegs);
+		bsegs = NULL;
+		BIO_free(bdata);
+		bdata = NULL;
+
+		bp7 = BIO_new(BIO_s_mem());
+		if (bp7 == NULL || !i2d_PKCS7_bio(bp7, p7))
+			fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to create memory buffer for digest");
+		p7_len = BIO_get_mem_data(bp7, &p7_ptr);
+        // the binary data of pdf sig object's content, should be write as hex
+        // mode
+        signbuf = fz_new_buffer(ctx, p7_len);
+        fz_write_buffer(ctx, signbuf, p7_ptr, p7_len);
+
+        fz_save_buffer(ctx, signbuf, "/Users/zl03jsj/Documents/pdftest/signdata");
+	}
+	fz_always(ctx)
+	{
+        if(digest_buffer) fz_drop_buffer(ctx, digest_buffer);
+		PKCS7_free(p7);
+		BIO_free(bp7in);
+		BIO_free(bp7);
+	}
+	fz_catch(ctx)
+	{
+        fz_drop_buffer(ctx, signbuf); signbuf = NULL;
+		fz_rethrow(ctx);
+	}
+    return signbuf;
+}
+
+
+#if 0
+// pkcs7 sign orignal data as digest
 fz_buffer *z_openssl_pdf_get_digest(fz_context *ctx, pdf_document *doc, z_device *device, char *filename, pdf_obj *byte_range)
 {
     z_openssl_device *openssl_dev = (z_openssl_device*)device;
@@ -1016,6 +1169,7 @@ fz_buffer *z_openssl_pdf_get_digest(fz_context *ctx, pdf_document *doc, z_device
 
 		bsegs->next_bio = bdata;
 		BIO_set_segments(bsegs, brange, brange_len);
+
 
 		p7 = PKCS7_new();
 		if (p7 == NULL)
@@ -1078,6 +1232,7 @@ fz_buffer *z_openssl_pdf_get_digest(fz_context *ctx, pdf_document *doc, z_device
 	}
     return signbuf;
 }
+#endif
 
 z_device * z_openssl_new_device(fz_context *ctx, char *pfxfile, char *pfxpassword)
 {

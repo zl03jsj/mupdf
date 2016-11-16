@@ -2509,7 +2509,6 @@ static const char *z_pdf_add_sign_annot_da(fz_context *ctx, pdf_document *doc, p
 void z_pdf_set_signature_appearance_with_image(fz_context *ctx, pdf_document *doc,
     pdf_annot *annot, z_pdf_sign_appearance *app) 
 {
-	const fz_matrix *page_ctm = &annot->page->ctm;
 	pdf_obj *obj = annot->obj;
 	pdf_obj *dr = NULL;
 	fz_display_list *dlist = NULL;
@@ -2531,23 +2530,18 @@ void z_pdf_set_signature_appearance_with_image(fz_context *ctx, pdf_document *do
         }
         fz_rect rect = annot->rect;
         fz_matrix image_ctm = fz_identity;
-        fz_matrix ctm = fz_identity;
 
 		dlist = fz_new_display_list(ctx);
 		dev = fz_new_list_device(ctx, dlist);
 
         // caculate image matrix and fill image
-        fz_invert_matrix(&ctm, page_ctm);
-        fz_transform_rect(&rect, &ctm);
         fz_pre_translate(&image_ctm, rect.x0, rect.y0);
         fz_pre_scale(&image_ctm, fz_rect_dx(&rect), fz_rect_dy(&rect));
-
-        // fz_device_
         rect = fz_unit_rect;
         fz_transform_rect(&rect, &image_ctm);
+
         /* apply blend group even though we skip the soft mask */
         fz_begin_group(ctx, dev, &rect, 0, 0, FZ_BLEND_DARKEN, 1);
-
         fz_fill_image(ctx, dev, (fz_image*)app->app, &image_ctm, 1.0f);
         fz_end_group(ctx, dev);
 
@@ -2560,13 +2554,13 @@ void z_pdf_set_signature_appearance_with_image(fz_context *ctx, pdf_document *do
         }
 		/* Display the distinguished name in the right-hand half */
 		rect = annot->rect;
+        fz_transform_rect(&rect, &annot->page->ctm);
 		rect.x0 = (rect.x0 + rect.x1)/2.0f;
         rect.y0 = (rect.y0 + rect.y1)/2.0f;
 		text = fit_text(ctx, &font_rec, app->text, &rect);
 		fz_fill_text(ctx, dev, text, &annot->page->ctm, cs, font_rec.da_rec.col, 0.5f);
 
-		rect = annot->rect;
-		fz_transform_rect(&rect, page_ctm);
+        rect = annot->rect;
 		pdf_set_annot_appearance(ctx, doc, annot, &rect, dlist);
 
 		/* Drop the cached xobject from the annotation structure to

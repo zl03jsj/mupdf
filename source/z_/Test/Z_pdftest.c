@@ -211,7 +211,7 @@ void matrixTest() {
 }
 int main(int argc, char **argv) {
 
-    matrixTest();
+    // matrixTest();
     char *infile, *ofile;
     fz_rect r = {108.77f, 47.03f, 226.77f, 165.03f};
     int w, h;

@@ -15,7 +15,6 @@
  *
  * =====================================================================================
  */
-// #include "mupdf/z_/z_sign.h"
 #include "mupdf/pdf.h"
 
 z_device *z_keep_device(fz_context *ctx, z_device *device)
@@ -53,8 +52,8 @@ void z_pdf_dosign(fz_context *ctx, z_device *device, pdf_document *doc,int pagen
 
         annot->pagerect = rect;
         annot->rect = rect;
-        fz_transform_rect(&annot->rect, &annot->page->ctm);
-        pdf_dict_puts_drop(ctx, annot->obj, "Rect", pdf_new_rect(ctx, doc, &annot->pagerect));
+        // fz_transform_rect(&annot->pagerect, &annot->page->ctm);
+        // pdf_dict_puts_drop(ctx, annot->obj, "Rect", pdf_new_rect(ctx, doc, &annot->pagerect));
 
         doc->disallow_new_increments = 1;
         device->do_sign(ctx, device, doc, annot, app);
