@@ -8,20 +8,13 @@
 
 #import <UIKit/UIKit.h>
 #import "CtnPickerview.h"
-#import "../SigndeviceDiscoveryView.h"
+#import "../SignkeyFindView.h"
 #import "Include/K5SOFApp.h"
 #import "Include/K5AlgoDefs.h"
 
-@interface SigndeviceMTokenView : UIView<SigndeviceView>
-
+@interface SignkeyMTokenView : SignkeyView
 @property (retain, nonatomic) K5SOFApp *k5SOFApp;
-@property (retain, nonatomic) NSData *signdata;
-@property (retain, nonatomic, readonly) NSData *signature;
 @property (copy, nonatomic) NSString *deviceName;
-
 + (id)loadFromNib;
-
-- (void)showMe:(UIView*)parent;
-
 @end
 

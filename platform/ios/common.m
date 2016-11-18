@@ -1,18 +1,8 @@
 #include "common.h"
-#import "./z/signdevice/SigndeviceDiscoveryView.h"
-
-#define SIGN_SUPPORTED
-
-#if defined(SIGN_SUPPORTED)
-#include "z/signdevice/mtoken/Include/K5SOFApp.h"
-#include "z/signdevice/mtoken/Include/K5AlgoDefs.h"
-#endif
 
 fz_context *ctx;
 dispatch_queue_t queue;
 float screenScale = 1;
-
-z_point_width z_stored_point(NSArray *arr, int index);
 
 CGSize fitPageToScreen(CGSize page, CGSize screen)
 {
@@ -81,6 +71,12 @@ CGImageRef CreateCGImageWithPixmap(fz_pixmap *pix, CGDataProviderRef cgdata)
 	return cgimage;
 }
 
+z_point_width z_stored_point(NSArray *arr, int index) {
+	z_point_width pt;
+	[[arr objectAtIndex:index] getValue:&pt];
+	return pt;
+}
+
 z_point_width z_point_width_new(float x, float y, float w) {
 	z_point_width p = {{x,y}, w};
 	return p;
@@ -141,11 +137,6 @@ void z_IOS_insertLastPoint(NSMutableArray *arr, CGPoint e) {
 	z_points_release(points);
 }
 
-z_point_width z_stored_point(NSArray *arr, int index) {
-	z_point_width pt;
-	[[arr objectAtIndex:index] getValue:&pt];
-	return pt;
-}
 
 CGPoint z_get_stored_CGPoint(NSArray *arr, int index) {
 	z_point_width pt = z_stored_point(arr, index);
@@ -205,24 +196,11 @@ CGFloat angleBetweenLines(CGPoint line1Start, CGPoint line1End, CGPoint line2Sta
 
 void z_showNibWithName(UIViewController *parant, char *nibname, char *classname)
 {
-	
+//	UIView *parentView = parent.view;
+//	SigndeviceDiscoveryView *subView = [[[NSBundle mainBundle]loadNibNamed:@"SignDeviceDiscoveryView" owner:nil options:nil]lastObject];
+//	subView.frame = CGRectInset(parentView.bounds, 20, 40);
+//	[parentView addSubview:subView];
 }
-
-
-#if defined(SIGN_SUPPORTED)
-void z_showSigndataDialog(UIViewController *parent, z_pdf_sign_param *param)
-{
-	UIView *parentView = parent.view;
-	SigndeviceDiscoveryView *subView = [[[NSBundle mainBundle]loadNibNamed:@"SignDeviceDiscoveryView" owner:nil options:nil]lastObject];
-	subView.frame = CGRectInset(parentView.bounds, 20, 40);
-	[parentView addSubview:subView];
-}
-#else
-void z_showSigndataDialog(UIViewController *parent,  struct z_pdf_sign_param_s *param)
-{
-	NSLog(@"macro SIGN_SUPPORTED is not defiend.");
-}
-#endif
 
 
 

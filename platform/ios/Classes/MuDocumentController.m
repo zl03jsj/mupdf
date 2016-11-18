@@ -146,6 +146,12 @@ static void saveDoc(char *current_path, fz_document *doc)
 	UIBarButtonItem *reflowButton;
 	UIBarButtonItem *backButton;
 	UIBarButtonItem *sliderWrapper;
+	// add by zl [2016/11/16 5:25]
+	// add signature with image appearance!
+	// UIBarButtonItem *signButton;
+	//UIBarButtonItem *handsignButton;
+	UIBarButtonItem *stampButton;
+	
 	int barmode;
 	int searchPage;
 	int cancelSearch;
@@ -192,7 +198,11 @@ static void saveDoc(char *current_path, fz_document *doc)
 		UIView *buttonView;
 		BOOL iOS7Style = ([[UIDevice currentDevice].systemVersion floatValue] >= 7.0f);
 		UIButton *button = [UIButton buttonWithType:iOS7Style ? UIButtonTypeSystem : UIButtonTypeCustom];
-		[button setImage:[UIImage imageNamed:resource] forState:UIControlStateNormal];
+		UIImage *image = [UIImage imageNamed:resource];
+		if(!image) {
+			NSLog(@"load imagefile :%@ faild", resource);
+		}
+		[button setImage:image forState:UIControlStateNormal];
 		[button addTarget:self action:selector forControlEvents:UIControlEventTouchUpInside];
 		[button sizeToFit];
 		buttonView = button;
@@ -299,6 +309,12 @@ static void saveDoc(char *current_path, fz_document *doc)
 	inkButton = [self newResourceBasedButton:@"ic_pen" withAction:@selector(onInk:)];
 	tickButton = [self newResourceBasedButton:@"ic_check" withAction:@selector(onTick:)];
 	deleteButton = [self newResourceBasedButton:@"ic_trash" withAction:@selector(onDelete:)];
+	
+	// add signature [2016/11/16 17:33] by zl
+	// signButton = [self newResourceBasedButton:@"ic_stamp" withAction:@selector(onSign:)];
+	// handsignButton = [self newResourceBasedButton:@"ic_signature" withAction:@selector(onHandsign:)];
+	stampButton = [self newResourceBasedButton:@"ic_stamp" withAction:@selector(onStampsign:)];
+	
 	searchBar = [[UISearchBar alloc] initWithFrame: CGRectMake(0,0,50,32)];
 	backButton = [self newResourceBasedButton:@"ic_arrow_left" withAction:@selector(onBack:)];
 	[searchBar setPlaceholder: @"Search"];
@@ -308,7 +324,7 @@ static void saveDoc(char *current_path, fz_document *doc)
 	[nextButton setEnabled: NO];
 
 	[self addMainMenuButtons];
-
+ 
 	// TODO: add activityindicator to search bar
 
 	[self setView: view];
@@ -339,6 +355,7 @@ static void saveDoc(char *current_path, fz_document *doc)
 	[strikeoutButton release]; strikeoutButton = nil;
 	[inkButton release]; inkButton = nil;
 	[tickButton release]; tickButton = nil;
+	[stampButton release]; stampButton = nil;
 	[deleteButton release]; deleteButton = nil;
 	[canvas release]; canvas = nil;
 	free(filePath); filePath = NULL;
@@ -531,7 +548,7 @@ static void saveDoc(char *current_path, fz_document *doc)
 
 - (void) showAnnotationMenu
 {
-	[[self navigationItem] setRightBarButtonItems:[NSArray arrayWithObjects:inkButton, strikeoutButton, underlineButton, highlightButton, nil]];
+	[[self navigationItem] setRightBarButtonItems:[NSArray arrayWithObjects:stampButton, inkButton, strikeoutButton, underlineButton, highlightButton, nil]];
 	[[self navigationItem] setLeftBarButtonItem:cancelButton];
 
 	for (UIView<MuPageView> *view in [canvas subviews])
@@ -541,6 +558,20 @@ static void saveDoc(char *current_path, fz_document *doc)
 	}
 
 	barmode = BARMODE_ANNOTATION;
+}
+
+- (void) showSignMenu
+{
+	[[self navigationItem] setRightBarButtonItems:[NSArray arrayWithObjects:stampButton, nil]];
+	[[self navigationItem] setLeftBarButtonItem:cancelButton];
+	
+	for (UIView<MuPageView> *view in [canvas subviews])
+	{
+		if ([view number] == current)
+			[view deselectAnnotation];
+	}
+	
+	barmode = BARMODE_SIGN;
 }
 
 - (void) update
@@ -638,6 +669,16 @@ static void saveDoc(char *current_path, fz_document *doc)
 	}
 }
 
+- (void) signModeOn
+{
+	[[self navigationItem] setRightBarButtonItems:[NSArray arrayWithObject:tickButton]];
+	for (UIView<MuPageView> *view in [canvas subviews])
+	{
+		if ([view number] == current)
+			[view signModeOn];
+	}
+}
+
 - (void) deleteModeOn
 {
 	[[self navigationItem] setRightBarButtonItems:[NSArray arrayWithObject:deleteButton]];
@@ -674,6 +715,23 @@ static void saveDoc(char *current_path, fz_document *doc)
 {
 	barmode = BARMODE_INK;
 	[self inkModeOn];
+}
+
+
+- (void) onSign: (id)sender
+{
+	barmode = BARMODE_SIGN;
+	[self showSignMenu];
+}
+
+- (void) onHandsign: (id)sender
+{
+	
+}
+
+- (void) onStampsign: (id)sender
+{
+	NSLog(@"stamp sign button is taped");
 }
 
 - (void) onShowSearch: (id)sender

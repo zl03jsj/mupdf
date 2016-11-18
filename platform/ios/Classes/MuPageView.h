@@ -17,6 +17,12 @@
 -(void) deleteSelectedAnnotation;
 -(void) inkModeOn;
 -(void) inkModeOff;
+
+// add by zl[2016/11/16 17:30]
+// for add signature
+-(void) signModeOn;
+-(void) signModeOff;
+
 -(void) saveSelectionAsMarkup:(int)type;
 -(void) saveInk;
 -(void) saveContentStream;

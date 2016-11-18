@@ -5,9 +5,9 @@
 //  Created by 曾亮 on 9/8/16.
 //  Copyright © 2016 Artifex Software, Inc. All rights reserved.
 //
-#import "SigndeviceMTokenView.h"
+#import "SignkeyMTokenView.h"
 
-@interface SigndeviceMTokenView() <K5SOFAppDelegate> {
+@interface SignkeyMTokenView() <K5SOFAppDelegate> {
 	NSString *_deviceName;
 	NSString *_containerName;
 	NSMutableArray *_containers;
@@ -31,7 +31,7 @@
 
 @end
 
-@implementation SigndeviceMTokenView
+@implementation SignkeyMTokenView
 
 @synthesize deviceName = _deviceName;
 
@@ -50,7 +50,7 @@
 
 + (id) loadFromNib {
 	NSLog(@"%s",__func__);
-	SigndeviceMTokenView *view = [[[NSBundle mainBundle] loadNibNamed:@"SigndeviceMTokenView" owner:nil options:nil] lastObject];
+	SignkeyMTokenView *view = [[[NSBundle mainBundle] loadNibNamed:@"SignkeyMTokenView" owner:nil options:nil] lastObject];
 	return view;
 }
 
@@ -114,22 +114,29 @@
 		[self setStatus:@"No key pair." showAnimation:NO];
 		return;
 	}
-	NSInteger hashAlgo = SGD_SHA256;
 	
-	if( 0!=[_k5SOFApp SOF_DigestInit_Display:SGD_SHA256 display:YES] ||
-	    0!=[_k5SOFApp SOF_DigestUpdate_Display:_signdata display:YES] ) {
-		[self setStatus:@"Calculate SHA256 Failed" showAnimation:NO];
+	NSInteger hashAlgo = SGD_SHA1;
+	
+	// the digest property is already caculated use sha1 algorithm
+	// no need to caculate agian.
+#if 0
+	if( 0!=[_k5SOFApp SOF_DigestInit_Display:hashAlgo display:YES] ||
+	    0!=[_k5SOFApp SOF_DigestUpdate_Display:self.digest display:YES] ) {
+		[self setStatus:@"Calculate SHA1 Failed" showAnimation:NO];
 		return;
 	}
+#endif
+	
 	[self setStatus:@"Doing sign..." showAnimation:YES];
 	NSMutableData *signature = [[NSMutableData alloc]init];
-	
 	if( 0!=[_k5SOFApp SOF_SignData:_containerName signFlag:signflag hashAlgo:hashAlgo timeOut:20 data:nil signature:signature] ) {
 		[self setStatus:@"Do sign failed." showAnimation:NO];
 	}
 	else {
 		[self setStatus:@"Done!" showAnimation:NO];
 	}
+	self.signdata = signature;
+	[signature release];
 }
 
 - (IBAction)cancelTaped:(id)sender {
@@ -198,7 +205,7 @@
 	_picker.datasource = [_containers retain];
 	_picker.title = @"select sign cert container";
 	
-	SigndeviceMTokenView *refself = self;
+	SignkeyMTokenView *refself = self;
 	_picker.valueDidSelect = ^(NSString *value) {
 		refself->_containerName = [value copy];
 		[refself refreshContainerInfomation];
@@ -242,10 +249,6 @@
 	
 	_messageLabel.text = [NSString stringWithFormat:@"%@ disconnected.",devName];
 	printf("K5SOFApp [%s]:didDeviceDisconnected!", [devName UTF8String]);
-}
-
-- (void)showMe:(UIView*)parent {
-	NSLog(@"not implement");
 }
 
 /*
@@ -303,7 +306,6 @@
 	[_containerName release];
 	[_containers release];
 	[_picker release];
-	[_signdata release];
 	
     [super dealloc];
 }

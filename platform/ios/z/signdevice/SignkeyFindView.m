@@ -5,31 +5,28 @@
 //  Created by 曾亮 on 22/09/2016.
 //  Copyright © 2016 Artifex Software, Inc. All rights reserved.
 //
-#import "SigndeviceDiscoveryView.h"
-#import "mtoken/SigndeviceMTokenView.h"
+#import "SignkeyFindView.h"
+#import "mtoken/SignkeyMTokenView.h"
 
 static NSArray *supprotedDevicenames;
 
-@interface SigndeviceDiscoveryView()<K5SOFAppDelegate> {
+@interface SignkeyFindView()<K5SOFAppDelegate> {
 }
-
 @property (retain, nonatomic) IBOutlet UIActivityIndicatorView *indicator;
 @property (retain, nonatomic) IBOutlet UILabel *messageLb;
-
 @end
 
-@implementation SigndeviceDiscoveryView  {
+@implementation SignkeyFindView  {
 	NSMutableDictionary *_devices;
 	NSString *_connectedDeivceclass;
-	UIView *_deviceView;
 }
 
 + (id)loadFromNib {
-	NSArray *objs = [[NSBundle mainBundle]loadNibNamed:@"SignDeviceDiscoveryView" owner:nil options:nil];
+	NSArray *objs = [[NSBundle mainBundle]loadNibNamed:@"SignkeyFindView" owner:nil options:nil];
 	for( id obj in objs ) {
 		NSLog(@"objtype=%@", NSStringFromClass([obj class]));
 	}
-	SigndeviceDiscoveryView *view = [objs firstObject];
+	SignkeyFindView *view = [objs firstObject];
 	return view;
 }
 // call before Use SigndeviceDiscoveryView
@@ -47,9 +44,9 @@ static NSArray *supprotedDevicenames;
 - (void)privateInit {
 	_devices = nil;
 	_connectedDeivceclass = nil;
-	_deviceView = nil;
-	
+	_signkeyView = nil;
 	_devices = [[NSMutableDictionary alloc]init];
+	_errcode = sign_code_unkown;
 	
 	K5SOFApp *k5sofapp = [[K5SOFApp alloc]init];
 	[k5sofapp setDelegate:self];
@@ -112,10 +109,13 @@ static NSArray *supprotedDevicenames;
 	if(nil==_connectedDeivceclass) {
 		return;
 	}
-	[self showDeviceView];
+	// 不直接显示出来!!!!!
+	// 调用者自行获取signkeyView,设置相关属性,然后调用计算签名的方法
+	// [self showDeviceView];
 }
 
 - (IBAction)cancelTaped:(id)sender {
+	_errcode = sign_code_cancel;
 	[self removeFromSuperview];
 }
 
@@ -129,15 +129,24 @@ static NSArray *supprotedDevicenames;
 }
 
 - (void)showDeviceView {
-	if( nil==_deviceView ) {
+	if( nil==_signkeyView ) {
 		printf("deviceView is nil");
 		return;
 	}
 	UIView *superView = self.superview;
 	[self removeFromSuperview];
 	float pading = 20.0f;
-	_deviceView.frame = CGRectInset(superView.bounds, pading, pading);
-	[superView addSubview:_deviceView];
+	_signkeyView.frame = CGRectInset(superView.bounds, pading, pading);
+	[superView addSubview:_signkeyView];
+}
+
+-(void) innerConnected : (SignkeyView*) signkey {
+	_signkeyView = [signkey retain];
+}
+
+-(void) innerDisconnected {
+	[_signkeyView release];
+	_signkeyView = nil;
 }
 
 #pragma mark - K5SOFAppDelegate
@@ -147,20 +156,20 @@ static NSArray *supprotedDevicenames;
 #pragma message("need to confirm if need release _connnectedDeviceclass")
 		[_connectedDeivceclass release];
 	}
-	if( _deviceView ){
-		[_deviceView release];
+	if( _signkeyView ){
+		[_signkeyView release];
 	}
 	_connectedDeivceclass = NSStringFromClass([K5SOFApp class]);
 
-	SigndeviceMTokenView *devView = [SigndeviceMTokenView loadFromNib];
-	NSLog(@"MTokenView retainCount=%d",(int)[devView retainCount]);
+	SignkeyMTokenView *signkeyView = [SignkeyMTokenView loadFromNib];
+	NSLog(@"MTokenView retainCount=%d",(int)[signkeyView retainCount]);
 	
-	devView.k5SOFApp = [_devices objectForKey:_connectedDeivceclass];
+	signkeyView.k5SOFApp = [_devices objectForKey:_connectedDeivceclass];
 	// set to sign data here!!!!
-	devView.signdata = nil;
-	devView.deviceName = devName;
+	signkeyView.signdata = nil;
+	signkeyView.deviceName = devName;
 	
-	_deviceView = [devView retain];
+	_signkeyView = [signkeyView retain];
 	
 	[self setMessage:[NSString stringWithFormat:@"Mtoken bluetoothEkey:%@ discovery.",devName] animation:NO];
 	printf("K5SOFApp [%s]:didDeviceDiscovered!", [devName UTF8String]);
@@ -173,6 +182,11 @@ static NSArray *supprotedDevicenames;
 
 -(void) didDeviceDisconnected:(NSString*)devName
 {
+	[_connectedDeivceclass release];
+	_connectedDeivceclass = nil;
+	[_signkeyView release];
+	_signkeyView = nil;
+	
 	printf("K5SOFApp [%s]:didDeviceDisconnected!", [devName UTF8String]);
 }
 - (void)dealloc {
@@ -181,7 +195,7 @@ static NSArray *supprotedDevicenames;
 	[_connectedDeivceclass release];
 	NSLog(@"%@,retainCount=%d", _connectedDeivceclass,(int)[_connectedDeivceclass retainCount]);
 	[_messageLb release];
-	if(_deviceView!=nil) [_deviceView release];
+	if(_signkeyView!=nil) [_signkeyView release];
 	if(_devices!=nil) {
 		[_devices removeAllObjects];
 		[_devices release];
