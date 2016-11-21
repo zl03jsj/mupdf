@@ -148,8 +148,7 @@ static void saveDoc(char *current_path, fz_document *doc)
 	UIBarButtonItem *sliderWrapper;
 	// add by zl [2016/11/16 5:25]
 	// add signature with image appearance!
-	// UIBarButtonItem *signButton;
-	//UIBarButtonItem *handsignButton;
+	UIBarButtonItem *handsignButton;
 	UIBarButtonItem *stampButton;
 	
 	int barmode;
@@ -198,11 +197,7 @@ static void saveDoc(char *current_path, fz_document *doc)
 		UIView *buttonView;
 		BOOL iOS7Style = ([[UIDevice currentDevice].systemVersion floatValue] >= 7.0f);
 		UIButton *button = [UIButton buttonWithType:iOS7Style ? UIButtonTypeSystem : UIButtonTypeCustom];
-		UIImage *image = [UIImage imageNamed:resource];
-		if(!image) {
-			NSLog(@"load imagefile :%@ faild", resource);
-		}
-		[button setImage:image forState:UIControlStateNormal];
+		[button setImage:[UIImage imageNamed:resource] forState:UIControlStateNormal];
 		[button addTarget:self action:selector forControlEvents:UIControlEventTouchUpInside];
 		[button sizeToFit];
 		buttonView = button;
@@ -311,8 +306,7 @@ static void saveDoc(char *current_path, fz_document *doc)
 	deleteButton = [self newResourceBasedButton:@"ic_trash" withAction:@selector(onDelete:)];
 	
 	// add signature [2016/11/16 17:33] by zl
-	// signButton = [self newResourceBasedButton:@"ic_stamp" withAction:@selector(onSign:)];
-	// handsignButton = [self newResourceBasedButton:@"ic_signature" withAction:@selector(onHandsign:)];
+	handsignButton = [self newResourceBasedButton:@"ic_signature" withAction:@selector(onHandsign:)];
 	stampButton = [self newResourceBasedButton:@"ic_stamp" withAction:@selector(onStampsign:)];
 	
 	searchBar = [[UISearchBar alloc] initWithFrame: CGRectMake(0,0,50,32)];
@@ -356,6 +350,7 @@ static void saveDoc(char *current_path, fz_document *doc)
 	[inkButton release]; inkButton = nil;
 	[tickButton release]; tickButton = nil;
 	[stampButton release]; stampButton = nil;
+	[handsignButton release]; handsignButton = nil;
 	[deleteButton release]; deleteButton = nil;
 	[canvas release]; canvas = nil;
 	free(filePath); filePath = NULL;
@@ -548,7 +543,7 @@ static void saveDoc(char *current_path, fz_document *doc)
 
 - (void) showAnnotationMenu
 {
-	[[self navigationItem] setRightBarButtonItems:[NSArray arrayWithObjects:stampButton, inkButton, strikeoutButton, underlineButton, highlightButton, nil]];
+	[[self navigationItem] setRightBarButtonItems:[NSArray arrayWithObjects:handsignButton,stampButton, inkButton, strikeoutButton, underlineButton, highlightButton, nil]];
 	[[self navigationItem] setLeftBarButtonItem:cancelButton];
 
 	for (UIView<MuPageView> *view in [canvas subviews])
@@ -717,16 +712,9 @@ static void saveDoc(char *current_path, fz_document *doc)
 	[self inkModeOn];
 }
 
-
-- (void) onSign: (id)sender
-{
-	barmode = BARMODE_SIGN;
-	[self showSignMenu];
-}
-
 - (void) onHandsign: (id)sender
 {
-	
+	NSLog(@"hand sign button is taped");
 }
 
 - (void) onStampsign: (id)sender

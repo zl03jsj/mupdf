@@ -77,6 +77,8 @@
 		689D28F11D9923E2005A869C /* libstdc++.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 689D28F01D9923E2005A869C /* libstdc++.tbd */; };
 		689D5CFE1DDEA408007CC20C /* ic_signature.png in Resources */ = {isa = PBXBuildFile; fileRef = 689D5CFD1DDEA408007CC20C /* ic_signature.png */; };
 		689D5D001DDF0823007CC20C /* ic_stamp.png in Resources */ = {isa = PBXBuildFile; fileRef = 689D5CFF1DDF0823007CC20C /* ic_stamp.png */; };
+		689D5D011DE297BA007CC20C /* ic_stamp.png in Resources */ = {isa = PBXBuildFile; fileRef = 689D5CFF1DDF0823007CC20C /* ic_stamp.png */; };
+		689D5D021DE2A857007CC20C /* ic_signature.png in Resources */ = {isa = PBXBuildFile; fileRef = 689D5CFD1DDEA408007CC20C /* ic_signature.png */; };
 		68A14F931D86A5640013B0AC /* SigndeviceMTokenView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 68A14F921D86A5640013B0AC /* SigndeviceMTokenView.xib */; };
 		68A14F951D86A5F20013B0AC /* SigndeviceMTokenView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 68A14F921D86A5640013B0AC /* SigndeviceMTokenView.xib */; };
 		68C2DD191D9D0F53005B070F /* SignkeyMTokenView.m in Sources */ = {isa = PBXBuildFile; fileRef = 68398CC31D8949E500C00BBF /* SignkeyMTokenView.m */; };
@@ -655,6 +657,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				689D5D021DE2A857007CC20C /* ic_signature.png in Resources */,
+				689D5D011DE297BA007CC20C /* ic_stamp.png in Resources */,
 				6849924E1DA8EC6B0070C0B5 /* SigndeviceMTokenView.xib in Resources */,
 				6849924F1DA8EC6B0070C0B5 /* Default-568h@2x.png in Resources */,
 				684992501DA8EC6B0070C0B5 /* SignkeyFindView.xib in Resources */,
