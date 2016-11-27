@@ -53,6 +53,8 @@ platform/android/*/local.properties
 platform/android/*/.classpath
 platform/android/*/.project
 platform/android/*/.settings
+
+platform/ios/.ycm_extra_conf.py
 *.filters
 *.obj
 *.suo
