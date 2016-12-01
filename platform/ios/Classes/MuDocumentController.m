@@ -46,7 +46,7 @@ static void flattenOutline(NSMutableArray *titles, NSMutableArray *pages, fz_out
 static char *tmp_path(char *path)
 {
 	int f;
-	char *buf = malloc(strlen(path) + 6 + 1);
+	char *buf = (char*)malloc(strlen(path) + 6 + 1);
 	if (!buf)
 		return NULL;
 
@@ -149,7 +149,8 @@ static void saveDoc(char *current_path, fz_document *doc)
 	// add by zl [2016/11/16 5:25]
 	// add signature with image appearance!
 	UIBarButtonItem *handsignButton;
-	UIBarButtonItem *stampButton;
+	UIBarButtonItem *signButton;
+	UIBarButtonItem *nextstepButton;
 	
 	int barmode;
 	int searchPage;
@@ -165,6 +166,7 @@ static void saveDoc(char *current_path, fz_document *doc)
 
 - (id) initWithFilename: (NSString*)filename path:(char *)cstr document: (MuDocRef *)aDoc
 {
+	NSLog(@"initWithFilename");
 	self = [super init];
 	if (!self)
 		return nil;
@@ -221,6 +223,7 @@ static void saveDoc(char *current_path, fz_document *doc)
 
 - (void) loadView
 {
+	NSLog(@"loadView");
 	[[NSUserDefaults standardUserDefaults] setObject: key forKey: @"OpenDocumentKey"];
 
 	current = (int)[[NSUserDefaults standardUserDefaults] integerForKey: key];
@@ -243,6 +246,7 @@ static void saveDoc(char *current_path, fz_document *doc)
 	tapRecog.delegate = self;
 	[canvas addGestureRecognizer: tapRecog];
 	[tapRecog release];
+	
 	// In reflow mode, we need to track pinch gestures on the canvas and pass
 	// the scale changes to the subviews.
 	UIPinchGestureRecognizer *pinchRecog = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(onPinch:)];
@@ -307,7 +311,8 @@ static void saveDoc(char *current_path, fz_document *doc)
 	
 	// add signature [2016/11/16 17:33] by zl
 	handsignButton = [self newResourceBasedButton:@"ic_signature" withAction:@selector(onHandsign:)];
-	stampButton = [self newResourceBasedButton:@"ic_stamp" withAction:@selector(onStampsign:)];
+	signButton = [self newResourceBasedButton:@"ic_stamp" withAction:@selector(onSign:)];
+	nextstepButton = [self newResourceBasedButton:@"ic_next" withAction:@selector(OnNextStep:)];
 	
 	searchBar = [[UISearchBar alloc] initWithFrame: CGRectMake(0,0,50,32)];
 	backButton = [self newResourceBasedButton:@"ic_arrow_left" withAction:@selector(onBack:)];
@@ -349,8 +354,9 @@ static void saveDoc(char *current_path, fz_document *doc)
 	[strikeoutButton release]; strikeoutButton = nil;
 	[inkButton release]; inkButton = nil;
 	[tickButton release]; tickButton = nil;
-	[stampButton release]; stampButton = nil;
+	[signButton release]; signButton = nil;
 	[handsignButton release]; handsignButton = nil;
+	[nextstepButton release]; nextstepButton = nil;
 	[deleteButton release]; deleteButton = nil;
 	[canvas release]; canvas = nil;
 	free(filePath); filePath = NULL;
@@ -362,6 +368,7 @@ static void saveDoc(char *current_path, fz_document *doc)
 
 - (void) viewWillAppear: (BOOL)animated
 {
+	NSLog(@"viewWillAppear");
 	[super viewWillAppear:animated];
 	[self setTitle: [key lastPathComponent]];
 
@@ -377,6 +384,7 @@ static void saveDoc(char *current_path, fz_document *doc)
 
 - (void) viewWillLayoutSubviews
 {
+	NSLog(@"viewWillLayoutSubviews");
 	CGSize size = [canvas frame].size;
 	int max_width = fz_max(width, size.width);
 
@@ -409,22 +417,18 @@ static void saveDoc(char *current_path, fz_document *doc)
 			[view willRotate];
 		}
 	}
-	for (UIView<MuPageView> *view in [canvas subviews]) {
-		if ([view number] != current) {
-			[view setFrame: CGRectMake([view number] * width, 0, width-GAP, height)];
-			[view willRotate];
-		}
-	}
 }
 
 - (void) viewDidAppear: (BOOL)animated
 {
+	NSLog(@"viewDidAppear");
 	[super viewDidAppear:animated];
 	[self scrollViewDidScroll: canvas];
 }
 
 - (void) viewWillDisappear: (BOOL)animated
 {
+	NSLog(@"viewWillDisappear");
 	[super viewWillDisappear:animated];
 	if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 7.0)
 		[slider removeFromSuperview];
@@ -436,6 +440,7 @@ static void saveDoc(char *current_path, fz_document *doc)
 
 - (void) showNavigationBar
 {
+	NSLog(@"showNavigationBar");
 	if ([[self navigationController] isNavigationBarHidden]) {
 		[sliderWrapper setWidth: SLIDER_W];
 		if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 7.0)
@@ -461,6 +466,7 @@ static void saveDoc(char *current_path, fz_document *doc)
 
 - (void) hideNavigationBar
 {
+	NSLog(@"hideNavigationBar");
 	if (![[self navigationController] isNavigationBarHidden]) {
 		[searchBar resignFirstResponder];
 
@@ -543,7 +549,7 @@ static void saveDoc(char *current_path, fz_document *doc)
 
 - (void) showAnnotationMenu
 {
-	[[self navigationItem] setRightBarButtonItems:[NSArray arrayWithObjects:handsignButton,stampButton, inkButton, strikeoutButton, underlineButton, highlightButton, nil]];
+	[[self navigationItem] setRightBarButtonItems:[NSArray arrayWithObjects:handsignButton, signButton, inkButton, strikeoutButton, underlineButton, highlightButton, nil]];
 	[[self navigationItem] setLeftBarButtonItem:cancelButton];
 
 	for (UIView<MuPageView> *view in [canvas subviews])
@@ -557,7 +563,7 @@ static void saveDoc(char *current_path, fz_document *doc)
 
 - (void) showSignMenu
 {
-	[[self navigationItem] setRightBarButtonItems:[NSArray arrayWithObjects:stampButton, nil]];
+	[[self navigationItem] setRightBarButtonItems:[NSArray arrayWithObjects:signButton, nil]];
 	[[self navigationItem] setLeftBarButtonItem:cancelButton];
 	
 	for (UIView<MuPageView> *view in [canvas subviews])
@@ -664,16 +670,6 @@ static void saveDoc(char *current_path, fz_document *doc)
 	}
 }
 
-- (void) signModeOn
-{
-	[[self navigationItem] setRightBarButtonItems:[NSArray arrayWithObject:tickButton]];
-	for (UIView<MuPageView> *view in [canvas subviews])
-	{
-		if ([view number] == current)
-			[view signModeOn];
-	}
-}
-
 - (void) deleteModeOn
 {
 	[[self navigationItem] setRightBarButtonItems:[NSArray arrayWithObject:deleteButton]];
@@ -712,16 +708,6 @@ static void saveDoc(char *current_path, fz_document *doc)
 	[self inkModeOn];
 }
 
-- (void) onHandsign: (id)sender
-{
-	NSLog(@"hand sign button is taped");
-}
-
-- (void) onStampsign: (id)sender
-{
-	NSLog(@"stamp sign button is taped");
-}
-
 - (void) onShowSearch: (id)sender
 {
 	[[self navigationItem] setRightBarButtonItems:
@@ -754,8 +740,8 @@ static void saveDoc(char *current_path, fz_document *doc)
 					break;
 
 				case BARMODE_INK:
-					[view saveContentStream];
-					// [view saveInk];
+					// [view saveContentStream];
+					[view saveInk];
 			}
 		}
 	}
@@ -788,7 +774,6 @@ static void saveDoc(char *current_path, fz_document *doc)
 			[self addMainMenuButtons];
 			barmode = BARMODE_MAIN;
 			break;
-
 		case BARMODE_HIGHLIGHT:
 		case BARMODE_UNDERLINE:
 		case BARMODE_STRIKE:
@@ -796,10 +781,17 @@ static void saveDoc(char *current_path, fz_document *doc)
 			[self showAnnotationMenu];
 			[self textSelectModeOff];
 			break;
-
 		case BARMODE_INK:
 			[self showAnnotationMenu];
 			[self inkModeOff];
+			break;
+		case BARMODE_SIGN:
+			[self showAnnotationMenu];
+			[self signModeOff];
+			break;
+		case BARMODE_Handsign:
+			[self showAnnotationMenu];
+			[self handsignModeOff];
 			break;
 	}
 }
@@ -1073,6 +1065,7 @@ static void saveDoc(char *current_path, fz_document *doc)
 
 - (void) scrollViewDidScroll: (UIScrollView*)scrollview
 {
+	NSLog(@"scrollViewDidScroll");
 	// scrollViewDidScroll seems to get called part way through a screen rotation.
 	// (This is possibly a UIScrollView bug - see
 	// http://stackoverflow.com/questions/4123991/uiscrollview-disable-scrolling-while-rotating-on-iphone-ipad/8141423#8141423 ).
@@ -1220,6 +1213,75 @@ static void saveDoc(char *current_path, fz_document *doc)
 	// the rotation.
 	[canvas setContentSize: CGSizeMake(fz_count_pages(ctx, doc) * width, height)];
 	[canvas setContentOffset: CGPointMake(current * width, 0)];
+}
+
+#pragma mark - pdf signature
+
+- (void) onSign: (id)sender
+{
+	barmode = BARMODE_SIGN;
+	[self signModeOn];
+}
+
+- (void) signModeOn {
+	[nextstepButton setEnabled:NO];
+	[[self navigationItem] setRightBarButtonItems:[NSArray arrayWithObject:nextstepButton]];
+	for (UIView<MuPageView> *view in [canvas subviews])
+	{
+		if ([view number] == current){
+			[view signModeOn]; break;
+		}
+	}
+}
+
+- (void) signModeOff {
+	for (UIView<MuPageView> *view in [canvas subviews])	{
+		[view signModeOff];
+	}
+}
+
+- (void) onHandsign: (id)sender {
+	barmode = BARMODE_Handsign;
+	[self handsignModeOn];
+}
+
+- (void) handsignModeOn {
+	[nextstepButton setEnabled:NO];
+	[[self navigationItem] setRightBarButtonItems:[NSArray arrayWithObject:nextstepButton]];
+	
+	for (UIView<MuPageView> *view in [canvas subviews])	{
+		if ([view number] == current)
+			[view handsignModeOn];
+	}
+}
+
+- (void) handsignModeOff {
+	for (UIView<MuPageView> *view in [canvas subviews])	{
+		[view handsignModeOff];
+	}
+}
+
+- (void) OnNextStep: (id)sender {
+	for (UIView<MuPageView> *view in [canvas subviews])
+	{
+		if ([view number] == current) {
+			switch (barmode) {
+				case BARMODE_SIGN:
+					[view beginAddSignature];
+					break;
+				case BARMODE_Handsign:
+					[view beginAddSignature];
+					break;
+				default:
+					break;
+			}
+		}
+	}
+	
+	if(barmode==BARMODE_SIGN) { 
+	}
+	else if(barmode==BARMODE_Handsign){ 
+	}
 }
 
 @end

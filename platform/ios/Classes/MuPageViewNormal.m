@@ -31,7 +31,6 @@ static NSArray *enumerateWidgetRects(fz_document *doc, fz_page *page)
 	for (widget = pdf_first_widget(ctx, idoc, (pdf_page *)page); widget; widget = pdf_next_widget(ctx, widget))
 	{
 		fz_rect rect;
-
 		pdf_bound_widget(ctx, widget, &rect);
 		[arr addObject:[NSValue valueWithCGRect:CGRectMake(
 			rect.x0,
@@ -670,6 +669,19 @@ static void updatePixmap(fz_document *doc, fz_display_list *page_list, fz_displa
 	}
 }
 
+typedef enum MuSignStep_s {
+	MuSignStep_not_start = 0,
+	MuSignStep_get_appearance,
+	MuSignStep_get_appearance_image,
+	MuSignStep_get_appearance_position,
+	MuSignStep_get_device,
+	MuSignStep_cal_signdata,
+	MuSignStep_save_data
+} MuSignStep;
+
+@interface MuPageViewNormal()<MuFileSelectViewDelegate>
+@end
+
 @implementation MuPageViewNormal
 {
 	MuDocRef *docRef;
@@ -690,6 +702,14 @@ static void updatePixmap(fz_document *doc, fz_display_list *page_list, fz_displa
 	MuTextSelectView *textSelectView;
 	MuInkView *inkView;
 	MuAnnotSelectView *annotSelectView;
+	
+	// add by zl[2016/11/23 10:38]
+	// for adding pdf signature
+	MuSignView *signView;
+	MuHanddrawView *handsignView;
+	MuFileSelectView *fileselView;
+	MuSignStep curSignStep;
+	
 	NSArray *widgetRects;
 	NSArray *annotations;
 	int selectedAnnotationIndex;
@@ -831,6 +851,8 @@ static void updatePixmap(fz_document *doc, fz_display_list *page_list, fz_displa
 		[tileView release];
 		[loadingView release];
 		[imageView release];
+		
+		if(signView) [signView release];
 		[super dealloc];
 	}
 }
@@ -910,19 +932,11 @@ static void updatePixmap(fz_document *doc, fz_display_list *page_list, fz_displa
 - (void) inkModeOn
 {
 	inkView = [[MuInkView alloc] initWithPageSize:pageSize];
+	CGRect f1 = [imageView frame];
+	CGRect f2 = imageView.frame;
 	if (imageView)
 		[inkView setFrame:[imageView frame]];
 	[self addSubview:inkView];
-}
-
-- (void) signModeOn
-{
-	
-}
-
--(void) signModeOff
-{
-	
 }
 
 - (void) textSelectModeOff
@@ -1271,6 +1285,10 @@ static void updatePixmap(fz_document *doc, fz_display_list *page_list, fz_displa
 					[self bringSubviewToFront:inkView];
 				if (annotSelectView)
 					[self bringSubviewToFront:annotSelectView];
+				if (signView)
+					[self bringSubviewToFront:signView];
+				if (handsignView)
+					[self bringSubviewToFront:handsignView];
 			} else {
 				printf("discard tile\n");
 			}
@@ -1310,16 +1328,16 @@ static void updatePixmap(fz_document *doc, fz_display_list *page_list, fz_displa
 	if (imageView)
 	{
 		CGRect frm = [imageView frame];
-
 		if (hitView)
 			[hitView setFrame: frm];
-
 		if (textSelectView)
 			[textSelectView setFrame:frm];
-
 		if (inkView)
 			[inkView setFrame:frm];
-
+		if(signView)
+			[signView setFrame:frm];
+		if(handsignView)
+			[handsignView setFrame:frm];
 		if (annotSelectView)
 			[annotSelectView setFrame:frm];
 	}
@@ -1550,4 +1568,123 @@ static void updatePixmap(fz_document *doc, fz_display_list *page_list, fz_displa
 	return nil;
 }
 
+- (void) enableSuperviewRecs:(BOOL)enable {
+	UIView *superView = [self superview];
+#if 1
+	NSArray *recs = [[superView gestureRecognizers] retain];
+	for(UIGestureRecognizer *rec in recs) {
+		[rec setEnabled:enable];
+	}
+	[recs release];
+#else
+	superView.userInteractionEnabled = enable;
+#endif
+}
+
+#pragma mark - pdf signature
+- (void) signModeOn
+{
+	[self doNextSignStep];
+}
+
+- (void) doNextSignStep
+{
+	if(!imageView) return;
+	
+	NSString *imagefile = nil;
+	NSString *pfxfile = nil;
+	CGRect signrect = CGRectZero;
+	BOOL useBluekeyDevice = NO;
+	
+	if(curSignStep==MuSignStep_not_start) {
+		// must disable scroll view's gestures.
+		[self enableSuperviewRecs:NO];
+		fileselView = [MuFileSelectView showDefaultImageSelectView:self pagesize:pageSize viewframe:imageView.frame];
+		curSignStep = MuSignStep_get_appearance_image;
+		
+	} else if(curSignStep==MuSignStep_get_appearance_image) {
+		if(!fileselView || !fileselView.currentfile) return;
+		
+		NSString *imagefile = fileselView.currentfile;
+		[fileselView release]; fileselView = nil;
+		
+		if(signView) [signView release];
+		
+		[self enableSuperviewRecs:YES];
+		
+		signView = [[MuSignView alloc]initWithPageSize:pageSize];
+		signView.imagefile = imagefile;
+		signView.frame = imageView.frame;
+		[fileselView removeFromSuperview];
+		[self addSubview:signView];
+		curSignStep = MuSignStep_get_appearance_position;
+	} else if(curSignStep==MuSignStep_get_appearance_position) {
+		signrect = signView.signrect;
+		imagefile = signView.imagefile;
+		if(CGRectIsEmpty(signrect)) {
+			NSLog(@"Are you sure you had defined where to add signature on pdf page?");
+			return;
+		}
+		if(signView) [signView release];
+		signView = nil;
+		
+		[self enableSuperviewRecs:NO];
+		// choose pfx or use bluetoothkey device
+		fileselView = [MuFileSelectView showDefaultPfxSelectView:self pagesize:pageSize viewframe:imageView.frame];
+		curSignStep = MuSignStep_get_device;
+	}
+	else if(curSignStep==MuSignStep_get_device) {
+		// TODO:check if can do next step
+		[self enableSuperviewRecs:YES];
+		curSignStep = MuSignStep_save_data;
+		// TODO: change nextstep_icon to tick_icon, to sign pdf file"
+	}
+	else {
+		NSLog(@"unable to make sure what should to do next");
+	}
+}
+
+-(void) signModeOff
+{
+	[self enableSuperviewRecs:YES];
+	
+	[fileselView removeFromSuperview];
+	[fileselView release];
+	fileselView = nil;
+	
+	[signView removeFromSuperview];
+	[signView release];
+	signView = nil;
+	
+	curSignStep = MuSignStep_not_start;
+}
+
+- (void) handsignModeOn {
+	handsignView = [[MuHanddrawView alloc]initWithPageSize:pageSize];
+	if(imageView)
+	   [handsignView setFrame:[imageView frame]];
+	[self addSubview:handsignView];
+}
+
+- (void) handsignModeOff {
+	[handsignView removeFromSuperview];
+	[handsignView release];
+	handsignView = nil;
+}
+
+- (void) beginAddSignature {
+	// chose sign device!! ekey or pkcs7 cert!
+	if(signView && !CGRectIsEmpty(signView.signrect)) {
+		// TODO:next step of add stamp signature!!!
+	}
+	
+	if(handsignView && handsignView.curves &&
+	   [handsignView.curves count]!=0) {
+		// TODO:next step of add hand draw signature!!!
+	}
+}
+// the delegate of MuFileSelectView
+- (void)fileSelected:(MuFileSelectView*)fileselView selectedfile:(NSString *)file {
+	// TODO: something about add pdf signature step!!
+}
 @end

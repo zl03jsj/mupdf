@@ -55,6 +55,15 @@ void doTestsign(fz_context *ctx, pdf_document *doc, char *ofilename, fz_rect r) 
 
 void doTestAddImage(fz_context *ctx, pdf_document *doc)
 {
+    fz_stream *imgstream = fz_open_file(ctx, RES_Image_file);
+    fz_buffer *imgbuffer = fz_read_all(ctx, imgstream, 1024);
+    fz_drop_stream(ctx, imgstream);
+    pdf_add_image_with_document(ctx, doc,imgbuffer, 0, 100, 700, 100,100);
+    pdf_write_options opton;
+    pdf_save_document(ctx, doc, RES_Pdf_savedfile, NULL);
+    // pdf_save_incremental_tofile(ctx, doc, RES_Pdf_savedfile);
+
+#if 0
     pdf_page *page = pdf_load_page(ctx, doc, 0);
     pdf_obj *pageobj = page->me;
     pdf_obj *resobj  = page->resources;
@@ -95,10 +104,10 @@ void doTestAddImage(fz_context *ctx, pdf_document *doc)
         pdf_array_push_drop(ctx, contentobj, imagecontentobj);
     }
     page->contents = contentobj;
-
     pdf_save_incremental_tofile(ctx, doc, RES_Pdf_savedfile);
     printf("page ref=%d\n", page->super.refs);
     pdf_drop_page(ctx, page);
+#endif
 }
 
 void doTestSaveSigndata(char* infile, int b1, int size1, int b2,int size2, char *ofile)
@@ -240,7 +249,8 @@ int main(int argc, char **argv) {
     fz_context *ctx = fz_new_context(NULL, NULL, FZ_STORE_DEFAULT);
     pdf_document *doc = pdf_open_document(ctx, infile);
     // xref = pdf_get_xref_entry
-    doTestPdfSign(ctx, doc, 0, r, ofile);
+    // doTestPdfSign(ctx, doc, 0, r, ofile);
+    doTestAddImage(ctx, doc);
     // doTestsign(ctx, doc, ofile, r);
     pdf_drop_document(ctx, doc);
     fz_drop_context(ctx);

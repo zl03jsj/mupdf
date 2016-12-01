@@ -54,7 +54,6 @@ void z_pdf_dosign(fz_context *ctx, z_device *device, pdf_document *doc,int pagen
         annot->rect = rect;
         // fz_transform_rect(&annot->pagerect, &annot->page->ctm);
         // pdf_dict_puts_drop(ctx, annot->obj, "Rect", pdf_new_rect(ctx, doc, &annot->pagerect));
-
         doc->disallow_new_increments = 1;
         device->do_sign(ctx, device, doc, annot, app);
     }

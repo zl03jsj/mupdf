@@ -12,6 +12,9 @@
 #import "MuDialogCreator.h"
 #import "MuTextSelectView.h"
 #import "MuInkView.h"
+#import "MuSignView.h"
+#import "MuHanddrawView.h"
+#import "MuFileSelectView.h"
 #import "MuAnnotSelectView.h"
 #import "MuUpdater.h"
 
@@ -21,4 +24,6 @@
 - (void) resizeImage;
 - (void) loadPage;
 - (void) loadTile;
+
+- (void) doNextSignStep;
 @end

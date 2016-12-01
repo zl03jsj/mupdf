@@ -1,5 +1,7 @@
 #import <UIKit/UIKit.h>
 #import "MuTapResult.h"
+//#import "MuSignView.h"
+//#import "MuHanddrawView.h"
 
 @protocol MuPageView
 -(int) number;
@@ -22,6 +24,11 @@
 // for add signature
 -(void) signModeOn;
 -(void) signModeOff;
+-(void) handsignModeOn;
+-(void) handsignModeOff;
+-(void) beginAddSignature;
+//-(MuSignView*) signview;
+//-(MuHanddrawView*) handSignview;
 
 -(void) saveSelectionAsMarkup:(int)type;
 -(void) saveInk;

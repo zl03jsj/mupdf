@@ -51,15 +51,13 @@ flags = [
 '-resource-dir', '/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../lib/clang/8.0.0/',
 '-F/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/Frameworks',
 
-'-I/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/Frameworks/Foundation.framework/Headers',
-
 '-I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include',
 '-I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/8.0.0/include/',
 
-'-I/Users/cengliang/Documents/mupdf/include',
-'-I/Users/cengliang/Documents/mupdf/platform/ios',
-'-I/Users/cengliang/Documents/mupdf/platform/ios/Classes',
-'-MMD', 
+'-I/Users/zl03jsj/Documents/mupdf/include',
+'-I/Users/zl03jsj/Documents/mupdf/platform/ios',
+'-I/Users/zl03jsj/Documents/mupdf/platform/ios/Classes',
+'-MMD'
 ]
 
 # Set this to the absolute path to the folder (NOT the file!) containing the

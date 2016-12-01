@@ -7,7 +7,7 @@
 //
 
 #import "ViewController.h"
-#import "../z/signdevice/SigndeviceDiscoveryView.h"
+#import "../z/signdevice/SignkeyFindView.h"
 
 @interface ViewController ()
 

@@ -49,7 +49,6 @@ static void showAlert(NSString *msg, NSString *filename)
 		[files release];
 		files = nil;
 	}
-
 	NSFileManager *fileman = [NSFileManager defaultManager];
 	NSString *docdir = [NSString stringWithFormat: @"%@/Documents", NSHomeDirectory()];
 	NSMutableArray *outfiles = [[NSMutableArray alloc] init];
@@ -57,6 +56,11 @@ static void showAlert(NSString *msg, NSString *filename)
 	NSString *file;
 	BOOL isdir;
 	while (file = [direnum nextObject]) {
+		// pfx,ca dir are for file signature and verify, should not show files under thoes 2 folder.
+		// add by zl [2016//11/28 15:22]
+		NSString *lowercase = [file lowercaseString];
+		if( ![lowercase hasSuffix:@".pdf"] && ![lowercase hasSuffix:@".epub"] && ![lowercase hasSuffix:@"xps"] && ![lowercase hasSuffix:@"cbz"] )
+			continue;
 		NSString *filepath = [docdir stringByAppendingPathComponent:file];
 		if ([fileman fileExistsAtPath:filepath isDirectory:&isdir] && !isdir) {
 			[outfiles addObject:file];

@@ -322,12 +322,11 @@ def _RemoveUnusedFlags( flags, filename ):
 #
 # Most users have xcode installed, but in order to be as compatible as
 # possible we consider both possible installation locations
-MAC_CLANG_TOOLCHAIN_DIRS = [
-  '/Applications/Xcode.app/Contents/Developer/Toolchains/'
-    'XcodeDefault.xctoolchain',
-  '/Library/Developer/CommandLineTools'
-]
-
+ #  MAC_CLANG_TOOLCHAIN_DIRS = [
+  #  '/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain',
+  #  '/Library/Developer/CommandLineTools'
+ #  ]
+MAC_CLANG_TOOLCHAIN_DIRS = []
 
 # Returns a list containing the supplied path as a suffix of each of the known
 # Mac toolchains
@@ -384,15 +383,18 @@ if OnMac():
   #  - Valloric/YouCompleteMe#2268
   MAC_INCLUDE_PATHS = (
     _PathsForAllMacToolchains( 'usr/include/c++/v1' ) +
-    [ '/usr/local/include' ] +
+    #[ '/usr/local/include' ] +
+    [] +
     _PathsForAllMacToolchains( 'usr/include' ) +
-    [ '/usr/include', '/System/Library/Frameworks', '/Library/Frameworks' ] +
-    _LatestMacClangIncludes() + []
+    #[ '/usr/include', '/System/Library/Frameworks', '/Library/Frameworks' ] +
+    [] + 
+    _LatestMacClangIncludes() +
     # We include the MacOS platform SDK because some meaningful parts of the
     # standard library are located there. If users are compiling for (say)
     # iPhone.platform, etc. they should appear earlier in the include path.
     #  [ '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/'
-      #  'Developer/SDKs/MacOSX.sdk/usr/include' ]
+        #  'Developer/SDKs/MacOSX.sdk/usr/include' ]
+    []
   )
 
 
@@ -436,4 +438,5 @@ def _EnableTypoCorrection( flags ):
 def _SpecialClangIncludes():
   libclang_dir = os.path.dirname( ycm_core.__file__ )
   path_to_includes = os.path.join( libclang_dir, 'clang_includes' )
-  return [ '-resource-dir=' + path_to_includes ]
+  return []
+  #return [ '-resource-dir=' + path_to_includes ]
