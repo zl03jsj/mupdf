@@ -26,7 +26,7 @@
 -(void) signModeOff;
 -(void) handsignModeOn;
 -(void) handsignModeOff;
--(void) beginAddSignature;
+-(void) doNextSignStep;
 //-(MuSignView*) signview;
 //-(MuHanddrawView*) handSignview;
 

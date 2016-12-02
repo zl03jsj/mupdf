@@ -13,7 +13,7 @@
 
 @interface MuFileSelectView : UIView
 
-@property (nonatomic, weak) id <MuFileSelectViewDelegate> delegate;
+@property (nonatomic,assign) id <MuFileSelectViewDelegate> delegate;
 
 @property (retain,nonatomic) NSArray * suffixs;
 @property (retain,nonatomic) NSArray * paths;
@@ -21,14 +21,14 @@
 @property (nonatomic,readonly) NSString * currentfile;
 @property (copy, nonatomic) NSString *title;
 -(instancetype) initWithPageSize:(CGSize)pagesize filesunderpaths: (NSArray*)paths filehassuffix: (NSArray*)suffix;
-+(instancetype) showFileSelectView:(UIView*)view pagesize:(CGSize)size viewframe:(CGRect)frame filesunderpaths:(NSArray*)paths filehassuffix:(NSArray*)suffix viewtitle:(NSString*)title showimage:(BOOL)isshow;
++(instancetype) showFileSelectView:(UIView*)view pagesize:(CGSize)size viewframe:(CGRect)frame filesunderpaths:(NSArray*)paths filehassuffix:(NSArray*)suffix viewtitle:(NSString*)title showimage:(BOOL)isshow fileselDelegate:(id<MuFileSelectViewDelegate>)delegate;
 
 +(instancetype) showDefaultImageSelectView: (UIView*)view pagesize:(CGSize)size viewframe:(CGRect)frame fileselDelegate:(id<MuFileSelectViewDelegate>)delegate;
 +(instancetype) showDefaultPfxSelectView: (UIView*)view pagesize:(CGSize)size viewframe:(CGRect)frame fileselDelegate:(id<MuFileSelectViewDelegate>)delegate;
 
 @end
 
-@protocol MuFileSelectViewDelegate<NSObject>
+@protocol MuFileSelectViewDelegate
 @optional
 - (void)fileSelected:(MuFileSelectView*)fileselView selectedfile:(NSString *)file;
 @end

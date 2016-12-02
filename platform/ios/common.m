@@ -137,7 +137,6 @@ void z_IOS_insertLastPoint(NSMutableArray *arr, CGPoint e) {
 	z_points_release(points);
 }
 
-
 CGPoint z_get_stored_CGPoint(NSArray *arr, int index) {
 	z_point_width pt = z_stored_point(arr, index);
 	CGPoint p = {pt.p.x, pt.p.y};
@@ -201,6 +200,9 @@ void z_showNibWithName(UIViewController *parant, char *nibname, char *classname)
 //	subView.frame = CGRectInset(parentView.bounds, 20, 40);
 //	[parentView addSubview:subView];
 }
+
+
+
 
 
 

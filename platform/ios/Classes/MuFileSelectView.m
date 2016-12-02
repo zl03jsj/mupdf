@@ -94,11 +94,12 @@ BOOL fileHasSuffixs(NSArray *suffixs, NSString *file) {
 	return self;
 }
 
-+(instancetype) showFileSelectView:(UIView*)view pagesize:(CGSize)size viewframe:(CGRect)frame filesunderpaths:(NSArray*)paths filehassuffix:(NSArray*)suffix viewtitle:(NSString*)title showimage:(BOOL)isshow
++(instancetype) showFileSelectView:(UIView*)view pagesize:(CGSize)size viewframe:(CGRect)frame filesunderpaths:(NSArray*)paths filehassuffix:(NSArray*)suffix viewtitle:(NSString*)title showimage:(BOOL)isshow fileselDelegate:(id<MuFileSelectViewDelegate>)delegate
 {
 	MuFileSelectView *fileselview = [[MuFileSelectView alloc]initWithPageSize:size filesunderpaths:paths filehassuffix:suffix];
 	fileselview.title = title;
 	fileselview.showimage = isshow;
+	fileselview.delegate = delegate;
 	
 	[fileselview setFrame:frame];
 	[view addSubview:fileselview];
@@ -106,21 +107,21 @@ BOOL fileHasSuffixs(NSArray *suffixs, NSString *file) {
 	return fileselview;
 }
 
-+(instancetype) showDefaultImageSelectView: (UIView*)view pagesize:(CGSize)size viewframe:(CGRect)frame
++(instancetype) showDefaultImageSelectView: (UIView*)view pagesize:(CGSize)size viewframe:(CGRect)frame fileselDelegate:(id<MuFileSelectViewDelegate>)delegate
 {
 	NSArray *imagefilesuffixs = [NSArray arrayWithObjects:@".bmp",@".jpeg",@".jpg",@".bmp",@".png", @".gif", nil];
 	NSArray *imagefilepaths = [NSArray arrayWithObjects:@"_imagefiles", nil];
 	NSString *title = @"选择签名图片文件";
-	MuFileSelectView *fileSelview = [MuFileSelectView showFileSelectView:view pagesize:size viewframe:frame filesunderpaths:imagefilepaths filehassuffix:imagefilesuffixs viewtitle:title showimage:YES];
+	MuFileSelectView *fileSelview = [MuFileSelectView showFileSelectView:view pagesize:size viewframe:frame filesunderpaths:imagefilepaths filehassuffix:imagefilesuffixs viewtitle:title showimage:YES fileselDelegate:delegate];
 	return fileSelview;
 }
 
-+(instancetype) showDefaultPfxSelectView: (UIView*)view viewsize:(CGSize)size viewframe: (CGRect)frame
++(instancetype) showDefaultPfxSelectView: (UIView*)view pagesize:(CGSize)size viewframe:(CGRect)frame fileselDelegate:(id<MuFileSelectViewDelegate>)delegate
 {
 	NSArray *pfxfilepaths = [NSArray arrayWithObjects:@"_pfxfiles", nil];
 	NSArray *pfxfilesuffixs = [NSArray arrayWithObjects:@".pfx", nil];
 	NSString *title = @"选择签名数字证书";
-	MuFileSelectView *fileSelview = [MuFileSelectView showFileSelectView:view pagesize:size viewframe:frame filesunderpaths:pfxfilepaths filehassuffix:pfxfilesuffixs viewtitle:title showimage:NO];
+	MuFileSelectView *fileSelview = [MuFileSelectView showFileSelectView:view pagesize:size viewframe:frame filesunderpaths:pfxfilepaths filehassuffix:pfxfilesuffixs viewtitle:title showimage:NO fileselDelegate:delegate];
 	return fileSelview;
 }
 
@@ -164,6 +165,7 @@ BOOL fileHasSuffixs(NSArray *suffixs, NSString *file) {
 - (void) tableView: (UITableView*)tableView didSelectRowAtIndexPath: (NSIndexPath*)indexPath
 {
 	_currentfile = [_files[indexPath.row]retain];
+	[_delegate fileSelected:self selectedfile:_currentfile];
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {

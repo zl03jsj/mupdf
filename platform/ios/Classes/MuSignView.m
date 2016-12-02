@@ -15,13 +15,14 @@
 	CGPoint _startpoint;
 	CGPoint _endpoint;
 	UIColor *_color;
-	// for move signrect
+
 	BOOL _moveModeon;
 	CGPoint _lasttouchpoint;
 	UIImage *_image;
+	BOOL _firstLayoutsubview;
 }
 
--(CGRect) getSignrect {
+-(CGRect) getImagerectOnPage {
 	return CGRectMake(fz_min(_startpoint.x,_endpoint.x),
 					  fz_min(_startpoint.y,_endpoint.y),
 					  fz_abs(_startpoint.x-_endpoint.x),
@@ -29,12 +30,7 @@
 }
 
 -(CGRect) getMoveRect {
-	CGRect moverect = self.signrect;
-	moverect.origin.x += moverect.size.width /4;
-	moverect.origin.y += moverect.size.height/4;
-	moverect.size.width = moverect.size.width /2;
-	moverect.size.height= moverect.size.height/2;
-	return moverect;
+	return self.imagerectOnPage;
 }
 
 -(instancetype) initWithPageSize:(CGSize)pagesize
@@ -45,6 +41,7 @@
 		_pagesize = pagesize;
 		_color = [[UIColor colorWithRed:1.0 green:0.0 blue:0.0 alpha:0.8] retain];
 		_moveModeon = false;
+		_firstLayoutsubview = true;
 
 		UIPanGestureRecognizer *rec = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(onDrag:)];
 		[self addGestureRecognizer:rec];
@@ -60,7 +57,7 @@
 
 //The event handling method
 - (void)handleSingleTap:(UITapGestureRecognizer *)rec {
-	CGRect rect = self.signrect;
+	CGRect rect = self.imagerectOnPage;
 	if( CGRectIsEmpty(rect) ) return;
 
 	CGSize scale = fitPageToScreen(_pagesize, self.bounds.size);
@@ -68,23 +65,47 @@
 	point.x /= scale.width;
 	point.y /= scale.height;
 	if( !CGRectContainsPoint(rect, point) ){
-		_startpoint = _endpoint = CGPointZero;
-		[self setNeedsDisplay];
+//		_startpoint = _endpoint = point;
+//		[self setNeedsLayout];
+//		[_delegate imagePositionNotOk];
 	}
 	else {
 	}
 }
 
+- (void) refreshImageRect {
+	if(!_image || !CGRectIsEmpty(self.imagerectOnPage))
+		return;
+	CGSize size = self.bounds.size;
+	CGSize imagesize = _image.size;
+	
+	CGSize scale = fitPageToScreen(_pagesize, size);
+	size.width /= scale.width;
+	size.height/= scale.height;
+	imagesize.width /= scale.width;
+	imagesize.height/= scale.height;
+	
+	_startpoint.x = (size.width - imagesize.width) / 2;
+	_startpoint.y = (size.height- imagesize.height)/ 2;
+	_endpoint.x = _startpoint.x + imagesize.width;
+	_endpoint.y = _startpoint.y + imagesize.height;
+}
+
+- (void)layoutSubviews {
+	[super layoutSubviews];
+	[self refreshImageRect];
+	_firstLayoutsubview = false;
+}
+
 -(void) onDrag:(UIPanGestureRecognizer *)rec
 {
-	NSLog(@"onDrag");
 	CGSize scale = fitPageToScreen(_pagesize, self.bounds.size);
 	CGPoint point = [rec locationInView:self];
 	point.x /= scale.width;
 	point.y /= scale.height;
 	
+	CGRect rect = self.imagerectOnPage;
 	if (rec.state == UIGestureRecognizerStateBegan) {
-		CGRect rect = [self getMoveRect]; //self.signrect;
 		if( !CGRectIsEmpty(rect) && CGRectContainsPoint(rect, point)) {
 			_moveModeon = YES;
 			_lasttouchpoint = point;
@@ -108,16 +129,37 @@
 			_endpoint = point;
 		}
 	}
+	
+	if( _delegate ) {
+		rect = self.imagerectOnPage;
+		if (CGRectIsEmpty(rect)) [_delegate imagePositionNotOk];
+		else [_delegate imagePositionOk:rect];
+	}
 	[self setNeedsDisplay];
+}
+
+- (void)setimagefile:(NSString *)imagefile {
+	if(imagefile==_imagefile)
+		return;
+	if(_imagefile) [_imagefile release];
+	_imagefile = nil;
+	_imagefile = [imagefile retain];
+	
+	if(_image) [_image release];
+	
+	_image = [[UIImage alloc]initWithContentsOfFile:_imagefile];
+	if(!_firstLayoutsubview)
+		[self refreshImageRect];
 }
 
 - (void)drawRect:(CGRect)rect
 {
-	if(CGPointEqualToPoint(_startpoint, _endpoint))
-		return;
-	
+	CGRect imagerect = self.imagerectOnPage;
+	if(CGRectIsEmpty(imagerect)) return;
+
 	CGSize scale = fitPageToScreen(_pagesize, self.bounds.size);
 	CGContextRef context = UIGraphicsGetCurrentContext();
+	
 	CGContextScaleCTM(context, scale.width, scale.height);
 
 	CGContextSetLineCap(context,  kCGLineCapRound);
@@ -128,7 +170,9 @@
 	CGFloat lengths[] = {2,4};
 	CGContextSetLineDash(context, 0, lengths, 2.0f);
 	
-	CGContextAddRect(context, self.signrect);
+	if(_image) [_image drawInRect: imagerect];
+
+	CGContextAddRect(context, imagerect);
 	CGContextStrokePath(context);
 
 	CGRect moverect = [self getMoveRect];
@@ -145,9 +189,10 @@
 }
 
 -(void) dealloc {
-	[super dealloc];
 	[_imagefile release];
+	[_image release];
 	[_color release];
+	[super dealloc];
 }
 
 @end

@@ -9,9 +9,16 @@
 #import <UIKit/UIKit.h>
 #import "mupdf/pdf.h"
 
+@protocol MuSignViewDelegate
+@optional
+- (void)imagePositionOk: (CGRect)imagerectOnPage;
+- (void)imagePositionNotOk;
+@end
+
 @interface MuSignView : UIView
-@property (copy, nonatomic) NSString* imagefile;
-@property (readonly, nonatomic, getter=getSignrect)CGRect signrect;
+@property (retain, nonatomic) id<MuSignViewDelegate> delegate;
+@property (copy, nonatomic, setter=setimagefile:) NSString* imagefile;
+@property (readonly, nonatomic, getter=getImagerectOnPage)CGRect imagerectOnPage;
 @property (readonly, assign, nonatomic, getter=getSignAppearance)z_pdf_sign_appearance *signapp;
 -(instancetype) initWithPageSize:(CGSize)pagesize;
 @end

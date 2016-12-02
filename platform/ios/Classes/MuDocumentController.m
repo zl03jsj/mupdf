@@ -123,6 +123,8 @@ static void saveDoc(char *current_path, fz_document *doc)
 		free(tmp);
 	}
 }
+@interface MuDocumentController()<MuSignStepDelegate>
+@end
 
 @implementation MuDocumentController
 {
@@ -1121,10 +1123,15 @@ static void saveDoc(char *current_path, fz_document *doc)
 		if ([view number] == number)
 			found = 1;
 	if (!found) {
-		UIView<MuPageView> *view
-			= reflowMode
-				? [[MuPageViewReflow alloc] initWithFrame:CGRectMake(number * width, 0, width-GAP, height) document:docRef page:number]
-		: [[MuPageViewNormal alloc] initWithFrame:CGRectMake(number * width, 0, width-GAP, height) dialogCreator:self updater:self document:docRef page:number];
+		UIView<MuPageView> *view;
+		if(reflowMode)
+			view = [[MuPageViewReflow alloc] initWithFrame:CGRectMake(number * width, 0, width-GAP, height) document:docRef page:number];
+		else {
+			MuPageViewNormal *viewNormal = [[MuPageViewNormal alloc] initWithFrame:CGRectMake(number * width, 0, width-GAP, height) dialogCreator:self updater:self document:docRef page:number];
+			viewNormal.signstepDelegate = self;
+			view = viewNormal;
+		}
+		
 		[view setScale:scale];
 		[canvas addSubview: view];
 		if (showLinks)
@@ -1267,10 +1274,10 @@ static void saveDoc(char *current_path, fz_document *doc)
 		if ([view number] == current) {
 			switch (barmode) {
 				case BARMODE_SIGN:
-					[view beginAddSignature];
+					[view doNextSignStep];
 					break;
 				case BARMODE_Handsign:
-					[view beginAddSignature];
+					[view doNextSignStep];
 					break;
 				default:
 					break;
@@ -1281,6 +1288,12 @@ static void saveDoc(char *current_path, fz_document *doc)
 	if(barmode==BARMODE_SIGN) { 
 	}
 	else if(barmode==BARMODE_Handsign){ 
+	}
+}
+
+- (void)signModeIntoStep:(MuSignStep)intostep laststep:(MuSignStep)laststep {
+	if(intostep==MuSignStep_get_appearance_position) {
+		[nextstepButton setEnabled:YES];
 	}
 }
 

@@ -10,6 +10,7 @@
 		6810362E1D9E637C004EBEF8 /* common.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 6810362D1D9E637C004EBEF8 /* common.xcconfig */; };
 		6810362F1D9E637C004EBEF8 /* common.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 6810362D1D9E637C004EBEF8 /* common.xcconfig */; };
 		681036321D9E6818004EBEF8 /* MuTextFieldController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 681036311D9E6818004EBEF8 /* MuTextFieldController.xib */; };
+		6815F0041DF17429006F164F /* MuPfxPasswordView.m in Sources */ = {isa = PBXBuildFile; fileRef = 6815F0031DF17429006F164F /* MuPfxPasswordView.m */; };
 		681A5CDC1DAA2DAF00B07841 /* CtnPickerview.m in Sources */ = {isa = PBXBuildFile; fileRef = 681A5CD51DAA2DAF00B07841 /* CtnPickerview.m */; };
 		681A5CDD1DAA2DAF00B07841 /* uibutton_designable.m in Sources */ = {isa = PBXBuildFile; fileRef = 681A5CD71DAA2DAF00B07841 /* uibutton_designable.m */; };
 		681A5CDE1DAA2DAF00B07841 /* uilabel_designable.m in Sources */ = {isa = PBXBuildFile; fileRef = 681A5CD91DAA2DAF00B07841 /* uilabel_designable.m */; };
@@ -166,6 +167,8 @@
 		6810362D1D9E637C004EBEF8 /* common.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = common.xcconfig; sourceTree = "<group>"; };
 		681036311D9E6818004EBEF8 /* MuTextFieldController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = MuTextFieldController.xib; path = Classes/MuTextFieldController.xib; sourceTree = "<group>"; };
 		6811AC6E1D8641B900887464 /* SignDevice.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = SignDevice.m; path = z/signdevice/SignDevice.m; sourceTree = "<group>"; };
+		6815F0021DF17429006F164F /* MuPfxPasswordView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MuPfxPasswordView.h; path = Classes/MuPfxPasswordView.h; sourceTree = "<group>"; };
+		6815F0031DF17429006F164F /* MuPfxPasswordView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = MuPfxPasswordView.m; path = Classes/MuPfxPasswordView.m; sourceTree = "<group>"; };
 		681A5CD41DAA2DAF00B07841 /* CtnPickerview.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CtnPickerview.h; path = z/ui/CtnPickerview.h; sourceTree = "<group>"; };
 		681A5CD51DAA2DAF00B07841 /* CtnPickerview.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = CtnPickerview.m; path = z/ui/CtnPickerview.m; sourceTree = "<group>"; };
 		681A5CD61DAA2DAF00B07841 /* uibutton_designable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = uibutton_designable.h; path = z/ui/uibutton_designable.h; sourceTree = "<group>"; };
@@ -549,6 +552,8 @@
 				68AC86171DE568300096AAB8 /* MuHanddrawView.m */,
 				68351C951DEC1D8F0048CD8B /* MuFileSelectView.h */,
 				68351C961DEC1D8F0048CD8B /* MuFileSelectView.m */,
+				6815F0021DF17429006F164F /* MuPfxPasswordView.h */,
+				6815F0031DF17429006F164F /* MuPfxPasswordView.m */,
 			);
 			name = Classes;
 			sourceTree = "<group>";
@@ -842,6 +847,7 @@
 				6849923D1DA8EC6B0070C0B5 /* MuDocRef.m in Sources */,
 				6849923E1DA8EC6B0070C0B5 /* MuTapResult.m in Sources */,
 				6849923F1DA8EC6B0070C0B5 /* SignDevice.m in Sources */,
+				6815F0041DF17429006F164F /* MuPfxPasswordView.m in Sources */,
 				684992401DA8EC6B0070C0B5 /* MuChoiceFieldController.m in Sources */,
 				68351C971DEC1D8F0048CD8B /* MuFileSelectView.m in Sources */,
 				684992411DA8EC6B0070C0B5 /* MuWord.m in Sources */,
