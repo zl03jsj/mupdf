@@ -132,13 +132,10 @@ static z_pdf_sign_appearance* createAppearanceWithImagefile(NSString *imagefile,
 	z_pdf_sign_appearance *app = NULL;
 	
 	fz_try(ctx) {
+		fz_rect r = {rect.origin.x, rect.origin.y, rect.origin.x + rect.size.width,
+			rect.origin.y + rect.size.height};
 		image = fz_new_image_from_file(ctx, [imagefile cStringUsingEncoding:NSUTF8StringEncoding]);
-		app = z_pdf_new_image_sign_appearance(ctx, image, NULL);
-		
-		app->rect.x0 = rect.origin.x;
-		app->rect.y0 = rect.origin.y;
-		app->rect.x1 = rect.origin.x + rect.size.width;
-		app->rect.y1 = rect.origin.y + rect.size.height;
+		app = z_pdf_new_image_sign_appearance(ctx, image, r, NULL);
 	}
 	fz_always(ctx) {
 		if(image) fz_drop_image(ctx, image);

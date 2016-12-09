@@ -1199,21 +1199,12 @@ static void updatePixmap(fz_document *doc, fz_display_list *page_list, fz_displa
 	if (imageView)
 	{
 		CGRect frm = [imageView frame];
-
-		if (hitView)
-			[hitView setFrame: frm];
-
-		if (linkView)
-			[linkView setFrame:frm];
-
-		if (textSelectView)
-			[textSelectView setFrame:frm];
-
-		if (inkView)
-			[inkView setFrame:frm];
-
-		if (annotSelectView)
-			[annotSelectView setFrame:frm];
+		if (hitView) [hitView setFrame: frm];
+		if (linkView) [linkView setFrame:frm];
+		if (textSelectView)	[textSelectView setFrame:frm];
+		if (inkView) [inkView setFrame:frm];
+		if (annotSelectView) [annotSelectView setFrame:frm];
+		if (signView) [signView setFrame:frm];
 	}
 }
 
@@ -1621,7 +1612,7 @@ static void updatePixmap(fz_document *doc, fz_display_list *page_list, fz_displa
 	
 	dispatch_async(queue, ^{
 		fz_try(ctx) {
-			z_pdf_dosign(ctx, device, (pdf_document*)doc, number, app->rect, app);
+			z_pdf_dosign(ctx, device, (pdf_document*)doc, number, app);
 			dispatch_async(dispatch_get_main_queue(), ^{
 				[self update];
 			});

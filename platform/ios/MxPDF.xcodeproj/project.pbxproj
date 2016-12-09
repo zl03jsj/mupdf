@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		6800C2FB1DFAA2B900C89F30 /* MuPfxPasswordView.m in Sources */ = {isa = PBXBuildFile; fileRef = 6800C2F91DFAA2B900C89F30 /* MuPfxPasswordView.m */; };
-		6800C2FC1DFAA2B900C89F30 /* MuPfxPasswordView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 6800C2FA1DFAA2B900C89F30 /* MuPfxPasswordView.xib */; };
+		6800C2FD1DFAA8C300C89F30 /* MuPfxPasswordView.m in Sources */ = {isa = PBXBuildFile; fileRef = 6800C2F91DFAA2B900C89F30 /* MuPfxPasswordView.m */; };
+		6800C2FE1DFAA8CA00C89F30 /* MuPfxPasswordView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 6800C2FA1DFAA2B900C89F30 /* MuPfxPasswordView.xib */; };
 		6810362E1D9E637C004EBEF8 /* common.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 6810362D1D9E637C004EBEF8 /* common.xcconfig */; };
 		6810362F1D9E637C004EBEF8 /* common.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 6810362D1D9E637C004EBEF8 /* common.xcconfig */; };
 		681036321D9E6818004EBEF8 /* MuTextFieldController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 681036311D9E6818004EBEF8 /* MuTextFieldController.xib */; };
@@ -511,9 +511,6 @@
 		DA1C689717E85E4A0061F586 /* Classes */ = {
 			isa = PBXGroup;
 			children = (
-				6800C2F81DFAA2B900C89F30 /* MuPfxPasswordView.h */,
-				6800C2F91DFAA2B900C89F30 /* MuPfxPasswordView.m */,
-				6800C2FA1DFAA2B900C89F30 /* MuPfxPasswordView.xib */,
 				DA1C689817E85E8E0061F586 /* MuLibraryController.h */,
 				DA1C689917E85E8E0061F586 /* MuLibraryController.m */,
 				DA1C689C17E861020061F586 /* MuOutlineController.h */,
@@ -557,6 +554,9 @@
 				68296FAE1DE43CAF008946D5 /* MuSignView.m */,
 				68AC86161DE568300096AAB8 /* MuHanddrawView.h */,
 				68AC86171DE568300096AAB8 /* MuHanddrawView.m */,
+				6800C2F81DFAA2B900C89F30 /* MuPfxPasswordView.h */,
+				6800C2F91DFAA2B900C89F30 /* MuPfxPasswordView.m */,
+				6800C2FA1DFAA2B900C89F30 /* MuPfxPasswordView.xib */,
 				68861AEC1DF66A8B005B08F1 /* MuFileselectViewController.h */,
 				68861AED1DF66A8B005B08F1 /* MuFileselectViewController.m */,
 				68861AEE1DF66A8B005B08F1 /* MuFileselectViewController.xib */,
@@ -689,6 +689,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6800C2FE1DFAA8CA00C89F30 /* MuPfxPasswordView.xib in Resources */,
 				689D5D021DE2A857007CC20C /* ic_signature.png in Resources */,
 				689D5D011DE297BA007CC20C /* ic_stamp.png in Resources */,
 				6849924E1DA8EC6B0070C0B5 /* SigndeviceMTokenView.xib in Resources */,
@@ -732,7 +733,6 @@
 				68DFA9E81D86951000AC9FF6 /* Assets.xcassets in Resources */,
 				6810362E1D9E637C004EBEF8 /* common.xcconfig in Resources */,
 				68DFA9E31D86951000AC9FF6 /* Main.storyboard in Resources */,
-				6800C2FC1DFAA2B900C89F30 /* MuPfxPasswordView.xib in Resources */,
 				689D5D001DDF0823007CC20C /* ic_stamp.png in Resources */,
 				681036321D9E6818004EBEF8 /* MuTextFieldController.xib in Resources */,
 				68C3CC861D9127B0008DE360 /* SignkeyFindView.xib in Resources */,
@@ -855,6 +855,7 @@
 				68861AEF1DF66A8B005B08F1 /* MuFileselectViewController.m in Sources */,
 				6849923D1DA8EC6B0070C0B5 /* MuDocRef.m in Sources */,
 				6849923E1DA8EC6B0070C0B5 /* MuTapResult.m in Sources */,
+				6800C2FD1DFAA8C300C89F30 /* MuPfxPasswordView.m in Sources */,
 				6849923F1DA8EC6B0070C0B5 /* SignDevice.m in Sources */,
 				684992401DA8EC6B0070C0B5 /* MuChoiceFieldController.m in Sources */,
 				684992411DA8EC6B0070C0B5 /* MuWord.m in Sources */,
@@ -879,7 +880,6 @@
 				681A5CDC1DAA2DAF00B07841 /* CtnPickerview.m in Sources */,
 				68398CC61D8949E500C00BBF /* SignkeyMTokenView.m in Sources */,
 				68DFA9DA1D86951000AC9FF6 /* main.m in Sources */,
-				6800C2FB1DFAA2B900C89F30 /* MuPfxPasswordView.m in Sources */,
 				681A5CDF1DAA2DAF00B07841 /* uiview_designable.m in Sources */,
 				681A5CDD1DAA2DAF00B07841 /* uibutton_designable.m in Sources */,
 			);
