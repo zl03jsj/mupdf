@@ -10,6 +10,8 @@
 #import "MuDocRef.h"
 #import "MuDialogCreator.h"
 #import "MuUpdater.h"
+#import "MuFileselectViewController.h"
+#import "MuPfxPasswordView.h"
 
 enum
 {
@@ -26,7 +28,18 @@ enum
 	BARMODE_DELETE
 };
 
-@interface MuDocumentController : UIViewController <UIScrollViewDelegate, UIGestureRecognizerDelegate, UISearchBarDelegate, MuDialogCreator, MuUpdater>
+
+typedef enum Signstep_s {
+	SIGN_STEP_NOT_SIGINING,
+	SIGN_STEP_CHOOSE_IMAGEFILE,
+	SIGN_STEP_DRAW_SIGN_IMAGE,
+	SIGN_STEP_GET_SIGN_POSITION,
+	SIGN_STEP_GET_SIGN_DEVICE,
+	SIGN_SETP_ADD_SIGN,
+	SIGN_STEP_SAVE_SIGNATURE
+} Signstep;
+
+@interface MuDocumentController : UIViewController <UIScrollViewDelegate, UIGestureRecognizerDelegate, UISearchBarDelegate, MuDialogCreator, MuUpdater, MuFileSelectViewDelegate, MuPfxPswViewDelegate>
 - (id) initWithFilename: (NSString*)nsfilename path:(char *)cstr document:(MuDocRef *)aDoc;
 - (void) createPageView: (int)number;
 - (void) gotoPage: (int)number animated: (BOOL)animated;

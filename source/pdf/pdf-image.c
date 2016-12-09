@@ -360,14 +360,19 @@ pdf_add_image(fz_context *ctx, pdf_document *doc, fz_image *image, int mask)
 				/* Currently, set to maintain resolution; should we consider
 				 * subsampling here according to desired output res? */
 				pixmap = fz_get_pixmap_from_image(ctx, image, NULL, NULL, NULL, NULL);
-				colorspace = pixmap->colorspace; /* May be different to image->colorspace! */
+                /* May be different to image->colorspace! */
+				colorspace = pixmap->colorspace; 
+
+                /*  modified by zl [2016-12-08 11:44:05]
+                 *  fix bug cause crush
+                 */
 				n = (pixmap->n == 1 ? 1 : pixmap->n - pixmap->alpha);
-				d = buffer->data;
 				s = pixmap->samples;
 				h = image->h;
 				size = image->w * n;
-				buffer = fz_new_buffer(ctx, size);
-				buffer->len = size;
+				buffer = fz_new_buffer(ctx, size * h);
+                buffer->len = size * h;
+				d = buffer->data;
 				if (pixmap->alpha == 0 || n == 1)
 				{
 					while (h--)
@@ -382,15 +387,23 @@ pdf_add_image(fz_context *ctx, pdf_document *doc, fz_image *image, int mask)
 					/* Need to remove the alpha plane */
 					int mod = n;
 					int stride = pixmap->stride - pixmap->w * pixmap->n;
-					while (h--)
-					{
-						while (size--)
-						{
+                    unsigned int sizetmp = size;
+					while (h--) {
+						while (sizetmp--) {
 							*d++ = *s++;
 							mod--;
-							if (mod == 0)
+							if (mod == 0) {
+                                /* modified by zl [2016-12-08 11:48:33]
+                                 * set transparent pixel(alpha channel is 0) to white
+                                 */
+                                if( !(*s) ) {
+                                    mod = n;
+                                    while(mod) *(d-mod---1) = 0xff;
+                                }
 								s++, mod = n;
+                            }
 						}
+                        sizetmp = size;
 						s += stride;
 					}
 				}

@@ -18,7 +18,6 @@
 @interface MuSignView : UIView
 @property (retain, nonatomic) id<MuSignViewDelegate> delegate;
 @property (copy, nonatomic, setter=setimagefile:) NSString* imagefile;
-@property (readonly, nonatomic, getter=getImagerectOnPage)CGRect imagerectOnPage;
-@property (readonly, assign, nonatomic, getter=getSignAppearance)z_pdf_sign_appearance *signapp;
+@property (readonly, nonatomic, getter=getRectOfPage)CGRect rectOfPage;
 -(instancetype) initWithPageSize:(CGSize)pagesize;
 @end

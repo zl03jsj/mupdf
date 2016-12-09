@@ -33,7 +33,7 @@ void z_drop_device(fz_context *ctx, z_device *device)
     }
 }
 
-void z_pdf_dosign(fz_context *ctx, z_device *device, pdf_document *doc,int pageno, fz_rect rect, z_pdf_sign_appearance *app)
+void z_pdf_dosign(fz_context *ctx, z_device *device, pdf_document *doc,int pageno, z_pdf_sign_appearance *app)
 {
     pdf_page *page = NULL;
     pdf_annot *annot = NULL;
@@ -50,8 +50,8 @@ void z_pdf_dosign(fz_context *ctx, z_device *device, pdf_document *doc,int pagen
         // adobe reader's signature panel
         pdf_dict_put_drop(ctx, annot->obj, PDF_NAME_P, pdf_lookup_page_obj(ctx, doc, pageno));
 
-        annot->pagerect = rect;
-        annot->rect = rect;
+        annot->pagerect = app->rect;
+        annot->rect = app->rect;
         // fz_transform_rect(&annot->pagerect, &annot->page->ctm);
         // pdf_dict_puts_drop(ctx, annot->obj, "Rect", pdf_new_rect(ctx, doc, &annot->pagerect));
         doc->disallow_new_increments = 1;
@@ -67,7 +67,7 @@ void z_pdf_dosign(fz_context *ctx, z_device *device, pdf_document *doc,int pagen
 	}
 }
 
-z_pdf_sign_appearance *z_pdf_new_image_sign_appearance(fz_context *ctx, fz_image *image, char *text)
+z_pdf_sign_appearance *z_pdf_new_image_sign_appearance(fz_context *ctx, fz_image *image, fz_rect r, char *text)
 {
     z_pdf_sign_appearance *app = NULL;
     fz_try(ctx) {
@@ -78,13 +78,20 @@ z_pdf_sign_appearance *z_pdf_new_image_sign_appearance(fz_context *ctx, fz_image
         app->drop_app = (z_sign_drop_appearance_fn)fz_drop_image;
 
         app->app = fz_keep_image(ctx, image);
-        app->text = fz_strdup(ctx, text);
+        app->rect = r;
+		app->text = text==NULL?NULL:fz_strdup(ctx, text);
     }
     fz_always(ctx) { 
     }
     fz_catch(ctx) { 
         z_pdf_drop_sign_appreance(ctx, app);
     }
+    return app;
+}
+
+z_pdf_sign_appearance *z_pdf_keep_sign_apperance(fz_context *ctx, z_pdf_sign_appearance *app)
+{
+    app->refcount++;
     return app;
 }
 

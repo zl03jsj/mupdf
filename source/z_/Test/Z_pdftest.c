@@ -16,7 +16,7 @@
 #include "mupdf/pdf.h"
 
 #define RES_PATH "/Users/zl03jsj/Documents/pdftest"
-#define RES_Image_file  RES_PATH"/monkeysmile.jpg"
+#define RES_Image_file  RES_PATH"/Monkey_D_Luffey.png"
 // #define RES_Pdf_file    RES_PATH"/pdffile/PDF32000_2008.pdf"
 #define RES_Pdf_file    RES_PATH"/pdffile/test.pdf"
 #define RES_Cert_file   RES_PATH"/user/zl.pfx"
@@ -31,9 +31,9 @@ void doTestPdfSign(fz_context *ctx, pdf_document *doc, int pageno, fz_rect rect,
 {
     z_device * device = z_openssl_new_device(ctx, RES_PATH"/user/zl.pfx", "111111");
     fz_image * image = fz_new_image_from_file(ctx, RES_Image_file); 
-    z_pdf_sign_appearance *app = z_pdf_new_image_sign_appearance(ctx, image,
+    z_pdf_sign_appearance *app = z_pdf_new_image_sign_appearance(ctx, image, rect,
             (char*)"ntko(重庆软航科技有限公司)");
-    z_pdf_dosign(ctx, device, doc, pageno, rect, app);
+    z_pdf_dosign(ctx, device, doc, pageno, app);
 
     z_drop_device(ctx, device);
     pdf_save_incremental_tofile(ctx, doc, savefile);
@@ -222,7 +222,9 @@ int main(int argc, char **argv) {
 
     // matrixTest();
     char *infile, *ofile;
-    fz_rect r = {108.77f, 47.03f, 226.77f, 165.03f};
+    // fz_rect r = {108.77f, 47.03f, 226.77f, 165.03f};
+    // fz_rect r = {208.77f, 47.03f, 326.77f, 165.03f};
+    fz_rect r = {0.0f, 0.0f, 108.0f, 108.0f};
     int w, h;
     w = r.x1 - r.x0;
     h = r.y1 - r.y0;
@@ -249,8 +251,8 @@ int main(int argc, char **argv) {
     fz_context *ctx = fz_new_context(NULL, NULL, FZ_STORE_DEFAULT);
     pdf_document *doc = pdf_open_document(ctx, infile);
     // xref = pdf_get_xref_entry
-    // doTestPdfSign(ctx, doc, 0, r, ofile);
-    doTestAddImage(ctx, doc);
+    doTestPdfSign(ctx, doc, 0, r, ofile);
+    // doTestAddImage(ctx, doc);
     // doTestsign(ctx, doc, ofile, r);
     pdf_drop_document(ctx, doc);
     fz_drop_context(ctx);

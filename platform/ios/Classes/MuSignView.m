@@ -22,7 +22,7 @@
 	BOOL _firstLayoutsubview;
 }
 
--(CGRect) getImagerectOnPage {
+-(CGRect) getRectOfPage {
 	return CGRectMake(fz_min(_startpoint.x,_endpoint.x),
 					  fz_min(_startpoint.y,_endpoint.y),
 					  fz_abs(_startpoint.x-_endpoint.x),
@@ -30,7 +30,7 @@
 }
 
 -(CGRect) getMoveRect {
-	return self.imagerectOnPage;
+	return self.rectOfPage;
 }
 
 -(instancetype) initWithPageSize:(CGSize)pagesize
@@ -57,7 +57,7 @@
 
 //The event handling method
 - (void)handleSingleTap:(UITapGestureRecognizer *)rec {
-	CGRect rect = self.imagerectOnPage;
+	CGRect rect = self.rectOfPage;
 	if( CGRectIsEmpty(rect) ) return;
 
 	CGSize scale = fitPageToScreen(_pagesize, self.bounds.size);
@@ -74,7 +74,7 @@
 }
 
 - (void) refreshImageRect {
-	if(!_image || !CGRectIsEmpty(self.imagerectOnPage))
+	if(!_image || !CGRectIsEmpty(self.rectOfPage))
 		return;
 	CGSize size = self.bounds.size;
 	CGSize imagesize = _image.size;
@@ -104,7 +104,7 @@
 	point.x /= scale.width;
 	point.y /= scale.height;
 	
-	CGRect rect = self.imagerectOnPage;
+	CGRect rect = self.rectOfPage;
 	if (rec.state == UIGestureRecognizerStateBegan) {
 		if( !CGRectIsEmpty(rect) && CGRectContainsPoint(rect, point)) {
 			_moveModeon = YES;
@@ -131,7 +131,7 @@
 	}
 	
 	if( _delegate ) {
-		rect = self.imagerectOnPage;
+		rect = self.rectOfPage;
 		if (CGRectIsEmpty(rect)) [_delegate imagePositionNotOk];
 		else [_delegate imagePositionOk:rect];
 	}
@@ -142,9 +142,8 @@
 	if(imagefile==_imagefile)
 		return;
 	if(_imagefile) [_imagefile release];
-	_imagefile = nil;
-	_imagefile = [imagefile retain];
-	
+	_imagefile = [imagefile copy];
+
 	if(_image) [_image release];
 	
 	_image = [[UIImage alloc]initWithContentsOfFile:_imagefile];
@@ -154,7 +153,7 @@
 
 - (void)drawRect:(CGRect)rect
 {
-	CGRect imagerect = self.imagerectOnPage;
+	CGRect imagerect = self.rectOfPage;
 	if(CGRectIsEmpty(imagerect)) return;
 
 	CGSize scale = fitPageToScreen(_pagesize, self.bounds.size);

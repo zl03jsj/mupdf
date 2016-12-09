@@ -1,6 +1,6 @@
 #import <UIKit/UIKit.h>
 #import "MuTapResult.h"
-//#import "MuSignView.h"
+#import "MuSignView.h"
 //#import "MuHanddrawView.h"
 
 @protocol MuPageView
@@ -20,18 +20,20 @@
 -(void) inkModeOn;
 -(void) inkModeOff;
 
-// add by zl[2016/11/16 17:30]
-// for add signature
--(void) signModeOn;
--(void) signModeOff;
--(void) handsignModeOn;
--(void) handsignModeOff;
--(void) doNextSignStep;
-//-(MuSignView*) signview;
-//-(MuHanddrawView*) handSignview;
-
 -(void) saveSelectionAsMarkup:(int)type;
 -(void) saveInk;
 -(void) saveContentStream;
 -(void) update;
+
+// add by zl[2016/11/16 17:30]
+// for add signature
+@optional
+-(void) imageViewModeOn:(NSString*) imagefile;
+-(void) imageViewModeOff;
+@property (nonatomic,readonly, retain) MuSignView* signView;
+
+-(void) handsignModeOn;
+-(fz_path*) handsignModeOff;
+
+- (void)addsign:(z_pdf_sign_appearance *)app signdevice:(z_device *)device;
 @end

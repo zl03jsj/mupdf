@@ -2,67 +2,144 @@
 //  MuPfxPasswordView.m
 //  MxPDF
 //
-//  Created by 曾亮 on 2016/12/2.
+//  Created by 曾亮 on 2016/12/3.
 //  Copyright © 2016年 Artifex Software, Inc. All rights reserved.
 //
 
 #import "MuPfxPasswordView.h"
 #import "common.h"
-#include "mupdf/pdf.h"
+
+@interface MuPfxPasswordView ()
+
+@property (retain, nonatomic) IBOutlet UILabel *pfxfilename;
+@property (retain, nonatomic) IBOutlet UITextField *pfxfilepassword;
+@property (retain, nonatomic) IBOutlet UILabel *message;
+
+@end
 
 @implementation MuPfxPasswordView {
-	UILabel *_label;
-	UILabel *_fpxfileLabel;
-	UITextField *_textField;
-	UIButton *buttonOk;
-	UIButton *buttonCancel;
+	int _remainingTimes;
+	id<MuPfxPswViewDelegate> _delegate;
+	NSString *_pfxfile;
 }
 
--(void) setSubViewBorderStyle : (UIView *)view {
-	view.layer.cornerRadius = 4.0f;
-	view.layer.borderColor = [[UIColor colorWithRed:0.7f green:0.7f blue:0.7f alpha:1.0f] CGColor];
-	view.layer.borderWidth = 2.0f;
+- (instancetype)initWithFilename: (NSString*)pfxfilename {
+	self = [super init];
+	NSFileManager *fileman = [NSFileManager defaultManager];
+	BOOL isdir;
+	if( [fileman fileExistsAtPath:pfxfilename isDirectory:&isdir] && !isdir) {
+		_deviceokblock = nil;
+		_pfxfile = [pfxfilename retain];
+		_remainingTimes = 4;
+		return self;
+	}
+	return nil;
 }
 
--(instancetype) initWithFrame: (CGRect)frame
-{
-	self = [super initWithFrame:frame];
-	if(!self) return self;
-	
-	_label = [[UILabel alloc]initWithFrame:CGRectMake(10, 10, 40, 20)];
-	_textField = [[UITextField alloc]initWithFrame:CGRectMake(50, 10, 200, 20)];
-	buttonOk = [[UIButton alloc]initWithFrame:CGRectMake(50, 45, 50, 20)];
-	buttonCancel = [[UIButton alloc]initWithFrame:CGRectMake(105, 45, 50, 20)];
++ (void)verifyPfxPassword:(UIViewController*)parentVc pfxfile:(NSString *)file pfxPswCheckViewDelegate:(id<MuPfxPswViewDelegate>)delegate deviceCreateOkBlock:(void(^)(z_device *))deviceokblock {
+	MuPfxPasswordView *pfxpasswordView = [[MuPfxPasswordView alloc]initWithFilename:file];
+	if(!pfxpasswordView)
+		return;
 
-	_label.text = @"证书密码:";
-	_textField.secureTextEntry = YES;
-	_textField.placeholder = @"input pfx file password";
-	[buttonOk addTarget:self action:@selector(okTaped:) forControlEvents:UIControlEventTouchUpInside];
-	[buttonCancel addTarget:self action:@selector(cancelTaped:) forControlEvents:UIControlEventTouchUpInside];
+	pfxpasswordView.delegate = delegate;
+	pfxpasswordView.modalPresentationStyle = UIModalPresentationFormSheet;
+	pfxpasswordView.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
 	
-	[self setSubViewBorderStyle:_textField];
-	[self setSubViewBorderStyle:buttonOk];
-	[self setSubViewBorderStyle:buttonCancel];
+	// CGSize size = parentVc.view.bounds.size;
+	// parentVc.preferredContentSize = CGSizeMake(size.width-100, size.height-200);
 	
-	return self;
+	[parentVc presentViewController:pfxpasswordView animated:NO completion:^{
+		
+		UIDeviceOrientation orient = [[UIDevice currentDevice] orientation];
+		int w, h;
+		if(orient==UIDeviceOrientationPortrait ||
+		   orient==UIDeviceOrientationPortraitUpsideDown ||
+		   orient==UIDeviceOrientationUnknown) {
+			w = 300;h = 450;
+		}
+		else {
+			w = 450;h = 250;
+		}
+
+		pfxpasswordView.view.superview.frame = CGRectMake(0, 0, w, h);
+		pfxpasswordView.view.superview.center = CGPointMake(parentVc.view.center.x, parentVc.view.center.y - 50);
+		pfxpasswordView.view.layer.cornerRadius = 5;
+		pfxpasswordView.view.layer.masksToBounds = YES;
+	}];
+	
+	[pfxpasswordView release];
 }
 
-#if 0
-z_device * device = z_openssl_new_device(ctx, RES_PATH"/user/zl.pfx", "111111");
-fz_image * image = fz_new_image_from_file(ctx, RES_Image_file);
-z_pdf_sign_appearance *app = z_pdf_new_image_sign_appearance(ctx, image,															(char*)"ntko(重庆软航科技有限公司)");
-z_pdf_dosign(ctx, device, doc, pageno, rect, app);
-z_pdf_drop_sign_appreance(ctx, app)
-z_drop_device(ctx, device);
-pdf_save_incremental_tofile(ctx, doc, savefile);
+- (IBAction)onCloseTaped:(id)sender {
+	[self dismissViewControllerAnimated:YES completion:nil];
+
+#if defined(Mupfxpassword_use_block_callback)
+	if(_cancelblock) {
+		_cancelblock(_pfxfilepassword.text);
+	}
 #endif
-
-- (void) okTaped : (id)sender {
-	// char *pfxfile = _textField.
-	// z_device *device = z_openssl_new_device(ctx, _pfxfile get, <#char *pfxpassword#>)
 }
 
-- (void) cancelTaped : (id)sender {
+- (IBAction)onOkTaped:(id)sender {
+	const char *pfxfile = [_pfxfile cStringUsingEncoding:NSUTF8StringEncoding];
+	const char *pfxpassword = [_pfxfilepassword.text cStringUsingEncoding:NSUTF8StringEncoding];
 	
+	z_device *device = NULL;
+	fz_try(ctx) {
+		device = z_openssl_new_device(ctx, (char*)pfxfile, (char*)pfxpassword);
+		_remainingTimes--;
+		if(0==_remainingTimes) {
+			[self dismissViewControllerAnimated:YES completion:nil];
+		}
+		if( device ) {
+			if(_deviceokblock) _deviceokblock(device);
+			if(_delegate) [_delegate deviceCreateOk:device];
+			z_drop_device(ctx, device);
+			device = nil;
+			
+			// close all
+			UIViewController *vc = self.presentingViewController;
+			if ( !vc.presentingViewController ) {
+				[self dismissViewControllerAnimated:YES completion:nil];
+				return;
+			}
+			while (vc.presentingViewController)
+				vc = vc.presentingViewController;
+			[vc dismissViewControllerAnimated:YES completion:nil];
+		}
+	}
+	fz_catch(ctx) {
+		_message.text = [NSString stringWithFormat:@"error: you still have %d time chances of inputing. \nerror detail:%@",_remainingTimes, [NSString stringWithUTF8String:ctx->error->message],nil];
+	}
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+	_pfxfilename.text = [_pfxfile lastPathComponent];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+
+/*
+#pragma mark - Navigation
+
+// In a storyboard-based application, you will often want to do a little preparation before navigation
+- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+    // Get the new view controller using [segue destinationViewController].
+    // Pass the selected object to the new view controller.
+}
+*/
+
+- (void)dealloc {
+	if(_deviceokblock) Block_release(_deviceokblock);
+	[_pfxfilename release];
+	[_pfxfilepassword release];
+	[_pfxfile release];
+	[_message release];
+	[super dealloc];
 }
 @end

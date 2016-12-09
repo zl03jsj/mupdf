@@ -1099,8 +1099,6 @@ fz_buffer *z_openssl_pdf_get_digest(fz_context *ctx, pdf_document *doc, z_device
         // mode
         signbuf = fz_new_buffer(ctx, p7_len);
         fz_write_buffer(ctx, signbuf, p7_ptr, p7_len);
-
-        fz_save_buffer(ctx, signbuf, "/Users/zl03jsj/Documents/pdftest/signdata");
 	}
 	fz_always(ctx)
 	{
@@ -1253,6 +1251,8 @@ z_device * z_openssl_new_device(fz_context *ctx, char *pfxfile, char *pfxpasswor
     }
     fz_catch(ctx){
         z_openssl_release_device(ctx, (z_device*)device);
+        device = NULL;
+        fz_rethrow(ctx);
     }
     return (z_device*)device;
 }

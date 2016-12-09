@@ -2523,11 +2523,6 @@ void z_pdf_set_signature_appearance_with_image(fz_context *ctx, pdf_document *do
     fz_var(cs);
 	fz_try(ctx)
 	{
-		const char *da = z_pdf_add_sign_annot_da(ctx, doc, obj);
-        dr = pdf_dict_getp(ctx, pdf_trailer(ctx, doc), "Root/AcroForm/DR");
-        if(!dr) {
-            fz_throw(ctx, FZ_ERROR_GENERIC, "No defualt resource(/DR) tag in AcroForm.");
-        }
         fz_rect rect = annot->rect;
         fz_matrix image_ctm = fz_identity;
 
@@ -2545,20 +2540,30 @@ void z_pdf_set_signature_appearance_with_image(fz_context *ctx, pdf_document *do
         fz_fill_image(ctx, dev, (fz_image*)app->app, &image_ctm, 1.0f);
         fz_end_group(ctx, dev);
 
-		get_font_info(ctx, doc, dr, (char*)da, &font_rec);
-		switch (font_rec.da_rec.col_size)
-        {
-            case 1: cs = fz_device_gray(ctx); break;
-            case 3: cs = fz_device_rgb(ctx); break;
-            case 4: cs = fz_device_cmyk(ctx); break;
+        if(app->text && strlen(app->text)) {
+            const char *da = z_pdf_add_sign_annot_da(ctx, doc, obj);
+            dr = pdf_dict_getp(ctx, pdf_trailer(ctx, doc), "Root/AcroForm/DR");
+            if(dr) {
+                get_font_info(ctx, doc, dr, (char*)da, &font_rec);
+                switch (font_rec.da_rec.col_size) {
+                    case 1: cs = fz_device_gray(ctx); break;
+                    case 3: cs = fz_device_rgb(ctx); break;
+                    case 4: cs = fz_device_cmyk(ctx); break;
+                }
+
+                /* Display the distinguished name in the right-hand half */
+                rect = annot->rect;
+                fz_transform_rect(&rect, &annot->page->ctm);
+                rect.x0 = (rect.x0 + rect.x1)/2.0f;
+                rect.y0 = (rect.y0 + rect.y1)/2.0f;
+                text = fit_text(ctx, &font_rec, app->text, &rect);
+                fz_fill_text(ctx, dev, text, &annot->page->ctm, cs, font_rec.da_rec.col, 0.5f);
+            } 
+            else {
+                fz_warn(ctx, "Add text on image faild.");
+                // fz_warn(ctx, "No defualt resource(/DR) tag in AcroForm.");
+            }
         }
-		/* Display the distinguished name in the right-hand half */
-		rect = annot->rect;
-        fz_transform_rect(&rect, &annot->page->ctm);
-		rect.x0 = (rect.x0 + rect.x1)/2.0f;
-        rect.y0 = (rect.y0 + rect.y1)/2.0f;
-		text = fit_text(ctx, &font_rec, app->text, &rect);
-		fz_fill_text(ctx, dev, text, &annot->page->ctm, cs, font_rec.da_rec.col, 0.5f);
 
         rect = annot->rect;
 		pdf_set_annot_appearance(ctx, doc, annot, &rect, dlist);

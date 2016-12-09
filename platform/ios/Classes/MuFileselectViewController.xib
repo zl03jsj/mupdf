@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="11542" systemVersion="16A323" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" colorMatched="YES">
+    <device id="retina4_7" orientation="portrait">
+        <adaptation id="fullscreen"/>
+    </device>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="11524"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="MuFileselectViewController">
+            <connections>
+                <outlet property="_navigationitem" destination="FZV-uF-t9U" id="fW6-t1-jud"/>
+                <outlet property="_table" destination="DL9-0W-Dxj" id="bvX-Tv-Aob"/>
+                <outlet property="view" destination="i5M-Pr-FkT" id="sfx-zR-JGt"/>
+            </connections>
+        </placeholder>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <view clearsContextBeforeDrawing="NO" contentMode="scaleToFill" id="i5M-Pr-FkT">
+            <rect key="frame" x="0.0" y="0.0" width="537" height="368"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <navigationBar contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="ExY-DZ-OEy">
+                    <rect key="frame" x="0.0" y="0.0" width="537" height="44"/>
+                    <items>
+                        <navigationItem title="Choose value" id="FZV-uF-t9U">
+                            <barButtonItem key="leftBarButtonItem" image="ic_cancel.png" id="Vqo-1j-B8j">
+                                <connections>
+                                    <action selector="closeTaped:" destination="-1" id="4w9-r5-mS2"/>
+                                </connections>
+                            </barButtonItem>
+                            <barButtonItem key="rightBarButtonItem" image="ic_check.png" id="K77-x8-RDG">
+                                <connections>
+                                    <action selector="okayTaped:" destination="-1" id="e5X-kv-EXv"/>
+                                </connections>
+                            </barButtonItem>
+                        </navigationItem>
+                    </items>
+                </navigationBar>
+                <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" style="plain" separatorStyle="default" rowHeight="44" sectionHeaderHeight="28" sectionFooterHeight="28" translatesAutoresizingMaskIntoConstraints="NO" id="DL9-0W-Dxj">
+                    <rect key="frame" x="0.0" y="44" width="537" height="304"/>
+                    <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                </tableView>
+            </subviews>
+            <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <constraints>
+                <constraint firstItem="ExY-DZ-OEy" firstAttribute="top" secondItem="i5M-Pr-FkT" secondAttribute="top" id="6VG-BF-LlR"/>
+                <constraint firstItem="DL9-0W-Dxj" firstAttribute="leading" secondItem="ExY-DZ-OEy" secondAttribute="leading" id="9w5-wd-Gn1"/>
+                <constraint firstItem="DL9-0W-Dxj" firstAttribute="trailing" secondItem="ExY-DZ-OEy" secondAttribute="trailing" id="KLB-iY-Wdn"/>
+                <constraint firstItem="DL9-0W-Dxj" firstAttribute="top" secondItem="i5M-Pr-FkT" secondAttribute="top" constant="44" id="W8o-Oc-AnM"/>
+                <constraint firstItem="ExY-DZ-OEy" firstAttribute="leading" secondItem="i5M-Pr-FkT" secondAttribute="leading" id="bfG-Gs-sEn"/>
+                <constraint firstAttribute="trailing" secondItem="ExY-DZ-OEy" secondAttribute="trailing" id="uLa-58-Lt0"/>
+                <constraint firstAttribute="bottom" secondItem="DL9-0W-Dxj" secondAttribute="bottom" constant="20" id="xjb-Tc-PBd"/>
+            </constraints>
+            <nil key="simulatedStatusBarMetrics"/>
+            <freeformSimulatedSizeMetrics key="simulatedDestinationMetrics"/>
+            <point key="canvasLocation" x="3.5" y="-111"/>
+        </view>
+    </objects>
+    <resources>
+        <image name="ic_cancel.png" width="24" height="24"/>
+        <image name="ic_check.png" width="24" height="19"/>
+    </resources>
+</document>

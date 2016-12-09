@@ -7,10 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		6800C2FB1DFAA2B900C89F30 /* MuPfxPasswordView.m in Sources */ = {isa = PBXBuildFile; fileRef = 6800C2F91DFAA2B900C89F30 /* MuPfxPasswordView.m */; };
+		6800C2FC1DFAA2B900C89F30 /* MuPfxPasswordView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 6800C2FA1DFAA2B900C89F30 /* MuPfxPasswordView.xib */; };
 		6810362E1D9E637C004EBEF8 /* common.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 6810362D1D9E637C004EBEF8 /* common.xcconfig */; };
 		6810362F1D9E637C004EBEF8 /* common.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 6810362D1D9E637C004EBEF8 /* common.xcconfig */; };
 		681036321D9E6818004EBEF8 /* MuTextFieldController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 681036311D9E6818004EBEF8 /* MuTextFieldController.xib */; };
-		6815F0041DF17429006F164F /* MuPfxPasswordView.m in Sources */ = {isa = PBXBuildFile; fileRef = 6815F0031DF17429006F164F /* MuPfxPasswordView.m */; };
 		681A5CDC1DAA2DAF00B07841 /* CtnPickerview.m in Sources */ = {isa = PBXBuildFile; fileRef = 681A5CD51DAA2DAF00B07841 /* CtnPickerview.m */; };
 		681A5CDD1DAA2DAF00B07841 /* uibutton_designable.m in Sources */ = {isa = PBXBuildFile; fileRef = 681A5CD71DAA2DAF00B07841 /* uibutton_designable.m */; };
 		681A5CDE1DAA2DAF00B07841 /* uilabel_designable.m in Sources */ = {isa = PBXBuildFile; fileRef = 681A5CD91DAA2DAF00B07841 /* uilabel_designable.m */; };
@@ -20,7 +21,6 @@
 		681A5CE31DAA4C2100B07841 /* CtnPickerview.m in Sources */ = {isa = PBXBuildFile; fileRef = 681A5CD51DAA2DAF00B07841 /* CtnPickerview.m */; };
 		68296FAF1DE43CAF008946D5 /* MuSignView.m in Sources */ = {isa = PBXBuildFile; fileRef = 68296FAE1DE43CAF008946D5 /* MuSignView.m */; };
 		68296FB01DE43CAF008946D5 /* MuSignView.m in Sources */ = {isa = PBXBuildFile; fileRef = 68296FAE1DE43CAF008946D5 /* MuSignView.m */; };
-		68351C971DEC1D8F0048CD8B /* MuFileSelectView.m in Sources */ = {isa = PBXBuildFile; fileRef = 68351C961DEC1D8F0048CD8B /* MuFileSelectView.m */; };
 		68398CC61D8949E500C00BBF /* SignkeyMTokenView.m in Sources */ = {isa = PBXBuildFile; fileRef = 68398CC31D8949E500C00BBF /* SignkeyMTokenView.m */; };
 		6849922E1DA8EC6B0070C0B5 /* MuPageViewReflow.m in Sources */ = {isa = PBXBuildFile; fileRef = DAA6E56E17F03AAE002B1E4E /* MuPageViewReflow.m */; };
 		6849922F1DA8EC6B0070C0B5 /* MuLibraryController.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C689917E85E8E0061F586 /* MuLibraryController.m */; };
@@ -76,6 +76,8 @@
 		6849926F1DA8ECD10070C0B5 /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 684A0B291D7E629800BAA411 /* libcrypto.a */; };
 		684992701DA8ECD10070C0B5 /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 684A0B2A1D7E629800BAA411 /* libssl.a */; };
 		686ED0711D8654790063F392 /* SignDevice.m in Sources */ = {isa = PBXBuildFile; fileRef = 6811AC6E1D8641B900887464 /* SignDevice.m */; };
+		68861AEF1DF66A8B005B08F1 /* MuFileselectViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 68861AED1DF66A8B005B08F1 /* MuFileselectViewController.m */; };
+		68861AF01DF66A8B005B08F1 /* MuFileselectViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 68861AEE1DF66A8B005B08F1 /* MuFileselectViewController.xib */; };
 		6887ECF71D93D4C400B006DC /* SignkeyFindView.m in Sources */ = {isa = PBXBuildFile; fileRef = 6887ECF61D93D4C400B006DC /* SignkeyFindView.m */; };
 		689D28E71D9922B6005A869C /* libmTokenK5.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 685AB6E21D864604001893A0 /* libmTokenK5.a */; };
 		689D28F11D9923E2005A869C /* libstdc++.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 689D28F01D9923E2005A869C /* libstdc++.tbd */; };
@@ -163,12 +165,13 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		6800C2F81DFAA2B900C89F30 /* MuPfxPasswordView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MuPfxPasswordView.h; path = Classes/MuPfxPasswordView.h; sourceTree = "<group>"; };
+		6800C2F91DFAA2B900C89F30 /* MuPfxPasswordView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = MuPfxPasswordView.m; path = Classes/MuPfxPasswordView.m; sourceTree = "<group>"; };
+		6800C2FA1DFAA2B900C89F30 /* MuPfxPasswordView.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = MuPfxPasswordView.xib; path = Classes/MuPfxPasswordView.xib; sourceTree = "<group>"; };
 		680613571D4B4433001F4574 /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../../../openssl/lib/iOS/libssl.a; sourceTree = "<group>"; };
 		6810362D1D9E637C004EBEF8 /* common.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = common.xcconfig; sourceTree = "<group>"; };
 		681036311D9E6818004EBEF8 /* MuTextFieldController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = MuTextFieldController.xib; path = Classes/MuTextFieldController.xib; sourceTree = "<group>"; };
 		6811AC6E1D8641B900887464 /* SignDevice.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = SignDevice.m; path = z/signdevice/SignDevice.m; sourceTree = "<group>"; };
-		6815F0021DF17429006F164F /* MuPfxPasswordView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MuPfxPasswordView.h; path = Classes/MuPfxPasswordView.h; sourceTree = "<group>"; };
-		6815F0031DF17429006F164F /* MuPfxPasswordView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = MuPfxPasswordView.m; path = Classes/MuPfxPasswordView.m; sourceTree = "<group>"; };
 		681A5CD41DAA2DAF00B07841 /* CtnPickerview.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CtnPickerview.h; path = z/ui/CtnPickerview.h; sourceTree = "<group>"; };
 		681A5CD51DAA2DAF00B07841 /* CtnPickerview.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = CtnPickerview.m; path = z/ui/CtnPickerview.m; sourceTree = "<group>"; };
 		681A5CD61DAA2DAF00B07841 /* uibutton_designable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = uibutton_designable.h; path = z/ui/uibutton_designable.h; sourceTree = "<group>"; };
@@ -179,8 +182,6 @@
 		681A5CDB1DAA2DAF00B07841 /* uiview_designable.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = uiview_designable.m; path = z/ui/uiview_designable.m; sourceTree = "<group>"; };
 		68296FAD1DE43CAF008946D5 /* MuSignView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MuSignView.h; path = Classes/MuSignView.h; sourceTree = "<group>"; };
 		68296FAE1DE43CAF008946D5 /* MuSignView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = MuSignView.m; path = Classes/MuSignView.m; sourceTree = "<group>"; };
-		68351C951DEC1D8F0048CD8B /* MuFileSelectView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MuFileSelectView.h; path = Classes/MuFileSelectView.h; sourceTree = "<group>"; };
-		68351C961DEC1D8F0048CD8B /* MuFileSelectView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = MuFileSelectView.m; path = Classes/MuFileSelectView.m; sourceTree = "<group>"; };
 		68398CC21D8949E500C00BBF /* SignkeyMTokenView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SignkeyMTokenView.h; path = z/signdevice/mtoken/SignkeyMTokenView.h; sourceTree = "<group>"; };
 		68398CC31D8949E500C00BBF /* SignkeyMTokenView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = SignkeyMTokenView.m; path = z/signdevice/mtoken/SignkeyMTokenView.m; sourceTree = "<group>"; };
 		6849926C1DA8EC6B0070C0B5 /* MxPDF_sign_supported.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MxPDF_sign_supported.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -192,6 +193,9 @@
 		685AB6E21D864604001893A0 /* libmTokenK5.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmTokenK5.a; path = z/signdevice/mtoken/Lib/libmTokenK5.a; sourceTree = "<group>"; };
 		685AB6F91D864DD2001893A0 /* K5AlgoDefs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = K5AlgoDefs.h; path = z/signdevice/mtoken/Include/K5AlgoDefs.h; sourceTree = "<group>"; };
 		685AB6FA1D864DD2001893A0 /* K5SOFApp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = K5SOFApp.h; path = z/signdevice/mtoken/Include/K5SOFApp.h; sourceTree = "<group>"; };
+		68861AEC1DF66A8B005B08F1 /* MuFileselectViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MuFileselectViewController.h; path = Classes/MuFileselectViewController.h; sourceTree = "<group>"; };
+		68861AED1DF66A8B005B08F1 /* MuFileselectViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = MuFileselectViewController.m; path = Classes/MuFileselectViewController.m; sourceTree = "<group>"; };
+		68861AEE1DF66A8B005B08F1 /* MuFileselectViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = MuFileselectViewController.xib; path = Classes/MuFileselectViewController.xib; sourceTree = "<group>"; };
 		6887ECF51D93D4C400B006DC /* SignkeyFindView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SignkeyFindView.h; path = z/signdevice/SignkeyFindView.h; sourceTree = "<group>"; };
 		6887ECF61D93D4C400B006DC /* SignkeyFindView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = SignkeyFindView.m; path = z/signdevice/SignkeyFindView.m; sourceTree = "<group>"; };
 		689D28E81D992326005A869C /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS10.0.sdk/System/Library/Frameworks/CoreBluetooth.framework; sourceTree = DEVELOPER_DIR; };
@@ -507,6 +511,9 @@
 		DA1C689717E85E4A0061F586 /* Classes */ = {
 			isa = PBXGroup;
 			children = (
+				6800C2F81DFAA2B900C89F30 /* MuPfxPasswordView.h */,
+				6800C2F91DFAA2B900C89F30 /* MuPfxPasswordView.m */,
+				6800C2FA1DFAA2B900C89F30 /* MuPfxPasswordView.xib */,
 				DA1C689817E85E8E0061F586 /* MuLibraryController.h */,
 				DA1C689917E85E8E0061F586 /* MuLibraryController.m */,
 				DA1C689C17E861020061F586 /* MuOutlineController.h */,
@@ -550,10 +557,9 @@
 				68296FAE1DE43CAF008946D5 /* MuSignView.m */,
 				68AC86161DE568300096AAB8 /* MuHanddrawView.h */,
 				68AC86171DE568300096AAB8 /* MuHanddrawView.m */,
-				68351C951DEC1D8F0048CD8B /* MuFileSelectView.h */,
-				68351C961DEC1D8F0048CD8B /* MuFileSelectView.m */,
-				6815F0021DF17429006F164F /* MuPfxPasswordView.h */,
-				6815F0031DF17429006F164F /* MuPfxPasswordView.m */,
+				68861AEC1DF66A8B005B08F1 /* MuFileselectViewController.h */,
+				68861AED1DF66A8B005B08F1 /* MuFileselectViewController.m */,
+				68861AEE1DF66A8B005B08F1 /* MuFileselectViewController.xib */,
 			);
 			name = Classes;
 			sourceTree = "<group>";
@@ -706,6 +712,7 @@
 				6849925F1DA8EC6B0070C0B5 /* ic_reflow.png in Resources */,
 				684992601DA8EC6B0070C0B5 /* ic_more.png in Resources */,
 				684992611DA8EC6B0070C0B5 /* ic_highlight.png in Resources */,
+				68861AF01DF66A8B005B08F1 /* MuFileselectViewController.xib in Resources */,
 				684992621DA8EC6B0070C0B5 /* ic_strike.png in Resources */,
 				684992631DA8EC6B0070C0B5 /* ic_underline.png in Resources */,
 				684992641DA8EC6B0070C0B5 /* ic_check.png in Resources */,
@@ -725,6 +732,7 @@
 				68DFA9E81D86951000AC9FF6 /* Assets.xcassets in Resources */,
 				6810362E1D9E637C004EBEF8 /* common.xcconfig in Resources */,
 				68DFA9E31D86951000AC9FF6 /* Main.storyboard in Resources */,
+				6800C2FC1DFAA2B900C89F30 /* MuPfxPasswordView.xib in Resources */,
 				689D5D001DDF0823007CC20C /* ic_stamp.png in Resources */,
 				681036321D9E6818004EBEF8 /* MuTextFieldController.xib in Resources */,
 				68C3CC861D9127B0008DE360 /* SignkeyFindView.xib in Resources */,
@@ -844,12 +852,11 @@
 				684992391DA8EC6B0070C0B5 /* SignkeyMTokenView.m in Sources */,
 				6849923A1DA8EC6B0070C0B5 /* main.m in Sources */,
 				6849923C1DA8EC6B0070C0B5 /* common.m in Sources */,
+				68861AEF1DF66A8B005B08F1 /* MuFileselectViewController.m in Sources */,
 				6849923D1DA8EC6B0070C0B5 /* MuDocRef.m in Sources */,
 				6849923E1DA8EC6B0070C0B5 /* MuTapResult.m in Sources */,
 				6849923F1DA8EC6B0070C0B5 /* SignDevice.m in Sources */,
-				6815F0041DF17429006F164F /* MuPfxPasswordView.m in Sources */,
 				684992401DA8EC6B0070C0B5 /* MuChoiceFieldController.m in Sources */,
-				68351C971DEC1D8F0048CD8B /* MuFileSelectView.m in Sources */,
 				684992411DA8EC6B0070C0B5 /* MuWord.m in Sources */,
 				684992431DA8EC6B0070C0B5 /* MuTextSelectView.m in Sources */,
 				68AC86191DE568300096AAB8 /* MuHanddrawView.m in Sources */,
@@ -872,6 +879,7 @@
 				681A5CDC1DAA2DAF00B07841 /* CtnPickerview.m in Sources */,
 				68398CC61D8949E500C00BBF /* SignkeyMTokenView.m in Sources */,
 				68DFA9DA1D86951000AC9FF6 /* main.m in Sources */,
+				6800C2FB1DFAA2B900C89F30 /* MuPfxPasswordView.m in Sources */,
 				681A5CDF1DAA2DAF00B07841 /* uiview_designable.m in Sources */,
 				681A5CDD1DAA2DAF00B07841 /* uibutton_designable.m in Sources */,
 			);

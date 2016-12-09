@@ -1,10 +1,11 @@
-#include "common.h"
+#import "common.h"
 
 #import "MuPageViewNormal.h"
 #import "MuPageViewReflow.h"
 #import "MuDocumentController.h"
 #import "MuTextFieldController.h"
 #import "MuChoiceFieldController.h"
+#import "MuFileselectViewController.h"
 #import "MuPrintPageRenderer.h"
 
 #define GAP 20
@@ -123,8 +124,30 @@ static void saveDoc(char *current_path, fz_document *doc)
 		free(tmp);
 	}
 }
-@interface MuDocumentController()<MuSignStepDelegate>
-@end
+
+static z_pdf_sign_appearance* createAppearanceWithImagefile(NSString *imagefile, CGRect rect) {
+	if(!imagefile) return NULL;
+	
+	fz_image *image = NULL;
+	z_pdf_sign_appearance *app = NULL;
+	
+	fz_try(ctx) {
+		image = fz_new_image_from_file(ctx, [imagefile cStringUsingEncoding:NSUTF8StringEncoding]);
+		app = z_pdf_new_image_sign_appearance(ctx, image, NULL);
+		
+		app->rect.x0 = rect.origin.x;
+		app->rect.y0 = rect.origin.y;
+		app->rect.x1 = rect.origin.x + rect.size.width;
+		app->rect.y1 = rect.origin.y + rect.size.height;
+	}
+	fz_always(ctx) {
+		if(image) fz_drop_image(ctx, image);
+	}
+	fz_catch(ctx) {
+		NSLog(@"create sign appearance faild.\nerror message:%s.", ctx->error->message);
+	}
+	return app;
+}
 
 @implementation MuDocumentController
 {
@@ -148,11 +171,16 @@ static void saveDoc(char *current_path, fz_document *doc)
 	UIBarButtonItem *reflowButton;
 	UIBarButtonItem *backButton;
 	UIBarButtonItem *sliderWrapper;
+	
 	// add by zl [2016/11/16 5:25]
 	// add signature with image appearance!
 	UIBarButtonItem *handsignButton;
 	UIBarButtonItem *signButton;
 	UIBarButtonItem *nextstepButton;
+	z_pdf_sign_appearance *_app;
+	z_device *_device;
+	Signstep _signstep;
+	/////////////////////////////////////////
 	
 	int barmode;
 	int searchPage;
@@ -168,7 +196,6 @@ static void saveDoc(char *current_path, fz_document *doc)
 
 - (id) initWithFilename: (NSString*)filename path:(char *)cstr document: (MuDocRef *)aDoc
 {
-	NSLog(@"initWithFilename");
 	self = [super init];
 	if (!self)
 		return nil;
@@ -184,6 +211,8 @@ static void saveDoc(char *current_path, fz_document *doc)
 
 	//  this will be created right before the outline is shown
 	outline = nil;
+	_app = NULL;
+	_device = NULL;
 
 	dispatch_sync(queue, ^{});
 
@@ -225,7 +254,6 @@ static void saveDoc(char *current_path, fz_document *doc)
 
 - (void) loadView
 {
-	NSLog(@"loadView");
 	[[NSUserDefaults standardUserDefaults] setObject: key forKey: @"OpenDocumentKey"];
 
 	current = (int)[[NSUserDefaults standardUserDefaults] integerForKey: key];
@@ -314,7 +342,7 @@ static void saveDoc(char *current_path, fz_document *doc)
 	// add signature [2016/11/16 17:33] by zl
 	handsignButton = [self newResourceBasedButton:@"ic_signature" withAction:@selector(onHandsign:)];
 	signButton = [self newResourceBasedButton:@"ic_stamp" withAction:@selector(onSign:)];
-	nextstepButton = [self newResourceBasedButton:@"ic_next" withAction:@selector(OnNextStep:)];
+	nextstepButton = [self newResourceBasedButton:@"ic_next" withAction:@selector(onNextstep:)];
 	
 	searchBar = [[UISearchBar alloc] initWithFrame: CGRectMake(0,0,50,32)];
 	backButton = [self newResourceBasedButton:@"ic_arrow_left" withAction:@selector(onBack:)];
@@ -364,6 +392,7 @@ static void saveDoc(char *current_path, fz_document *doc)
 	free(filePath); filePath = NULL;
 
 	[outline release];
+	if(_app) z_pdf_drop_sign_appreance(ctx, _app);
 	[key release];
 	[super dealloc];
 }
@@ -430,7 +459,6 @@ static void saveDoc(char *current_path, fz_document *doc)
 
 - (void) viewWillDisappear: (BOOL)animated
 {
-	NSLog(@"viewWillDisappear");
 	[super viewWillDisappear:animated];
 	if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 7.0)
 		[slider removeFromSuperview];
@@ -722,7 +750,6 @@ static void saveDoc(char *current_path, fz_document *doc)
 
 - (void) onTick: (id)sender
 {
-
 	for (UIView<MuPageView> *view in [canvas subviews])
 	{
 		if ([view number] == current)
@@ -744,6 +771,10 @@ static void saveDoc(char *current_path, fz_document *doc)
 				case BARMODE_INK:
 					// [view saveContentStream];
 					[view saveInk];
+					break;
+					
+				case BARMODE_SIGN:
+					break;
 			}
 		}
 	}
@@ -1128,7 +1159,6 @@ static void saveDoc(char *current_path, fz_document *doc)
 			view = [[MuPageViewReflow alloc] initWithFrame:CGRectMake(number * width, 0, width-GAP, height) document:docRef page:number];
 		else {
 			MuPageViewNormal *viewNormal = [[MuPageViewNormal alloc] initWithFrame:CGRectMake(number * width, 0, width-GAP, height) dialogCreator:self updater:self document:docRef page:number];
-			viewNormal.signstepDelegate = self;
 			view = viewNormal;
 		}
 		
@@ -1223,7 +1253,6 @@ static void saveDoc(char *current_path, fz_document *doc)
 }
 
 #pragma mark - pdf signature
-
 - (void) onSign: (id)sender
 {
 	barmode = BARMODE_SIGN;
@@ -1231,20 +1260,97 @@ static void saveDoc(char *current_path, fz_document *doc)
 }
 
 - (void) signModeOn {
-	[nextstepButton setEnabled:NO];
-	[[self navigationItem] setRightBarButtonItems:[NSArray arrayWithObject:nextstepButton]];
-	for (UIView<MuPageView> *view in [canvas subviews])
-	{
-		if ([view number] == current){
-			[view signModeOn]; break;
+	_signstep = SIGN_STEP_CHOOSE_IMAGEFILE;
+	[MuFileselectViewController showDefaultImageSelect:self fileselectedDelegate:self fileselectedblock:nil];
+}
+
+- (void) onNextstep: (id)sender {
+	if(_signstep==SIGN_STEP_GET_SIGN_POSITION) {
+		UIView<MuPageView> *view = [self curPageView];
+		MuSignView *signview = view.signView;
+		CGRect rect = signview.rectOfPage;
+		NSString *imagefile = signview.imagefile;
+		if( !CGRectIsEmpty(rect) && imagefile) {
+			if(_app)
+				z_pdf_drop_sign_appreance(ctx, _app);
+			_app = createAppearanceWithImagefile(imagefile, rect);
+			if(_app)
+				[self showDeviceCreateView];
+			else
+				NSLog(@"create sign appearance faild.");
 		}
 	}
 }
 
-- (void) signModeOff {
-	for (UIView<MuPageView> *view in [canvas subviews])	{
-		[view signModeOff];
+#pragma mark - delegate of MuFileSelectView
+- (BOOL) fileSelected:(MuFileselectViewController *)fileselectViewController selectedfile:(NSString *)file selectdIndexpath:(NSIndexPath *)indexpath{
+	if(_signstep==SIGN_STEP_CHOOSE_IMAGEFILE) {
+		_signstep = SIGN_STEP_GET_SIGN_POSITION;
+		[[self navigationItem] setRightBarButtonItems:[NSArray arrayWithObjects:nextstepButton, nil]];
+		UIView<MuPageView>* view = [self curPageView];
+		[view imageViewModeOn:file];
+		return YES;
 	}
+	
+	if(_signstep==SIGN_STEP_GET_SIGN_DEVICE) {
+		if(indexpath.section>0) {
+		}
+		else {
+			[MuPfxPasswordView verifyPfxPassword:fileselectViewController pfxfile:file pfxPswCheckViewDelegate:self deviceCreateOkBlock:nil];
+		}
+	}
+	return NO;
+}
+
+- (void) fileSelCancel:(MuFileselectViewController *)fileselectViewController {
+	if(_signstep==SIGN_STEP_GET_SIGN_DEVICE) {
+		_signstep = SIGN_STEP_GET_SIGN_POSITION;
+	}
+}
+
+- (void) fileSelOkay:(MuFileselectViewController *)fileselectViewController selectedfile:(NSString *)file {
+	if(_signstep==SIGN_STEP_GET_SIGN_DEVICE) {
+		_signstep = SIGN_STEP_GET_SIGN_POSITION;
+	}
+}
+
+- (void) showDeviceCreateView {
+	_signstep = SIGN_STEP_GET_SIGN_DEVICE;
+	[MuFileselectViewController showDefaultPfxSelect:self fileselectedDelegate:self fileselectedblock:nil];
+}
+
+#pragma mark - delegate of pfx passwrod verify view
+- (BOOL) deviceCreateOk:(z_device *)device
+{
+	if(_signstep==SIGN_STEP_GET_SIGN_DEVICE) {
+		_signstep = SIGN_SETP_ADD_SIGN;
+		UIView<MuPageView> *view = [self curPageView];
+		
+		if(view) {
+			if(_device) z_drop_device(ctx, _device);
+			_device = z_keep_device(ctx, device);
+			
+			if(_device && _app)
+				[view addsign:_app signdevice:_device];
+			else
+				NSLog(@"invalid sign params");
+		}
+		
+		[self showAnnotationMenu];
+		[self signModeOff];
+	}
+	return NO;
+}
+
+- (void) signModeOff {
+	_signstep = SIGN_STEP_NOT_SIGINING;
+	UIView<MuPageView> *view = [self curPageView];
+	[view imageViewModeOff];
+	
+	if(_app) z_pdf_drop_sign_appreance(ctx, _app);
+	_app = NULL;
+	if(_device) z_drop_device(ctx, _device);
+	_device = NULL;
 }
 
 - (void) onHandsign: (id)sender {
@@ -1268,33 +1374,12 @@ static void saveDoc(char *current_path, fz_document *doc)
 	}
 }
 
-- (void) OnNextStep: (id)sender {
-	for (UIView<MuPageView> *view in [canvas subviews])
-	{
-		if ([view number] == current) {
-			switch (barmode) {
-				case BARMODE_SIGN:
-					[view doNextSignStep];
-					break;
-				case BARMODE_Handsign:
-					[view doNextSignStep];
-					break;
-				default:
-					break;
-			}
+- (UIView<MuPageView>*) curPageView {
+	for (UIView<MuPageView> *v in [canvas subviews]) {
+		if ([v number] == current) {
+			return v;
 		}
 	}
-	
-	if(barmode==BARMODE_SIGN) { 
-	}
-	else if(barmode==BARMODE_Handsign){ 
-	}
+	return nil;
 }
-
-- (void)signModeIntoStep:(MuSignStep)intostep laststep:(MuSignStep)laststep {
-	if(intostep==MuSignStep_get_appearance_position) {
-		[nextstepButton setEnabled:YES];
-	}
-}
-
 @end

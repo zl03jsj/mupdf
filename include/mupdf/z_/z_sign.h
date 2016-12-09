@@ -36,6 +36,7 @@ typedef void (*z_sign_releasedevice_fn)(fz_context*, z_device *);
 
 struct z_pdf_sign_appearance_s {
     int refcount;
+    fz_rect rect;
     void *app;
     char *text;
     z_sign_set_appearance_fn  set_app;
@@ -53,10 +54,11 @@ struct z_device_s {
 z_device *z_keep_device(fz_context *ctx, z_device *device);
 void z_drop_device(fz_context *ctx, z_device *device);
 
+z_pdf_sign_appearance *z_pdf_keep_sign_apperance(fz_context *ctx, z_pdf_sign_appearance *app);
 void z_pdf_drop_sign_appreance(fz_context *ctx, z_pdf_sign_appearance *app);
-z_pdf_sign_appearance *z_pdf_new_image_sign_appearance(fz_context *ctx, fz_image *image, char *text);
+z_pdf_sign_appearance *z_pdf_new_image_sign_appearance(fz_context *ctx, fz_image *image, fz_rect r, char *text);
 
-void z_pdf_dosign(fz_context *ctx, z_device *device, pdf_document *doc,int pageno, fz_rect rect, z_pdf_sign_appearance *app);
+void z_pdf_dosign(fz_context *ctx, z_device *device, pdf_document *doc,int pageno, z_pdf_sign_appearance *app);
 
 void z_pdf_write_sign(fz_context *ctx, char *file, fz_buffer *buf, int ofs, int len);
 void z_fz_stream_save(fz_context *ctx, fz_stream *stm, char *filename);
