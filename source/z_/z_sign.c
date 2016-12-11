@@ -33,6 +33,36 @@ void z_drop_device(fz_context *ctx, z_device *device)
     }
 }
 
+void z_pdf_dosign_with_page(fz_context *ctx, z_device *device, pdf_document *doc,pdf_page *page, z_pdf_sign_appearance *app) {
+    pdf_annot *annot = NULL;
+    char *signame = NULL;
+    fz_try(ctx) {
+        if(!page)
+			fz_throw(ctx, FZ_ERROR_GENERIC, "invalid page.");
+        signame = new_unique_string(ctx, "ntkosign_", NULL);
+        // doc->disallow_new_increments = 1;
+        annot = (pdf_annot*)pdf_create_widget(ctx, doc, page,  PDF_WIDGET_TYPE_SIGNATURE, signame); 
+        // must add /P(which page the annot belong to) tag, or signature object cannot be display on
+        // adobe reader's signature panel
+        
+        pdf_dict_put_drop(ctx, annot->obj, PDF_NAME_P, pdf_new_indirect(ctx, doc, pdf_obj_parent_num(ctx, page->me), 0));
+
+        annot->pagerect = app->rect;
+        annot->rect = app->rect;
+        // fz_transform_rect(&annot->pagerect, &annot->page->ctm);
+        // pdf_dict_puts_drop(ctx, annot->obj, "Rect", pdf_new_rect(ctx, doc, &annot->pagerect));
+        doc->disallow_new_increments = 1;
+        device->do_sign(ctx, device, doc, annot, app);
+    }
+	fz_always(ctx) {
+        if(signame) fz_free(ctx, signame);
+	}
+	fz_catch(ctx) {
+        if(page) pdf_drop_page(ctx, page);
+        if(annot) pdf_drop_annots(ctx, annot);
+		fz_rethrow(ctx);
+	}
+}
 void z_pdf_dosign(fz_context *ctx, z_device *device, pdf_document *doc,int pageno, z_pdf_sign_appearance *app)
 {
     pdf_page *page = NULL;

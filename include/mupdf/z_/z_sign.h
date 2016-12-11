@@ -58,7 +58,10 @@ z_pdf_sign_appearance *z_pdf_keep_sign_apperance(fz_context *ctx, z_pdf_sign_app
 void z_pdf_drop_sign_appreance(fz_context *ctx, z_pdf_sign_appearance *app);
 z_pdf_sign_appearance *z_pdf_new_image_sign_appearance(fz_context *ctx, fz_image *image, fz_rect r, char *text);
 
+// this func not support updtate page view
 void z_pdf_dosign(fz_context *ctx, z_device *device, pdf_document *doc,int pageno, z_pdf_sign_appearance *app);
+// this function support update page view
+void z_pdf_dosign_with_page(fz_context *ctx, z_device *device, pdf_document *doc,pdf_page *page, z_pdf_sign_appearance *app);
 
 void z_pdf_write_sign(fz_context *ctx, char *file, fz_buffer *buf, int ofs, int len);
 void z_fz_stream_save(fz_context *ctx, fz_stream *stm, char *filename);

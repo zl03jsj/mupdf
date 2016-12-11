@@ -669,6 +669,21 @@ static void updatePixmap(fz_document *doc, fz_display_list *page_list, fz_displa
 	}
 }
 
+static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
+							   z_device *device, z_pdf_sign_appearance *app) {
+	pdf_document *idoc = pdf_specifics(ctx, doc);
+	if(!idoc) {
+		NSLog(@"not pdf file, not support add signature.");
+		return;
+	}
+	
+	fz_try(ctx){
+		z_pdf_dosign_with_page(ctx, device, idoc, (pdf_page*)page, app);
+	}
+	fz_catch(ctx) {
+		fz_rethrow(ctx);
+	}
+}
 @interface MuPageViewNormal()
 @end
 
@@ -1609,10 +1624,9 @@ static void updatePixmap(fz_document *doc, fz_display_list *page_list, fz_displa
 	// asyncronize so must keep
 	z_pdf_keep_sign_apperance(ctx, app);
 	z_keep_device(ctx, device);
-	
 	dispatch_async(queue, ^{
 		fz_try(ctx) {
-			z_pdf_dosign(ctx, device, (pdf_document*)doc, number, app);
+			z_dosign_with_page(ctx, doc, page, device, app);
 			dispatch_async(dispatch_get_main_queue(), ^{
 				[self update];
 			});
