@@ -45,24 +45,16 @@
 	pfxpasswordView.modalPresentationStyle = UIModalPresentationFormSheet;
 	pfxpasswordView.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
 	
-	// CGSize size = parentVc.view.bounds.size;
-	// parentVc.preferredContentSize = CGSizeMake(size.width-100, size.height-200);
-	
+//	CGSize size = parentVc.view.bounds.size;
+//	parentVc.preferredContentSize = CGSizeMake(size.width*3/4, size.height*3/4);
 	[parentVc presentViewController:pfxpasswordView animated:NO completion:^{
-		
-		UIDeviceOrientation orient = [[UIDevice currentDevice] orientation];
-		int w, h;
-		if(orient==UIDeviceOrientationPortrait ||
-		   orient==UIDeviceOrientationPortraitUpsideDown ||
-		   orient==UIDeviceOrientationUnknown) {
-			w = 300;h = 450;
-		}
-		else {
-			w = 450;h = 250;
-		}
-
-		pfxpasswordView.view.superview.frame = CGRectMake(0, 0, w, h);
-		pfxpasswordView.view.superview.center = CGPointMake(parentVc.view.center.x, parentVc.view.center.y - 50);
+//		UIDeviceOrientation orient = [[UIDevice currentDevice] orientation];
+//		if(orient==UIDeviceOrientationPortrait ||
+//		   orient==UIDeviceOrientationPortraitUpsideDown) {}else{}
+		CGSize size = parentVc.view.bounds.size;
+		CGPoint center = parentVc.view.center;
+		pfxpasswordView.view.superview.frame = CGRectMake(0, 0, size.width*3/4, size.height*3/4);
+		pfxpasswordView.view.superview.center = CGPointMake(center.x,  fz_max(0.0f, center.y-50));
 		pfxpasswordView.view.layer.cornerRadius = 5;
 		pfxpasswordView.view.layer.masksToBounds = YES;
 	}];
