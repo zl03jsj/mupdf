@@ -775,7 +775,6 @@ static z_pdf_sign_appearance* createAppearanceWithImagefile(NSString *imagefile,
 			}
 		}
 	}
-
 	[self showAnnotationMenu];
 }
 

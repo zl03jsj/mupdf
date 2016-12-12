@@ -48,15 +48,32 @@ static NSArray *supprotedDevicenames;
 	_devices = [[NSMutableDictionary alloc]init];
 	_errcode = sign_code_unkown;
 	
+	[self k5sofappInit];
+}
+
+#if (MTOKEN_EKEY_SUPPORTED==1)
+- (void)k5sofappInit {
 	K5SOFApp *k5sofapp = [[K5SOFApp alloc]init];
 	[k5sofapp setDelegate:self];
-	
 	_devices[NSStringFromClass([k5sofapp class])] = k5sofapp;
 	[k5sofapp release];
 	NSLog(@"retainCount of k5sofapp=%d",(int)[k5sofapp retainCount]);
-	
-	// other device
 }
+
+-(void)k5sofappStartScan: (NSMutableArray*)scaningDevices {
+	K5SOFApp *k5sofapp = _devices[NSStringFromClass([K5SOFApp class])];
+	if( k5sofapp && 0==[k5sofapp SOF_StartEnumDevices] ) {
+		[scaningDevices addObject:NSStringFromClass([K5SOFApp class])];
+	}
+}
+#else
+- (void)k5sofappInit {
+	NSLog(@"not support K5SOFApp, check MTOKEN_EKEY_SUPPORTED macro");
+}
+-(void)k5sofappStartScan:(NSMutableArray*)scaningDevices{
+	NSLog(@"not support K5SOFApp, check MTOKEN_EKEY_SUPPORTED macro");
+};
+#endif
 
 - (instancetype)initWithCoder:(NSCoder *)coder
 {
@@ -78,18 +95,7 @@ static NSArray *supprotedDevicenames;
 	
 	NSMutableString *msg = [[NSMutableString alloc]init];
 	NSMutableArray *scaningDevices = [[NSMutableArray alloc]init];
-	
-#pragma message("create and start device scanning here...")
-	K5SOFApp *k5sofapp = _devices[NSStringFromClass([K5SOFApp class])];
-	printf(">>>>>get k5sofapp from array, k5sofapp refcount is:%d\n", (int)[k5sofapp retainCount]);
-
-	if( k5sofapp && 0==[k5sofapp SOF_StartEnumDevices] ) {
-		[scaningDevices addObject:NSStringFromClass([K5SOFApp class])];
-	}
-	
-	// #pragma message("if need release object get from dictionary???? needs to comfirm!")
-	// no need to release
-	// [k5sofapp release];
+	[self k5sofappStartScan:scaningDevices];
 	
 	// set message
 	if( scaningDevices.count ) {
@@ -149,7 +155,9 @@ static NSArray *supprotedDevicenames;
 	_signkeyView = nil;
 }
 
+
 #pragma mark - K5SOFAppDelegate
+#if (MTOKEN_EKEY_SUPPORTED==1)
 -(void) didDeviceDiscovered:(NSString * )devName
 {
 	if( _connectedDeivceclass ){
@@ -189,6 +197,12 @@ static NSArray *supprotedDevicenames;
 	
 	printf("K5SOFApp [%s]:didDeviceDisconnected!", [devName UTF8String]);
 }
+#else
+-(void) didDeviceDiscovered:(NSString * )devName {NSLog(@"impossible!");};
+-(void) didDeviceConnected:(NSString *)devName error:(NSError *)error{NSLog(@"impossible!");};
+-(void) didDeviceDisconnected:(NSString*)devName {NSLog(@"impossible!");};
+#endif
+
 - (void)dealloc {
 	[_indicator release];
 #pragma message("needs to comfirming if _connectedDeivceclass needs to release")

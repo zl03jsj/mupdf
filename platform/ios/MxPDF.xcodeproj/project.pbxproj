@@ -967,9 +967,10 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(COMMAND_LINE_DEFINES)",
 					HAVE_OPENSSL,
-					MTOKEN_EKEY_SUPPORTED,
 					SIGN_METHOD_ZL_SUPPORT,
 					SIGN_SUPPORTED,
+					"MTOKEN_EKEY_SUPPORTED=0",
+					debug,
 				);
 				HAVE_OPENSSL = yes;
 				INFOPLIST_FILE = MxPDF_sign_supported.plist;
@@ -978,7 +979,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/z/signdevice/mtoken/Lib",
 				);
-				MTOKEN_EKEY_SUPPORTED = yes;
+				MTOKEN_EKEY_SUPPORTED = No;
 				PRODUCT_BUNDLE_IDENTIFIER = com.zl.mxpdf;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
@@ -1009,9 +1010,10 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(COMMAND_LINE_DEFINES)",
 					HAVE_OPENSSL,
-					MTOKEN_EKEY_SUPPORTED,
 					SIGN_METHOD_ZL_SUPPORT,
 					SIGN_SUPPORTED,
+					"MTOKEN_EKEY_SUPPORTED=0",
+					release,
 				);
 				HAVE_OPENSSL = yes;
 				INFOPLIST_FILE = MxPDF_sign_supported.plist;
@@ -1020,7 +1022,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/z/signdevice/mtoken/Lib",
 				);
-				MTOKEN_EKEY_SUPPORTED = yes;
+				MTOKEN_EKEY_SUPPORTED = No;
 				PRODUCT_BUNDLE_IDENTIFIER = com.zl.mxpdf;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
