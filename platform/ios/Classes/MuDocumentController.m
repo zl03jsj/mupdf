@@ -135,10 +135,27 @@ static z_pdf_sign_appearance* createAppearanceWithImagefile(NSString *imagefile,
 		fz_rect r = {rect.origin.x, rect.origin.y, rect.origin.x + rect.size.width,
 			rect.origin.y + rect.size.height};
 		image = fz_new_image_from_file(ctx, [imagefile cStringUsingEncoding:NSUTF8StringEncoding]);
-		app = z_pdf_new_image_sign_appearance(ctx, image, r, NULL);
+		app = z_pdf_new_sign_appearance_with_image(ctx, image, r, NULL);
 	}
 	fz_always(ctx) {
 		if(image) fz_drop_image(ctx, image);
+	}
+	fz_catch(ctx) {
+		NSLog(@"create sign appearance faild.\nerror message:%s.", ctx->error->message);
+	}
+	return app;
+}
+
+static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arraylist *al, CGRect rect) {
+	if(!al) return NULL;
+	z_pdf_sign_appearance *app = NULL;
+	
+	fz_try(ctx) {
+		fz_rect r = {rect.origin.x, rect.origin.y, rect.origin.x + rect.size.width,
+			rect.origin.y + rect.size.height};
+		app = z_pdf_new_sign_appearance_with_paths(ctx, al, r, NULL);
+	}
+	fz_always(ctx) {
 	}
 	fz_catch(ctx) {
 		NSLog(@"create sign appearance faild.\nerror message:%s.", ctx->error->message);
@@ -412,7 +429,6 @@ static z_pdf_sign_appearance* createAppearanceWithImagefile(NSString *imagefile,
 
 - (void) viewWillLayoutSubviews
 {
-	NSLog(@"viewWillLayoutSubviews");
 	CGSize size = [canvas frame].size;
 	int max_width = fz_max(width, size.width);
 
@@ -435,7 +451,6 @@ static z_pdf_sign_appearance* createAppearanceWithImagefile(NSString *imagefile,
 
 	[[[self navigationController] toolbar] setNeedsLayout]; // force layout!
 
-	// use max_width so we don't clamp the content offset too early during animation
 	[canvas setContentSize: CGSizeMake(fz_count_pages(ctx, doc) * max_width, height)];
 	[canvas setContentOffset: CGPointMake(current * width, 0)];
 
@@ -449,7 +464,6 @@ static z_pdf_sign_appearance* createAppearanceWithImagefile(NSString *imagefile,
 
 - (void) viewDidAppear: (BOOL)animated
 {
-	NSLog(@"viewDidAppear");
 	[super viewDidAppear:animated];
 	[self scrollViewDidScroll: canvas];
 }
@@ -766,11 +780,11 @@ static z_pdf_sign_appearance* createAppearanceWithImagefile(NSString *imagefile,
 					break;
 
 				case BARMODE_INK:
-					// [view saveContentStream];
 					[view saveInk];
 					break;
 					
 				case BARMODE_SIGN:
+				case BARMODE_Handsign:
 					break;
 			}
 		}
@@ -1261,7 +1275,7 @@ static z_pdf_sign_appearance* createAppearanceWithImagefile(NSString *imagefile,
 }
 
 - (void) onNextstep: (id)sender {
-	if(_signstep==SIGN_STEP_GET_SIGN_POSITION) {
+	if(barmode==BARMODE_SIGN && _signstep==SIGN_STEP_GET_SIGN_POSITION) {
 		UIView<MuPageView> *view = [self curPageView];
 		MuSignView *signview = view.signView;
 		CGRect rect = signview.rectOfPage;
@@ -1270,11 +1284,24 @@ static z_pdf_sign_appearance* createAppearanceWithImagefile(NSString *imagefile,
 			if(_app)
 				z_pdf_drop_sign_appreance(ctx, _app);
 			_app = createAppearanceWithImagefile(imagefile, rect);
-			if(_app)
-				[self showDeviceCreateView];
-			else
-				NSLog(@"create sign appearance faild.");
+			
+			if(_app) [self showDeviceCreateView];
+			else NSLog(@"create sign appearance faild.");
 		}
+	}
+	
+	if(barmode==BARMODE_Handsign && _signstep==SIGN_STEP_HAND_DRAW_APPEARANCE) {
+		UIView<MuPageView> *view = [self curPageView];
+		MuHanddrawView *drawView = view.darwView;
+		
+		z_fpoint_arraylist *al = drawView.strokes;
+		CGRect rect = drawView.strokebounds;
+		if(_app) z_pdf_drop_sign_appreance(ctx, _app);
+		_app = createAppearanceWithPointArrayList(al, drawView.strokebounds);
+		z_drop_fpoint_arraylist(ctx, al);
+		
+		if(_app) [self showDeviceCreateView];
+		else NSLog(@"create sign appearance faild.");
 	}
 }
 
@@ -1299,15 +1326,15 @@ static z_pdf_sign_appearance* createAppearanceWithImagefile(NSString *imagefile,
 }
 
 - (void) fileSelCancel:(MuFileselectViewController *)fileselectViewController {
-	if(_signstep==SIGN_STEP_GET_SIGN_DEVICE) {
+	if(barmode==BARMODE_SIGN &&	_signstep==SIGN_STEP_CHOOSE_IMAGEFILE)
+		[self signModeOff];
+	if(barmode==BARMODE_SIGN && _signstep==SIGN_STEP_GET_SIGN_DEVICE)
 		_signstep = SIGN_STEP_GET_SIGN_POSITION;
-	}
 }
 
 - (void) fileSelOkay:(MuFileselectViewController *)fileselectViewController selectedfile:(NSString *)file {
-	if(_signstep==SIGN_STEP_GET_SIGN_DEVICE) {
+	if(_signstep==SIGN_STEP_GET_SIGN_DEVICE)
 		_signstep = SIGN_STEP_GET_SIGN_POSITION;
-	}
 }
 
 - (void) showDeviceCreateView {
@@ -1331,9 +1358,10 @@ static z_pdf_sign_appearance* createAppearanceWithImagefile(NSString *imagefile,
 			else
 				NSLog(@"invalid sign params");
 		}
-		
-		[self showAnnotationMenu];
 		[self signModeOff];
+		[self handsignModeOff];
+		[self showAnnotationMenu];
+
 	}
 	return NO;
 }
@@ -1355,19 +1383,20 @@ static z_pdf_sign_appearance* createAppearanceWithImagefile(NSString *imagefile,
 }
 
 - (void) handsignModeOn {
-	[nextstepButton setEnabled:NO];
+	_signstep = SIGN_STEP_HAND_DRAW_APPEARANCE;
+	// [nextstepButton setEnabled:NO];
 	[[self navigationItem] setRightBarButtonItems:[NSArray arrayWithObject:nextstepButton]];
 	
-	for (UIView<MuPageView> *view in [canvas subviews])	{
-		if ([view number] == current)
-			[view handsignModeOn];
-	}
+	UIView<MuPageView> *view = [self curPageView];
+	if(!view) return;
+	[view handsignModeOn];
 }
 
 - (void) handsignModeOff {
-	for (UIView<MuPageView> *view in [canvas subviews])	{
-		[view handsignModeOff];
-	}
+	_signstep = SIGN_STEP_NOT_SIGINING;
+	UIView<MuPageView> *view = [self curPageView];
+	if(!view) return;
+	[view handsignModeOff];
 }
 
 - (UIView<MuPageView>*) curPageView {

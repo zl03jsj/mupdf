@@ -398,7 +398,7 @@ pdf_add_image(fz_context *ctx, pdf_document *doc, fz_image *image, int mask)
                                  */
                                 if( !(*s) ) {
                                     mod = n;
-                                    while(mod) *(d-mod---1) = 0xff;
+                                    while(mod) *(d-(mod--)-1) = 0xff;
                                 }
 								s++, mod = n;
                             }

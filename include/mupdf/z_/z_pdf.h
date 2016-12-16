@@ -23,19 +23,20 @@
 // #define HAVE_OPENSSL
 // #define Z_pdf_sign_
 
-#include "mupdf/pdf.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include "z_math.h"
+#include "pdf_extension.h"
+#include "mupdf/pdf.h"
 
 typedef enum {
     z_okay  = 0,
     z_error = 1
 } Z_error_code;
 
-#include "z_algorithm.h"
-#include "pdf_extension.h"
 
 #define fz_rect_dx(r) ((r)->x1 - (r)->x0)
 #define fz_rect_dy(r) ((r)->y1 - (r)->y0)
@@ -45,8 +46,8 @@ extern const char *ntkoextobjname;
 typedef struct Z_pdf_SignContext_s Z_PdfSignContext;
 typedef struct Z_sign_device_context_s Z_sign_device;
 
-fz_buffer *z_points_to_PdfScriptStream(fz_context *ctx,pdf_document *doc, pdf_page *page, z_points *points);
-int pdf_draw_pointsToPage(fz_context* ctx, pdf_document *doc, z_points *points, int pageno);
+//fz_buffer *z_points_to_PdfScriptStream(fz_context *ctx,pdf_document *doc, pdf_page *page, z_points *points);
+//int pdf_draw_pointsToPage(fz_context* ctx, pdf_document *doc, z_points *points, int pageno);
 
 
 

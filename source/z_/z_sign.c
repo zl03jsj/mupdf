@@ -97,7 +97,7 @@ void z_pdf_dosign(fz_context *ctx, z_device *device, pdf_document *doc,int pagen
 	}
 }
 
-z_pdf_sign_appearance *z_pdf_new_image_sign_appearance(fz_context *ctx, fz_image *image, fz_rect r, char *text)
+z_pdf_sign_appearance *z_pdf_new_sign_appearance_with_image(fz_context *ctx, fz_image *image, fz_rect r, char *text)
 {
     z_pdf_sign_appearance *app = NULL;
     fz_try(ctx) {
@@ -108,6 +108,28 @@ z_pdf_sign_appearance *z_pdf_new_image_sign_appearance(fz_context *ctx, fz_image
         app->drop_app = (z_sign_drop_appearance_fn)fz_drop_image;
 
         app->app = fz_keep_image(ctx, image);
+        app->rect = r;
+		app->text = text==NULL?NULL:fz_strdup(ctx, text);
+    }
+    fz_always(ctx) { 
+    }
+    fz_catch(ctx) { 
+        z_pdf_drop_sign_appreance(ctx, app);
+    }
+    return app;
+}
+
+z_pdf_sign_appearance *z_pdf_new_sign_appearance_with_paths(fz_context *ctx, z_fpoint_arraylist *al, fz_rect r,char *text)
+{
+    z_pdf_sign_appearance *app = NULL;
+    fz_try(ctx) {
+        app = fz_malloc_struct(ctx, z_pdf_sign_appearance);
+        app->refcount = 1;
+        app->set_app = z_pdf_set_signature_appearance_with_path;
+        app->keep_app = (z_sign_keep_appearance_fn)z_keep_fpoint_arraylist;
+        app->drop_app = (z_sign_drop_appearance_fn)z_drop_fpoint_arraylist;
+
+        app->app = z_keep_fpoint_arraylist(ctx, al);
         app->rect = r;
 		app->text = text==NULL?NULL:fz_strdup(ctx, text);
     }

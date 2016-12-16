@@ -10,8 +10,10 @@
 
 @interface MuHanddrawView : UIView
 
-@property (retain, nonatomic)   UIColor *color;
-@property (readonly, nonatomic) NSArray *curves;
+@property (retain, nonatomic) UIColor *color;
+
+@property (readonly, nonatomic, getter=getKeepStrokes)z_fpoint_arraylist *strokes;
+@property (readonly, nonatomic) CGRect strokebounds;
 
 - (id) initWithPageSize:(CGSize)pageSize;
 

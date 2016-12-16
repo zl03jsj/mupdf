@@ -26,6 +26,7 @@
 // S                                                        2   bytes
 // f                                                        2   bytes
 // //////////////41 count as 64 bytes
+#if 0
 fz_buffer *z_points_to_PdfScriptStream(fz_context *ctx,pdf_document *doc,
        pdf_page *page, z_points *points) 
 {
@@ -84,6 +85,7 @@ int pdf_draw_pointsToPage(fz_context *ctx, pdf_document *doc, z_points *points,
     }
     return ret;
 } 
+#endif
 //annot = pdf_create_annot(ctx, idoc, (pdf_page *)page, FZ_ANNOT_INK);
 //pdf_set_ink_annot_list(ctx, idoc, annot, pts, counts, n, color, INK_THICKNESS);
 //fz_maxtrix ctm;

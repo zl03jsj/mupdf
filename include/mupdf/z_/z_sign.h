@@ -34,6 +34,7 @@ typedef void (*z_sign_drop_appearance_fn)(fz_context*, z_pdf_sign_appearance *);
 typedef void (*z_sign_setsign_value_fn)(fz_context*, z_device *);
 typedef void (*z_sign_releasedevice_fn)(fz_context*, z_device *);
 
+
 struct z_pdf_sign_appearance_s {
     int refcount;
     fz_rect rect;
@@ -56,7 +57,8 @@ void z_drop_device(fz_context *ctx, z_device *device);
 
 z_pdf_sign_appearance *z_pdf_keep_sign_apperance(fz_context *ctx, z_pdf_sign_appearance *app);
 void z_pdf_drop_sign_appreance(fz_context *ctx, z_pdf_sign_appearance *app);
-z_pdf_sign_appearance *z_pdf_new_image_sign_appearance(fz_context *ctx, fz_image *image, fz_rect r, char *text);
+z_pdf_sign_appearance *z_pdf_new_sign_appearance_with_image(fz_context *ctx, fz_image *image, fz_rect r, char *text);
+z_pdf_sign_appearance *z_pdf_new_sign_appearance_with_paths(fz_context *ctx, z_fpoint_arraylist *al, fz_rect r,char *text);
 
 // this func not support updtate page view
 void z_pdf_dosign(fz_context *ctx, z_device *device, pdf_document *doc,int pageno, z_pdf_sign_appearance *app);
@@ -64,8 +66,6 @@ void z_pdf_dosign(fz_context *ctx, z_device *device, pdf_document *doc,int pagen
 void z_pdf_dosign_with_page(fz_context *ctx, z_device *device, pdf_document *doc,pdf_page *page, z_pdf_sign_appearance *app);
 
 void z_pdf_write_sign(fz_context *ctx, char *file, fz_buffer *buf, int ofs, int len);
-void z_fz_stream_save(fz_context *ctx, fz_stream *stm, char *filename);
-
-
+void z_fz_stream_save(fz_context *ctx, fz_stream *stm, char *filename); 
 
 #endif

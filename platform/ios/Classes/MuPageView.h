@@ -1,7 +1,7 @@
 #import <UIKit/UIKit.h>
 #import "MuTapResult.h"
 #import "MuSignView.h"
-//#import "MuHanddrawView.h"
+#import "MuHanddrawView.h"
 
 @protocol MuPageView
 -(int) number;
@@ -33,7 +33,8 @@
 @property (nonatomic,readonly, retain) MuSignView* signView;
 
 -(void) handsignModeOn;
--(fz_path*) handsignModeOff;
+-(void) handsignModeOff;
+@property (nonatomic,readonly,retain) MuHanddrawView* darwView;
 
 - (void)addsign:(z_pdf_sign_appearance *)app signdevice:(z_device *)device;
 @end

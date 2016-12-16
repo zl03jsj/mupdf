@@ -66,107 +66,56 @@ CGImageRef CreateCGImageWithPixmap(fz_pixmap *pix, CGDataProviderRef cgdata)
 	int w = fz_pixmap_width(ctx, pix);
 	int h = fz_pixmap_height(ctx, pix);
 	CGColorSpaceRef cgcolor = CGColorSpaceCreateDeviceRGB();
-	CGImageRef cgimage = CGImageCreate(w, h, 8, 32, 4 * w, cgcolor, kCGBitmapByteOrderDefault, cgdata, NULL, NO, kCGRenderingIntentDefault);
+	CGImageRef cgimage = CGImageCreate(w, h, 8, 32, 4 * w, cgcolor, kCGBitmapByteOrderDefault,
+									   cgdata, NULL, NO, kCGRenderingIntentDefault);
 	CGColorSpaceRelease(cgcolor);
 	return cgimage;
 }
 
-z_point_width z_stored_point(NSArray *arr, int index) {
-	z_point_width pt;
-	[[arr objectAtIndex:index] getValue:&pt];
-	return pt;
-}
-
-z_point_width z_point_width_new(float x, float y, float w) {
-	z_point_width p = {{x,y}, w};
+fz_point z_CGPoint2Point(CGPoint point) {
+	fz_point p = {point.x, point.y};
 	return p;
 }
 
-float z_IOS_insertPoint(NSMutableArray *arr, CGPoint lastpoint, UInt64 lastms,
-	float lastwidth, CGPoint point, UInt64 ms) {
-	
-	if(!arr) return 0;
-	long count = [arr count];
-	z_point zp = {point.x, point.y};
-	if( 0==count ){
-		z_point_width p = {zp, 0.4};
-		[arr addObject:[NSValue valueWithBytes:&p objCType:@encode(z_point_width)]];
-		return p.w;
-	}
-	float step = count > 4 ? 0.01: 0.1;
-	z_point_time bt = { {lastpoint.x,lastpoint.y}, lastms};
-	z_point_time et = { zp, ms};
-	float w = (z_linewidth(bt, et, lastwidth, step) + lastwidth) / 2;
-	z_points *points = z_points_new(51);
-	z_points_add(points, z_stored_point(arr, (int)[arr count]-1));
-	if( 1==count ) {
-		z_point_width p = { {(bt.p.x + et.p.x + 1) / 2, (bt.p.y + et.p.y +1) / 2}, w};
-		z_points_add_differentation(points, p);
-		w = p.w;
-	}
-	else {
-		z_point_width bw;
-		[[arr lastObject] getValue:&bw];
-		z_point c =  {lastpoint.x,lastpoint.y};
-		z_point_width ew = {{(lastpoint.x + point.x)/2, (lastpoint.y + point.y)/2}, w};
-		z_square_bezier(points, bw, c, ew);
-	}
-	
-	// escape the first point
-	for(int i=1; i<points->count; i++) {
-		[arr addObject:[NSValue valueWithBytes:(points->data+i) objCType:@encode(z_point_width)]];
-	}
-	z_points_release(points);
-	
-	return w;
+CGPoint z_Point2CGPoint(fz_point point) {
+	return CGPointMake(point.x, point.y);
 }
 
-void z_IOS_insertLastPoint(NSMutableArray *arr, CGPoint e) {
-	if(!arr) return;
-	long count = [arr count];
-	if( count==0 ) return;
-	z_points *points = z_points_new(51);
-	z_point_width zb = z_stored_point(arr, (int)[arr count] - 1);
-	z_points_add(points, zb);
+float z_cg_insertPoint(fz_context *ctx, z_fpoint_array *arr, CGPoint lastpoint, UInt64 lastms,
+					   float lastwidth, CGPoint point, UInt64 ms)
+{
+	return z_insertPoint(ctx, arr, z_CGPoint2Point(lastpoint), lastms, lastwidth,
+						 z_CGPoint2Point(point), ms);
+}
+
+void z_cg_insertLastPoint(fz_context *ctx, z_fpoint_array *arr, CGPoint e)
+{
+	z_insertLastPoint(ctx, arr, z_CGPoint2Point(e));
+}
+
+float z_cg_distance (CGPoint first, CGPoint second) {
+	CGFloat deltaX = second.x - first.x;
+	CGFloat deltaY = second.y - first.y;
+	return sqrt(deltaX*deltaX + deltaY*deltaY);
+};
+
+CGRect z_CGRectExpandToPoint(CGRect rect, CGPoint p) {
+	if(rect.origin.x > p.x) {
+		rect.size.width = rect.size.width + (rect.origin.x - p.x);
+		rect.origin.x = p.x;
+	}
+	else if( (rect.origin.x + rect.size.width) < p.x ) {
+		rect.size.width = p.x - rect.origin.x;
+	}
 	
-	z_point_width ze = { {e.x, e.y}, 0.1};
-	z_points_add_differentation(points, ze);
-	for(int i=0; i<points->count; i++) {
-		[arr addObject:[NSValue valueWithBytes:(points->data+i) objCType:@encode(z_point_width)]];
+	if(rect.origin.y > p.y) {
+		rect.size.height = rect.size.height + (rect.origin.y - p.y);
+		rect.origin.y = p.y;
 	}
-	z_points_release(points);
-}
-
-CGPoint z_get_stored_CGPoint(NSArray *arr, int index) {
-	z_point_width pt = z_stored_point(arr, index);
-	CGPoint p = {pt.p.x, pt.p.y};
-	return p;
-}
-
-float z_get_stored_Width(NSArray *arr, int index){
-	z_point_width pt = z_stored_point(arr, index);
-	return pt.w;
-}
-
-
-CGRect CGRectExpendTo(CGRect r, CGPoint p){
-	if(CGRectContainsPoint(r, p))
-		return r;
-	CGPoint o = r.origin;
-	CGSize  s = r.size;
-	if( o.x > p.x) o.x = p.x;
-	else{
-		float x_dif = p.x - o.x;
-		if( s.width <x_dif )
-			s.width = x_dif;
+	else if( (rect.origin.y + rect.size.height) < p.y ) {
+		rect.size.height = p.y - rect.origin.y;
 	}
-	if( o.y > p.y) o.y = p.y;
-	else {
-		float y_dif = p.y - r.origin.y;
-		if( s.height <y_dif )
-			s.height = y_dif;
-	}
-	return CGRectMake(o.x, o.y, s.width, s.height);
+	return rect;
 }
 
 #define pi 3.14159265358979323846
@@ -177,13 +126,14 @@ CGFloat distanceBetweenPoints (CGPoint first, CGPoint second) {
 	CGFloat deltaY = second.y - first.y;
 	return sqrt(deltaX*deltaX + deltaY*deltaY );
 };
+
 CGFloat angleBetweenPoints(CGPoint first, CGPoint second) {
 	CGFloat height = second.y - first.y;
 	CGFloat width = first.x - second.x;
 	CGFloat rads = atan(height/width);
 	return radiansToDegrees(rads);
-	//degs = degrees(atan((top - bottom)/(right - left)))
 }
+
 CGFloat angleBetweenLines(CGPoint line1Start, CGPoint line1End, CGPoint line2Start, CGPoint line2End) {
 	CGFloat a = line1End.x - line1Start.x;
 	CGFloat b = line1End.y - line1Start.y;
@@ -192,16 +142,6 @@ CGFloat angleBetweenLines(CGPoint line1Start, CGPoint line1End, CGPoint line2Sta
 	CGFloat rads = acos(((a*c) + (b*d)) / ((sqrt(a*a + b*b)) * (sqrt(c*c + d*d))));
 	return radiansToDegrees(rads);
 }
-
-void z_showNibWithName(UIViewController *parant, char *nibname, char *classname)
-{
-//	UIView *parentView = parent.view;
-//	SigndeviceDiscoveryView *subView = [[[NSBundle mainBundle]loadNibNamed:@"SignDeviceDiscoveryView" owner:nil options:nil]lastObject];
-//	subView.frame = CGRectInset(parentView.bounds, 20, 40);
-//	[parentView addSubview:subView];
-}
-
-
 
 
 

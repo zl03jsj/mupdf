@@ -12,18 +12,21 @@
 @implementation MuHanddrawView
 {
 	CGSize _pagesize;
-	NSMutableArray * _curves;
 	UIColor *_color;
-	
 	CGPoint _lastpoint;
 	int64_t _lastms;
 	float   _lastwidth;
-	
 	CGContextRef _imageContext;
 	UIImage *_image;
+	z_fpoint_arraylist *_strokes;
 }
 
-@synthesize curves = _curves;
+- (z_fpoint_arraylist*)getKeepStrokes {
+	if(_strokes) {
+		return z_keep_fpoint_arraylist(ctx, _strokes);
+	}
+	return NULL;
+}
 
 - (BOOL) initImageContext{
 	UIGraphicsBeginImageContextWithOptions(self.bounds.size, self.opaque, 0.0);
@@ -43,13 +46,13 @@
 		[self setOpaque:NO];
 		_pagesize = pagesize;
 		_color = [[UIColor colorWithRed:1.0 green:0.0 blue:0.0 alpha:1.0] retain];
-		_curves = [[NSMutableArray array] retain];
+		_strokes = NULL; // z_new_fpoint_arraylist(ctx);
 		UIPanGestureRecognizer *rec = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(onDrag:)];
 		[self addGestureRecognizer:rec];
 		[rec release];
-		
 		_imageContext = nil;
 		_image = nil;
+		_strokebounds = CGRectZero;
 	}
 	return self;
 }
@@ -58,8 +61,7 @@
 {
 	UIGraphicsEndImageContext();
 	if( nil!=_image ) [_image release];
-	// if( nil!=_imageContext) [_image release];
-	[_curves release];
+	if(_strokes) z_drop_fpoint_arraylist(ctx, _strokes);
 	[_color release];
 	[super dealloc];
 }
@@ -71,74 +73,91 @@
 	point.x /= scale.width;
 	point.y /= scale.height;
 	int64_t ms = [[NSDate date] timeIntervalSince1970]*1000;
-	NSMutableArray *curve = nil;
+	z_fpoint_array *stroke = NULL;
 	UIGestureRecognizerState curState = rec.state;
 	
+	if(!_strokes)
+		_strokes = z_new_fpoint_arraylist(ctx);
+	
 	if (curState == UIGestureRecognizerStateBegan) {
-		[_curves addObject:[NSMutableArray array]];
-		curve = [_curves lastObject];
-		_lastwidth = z_IOS_insertPoint(curve, _lastpoint , _lastms, _lastwidth, point, ms);
+		stroke = z_fpoint_arraylist_append_new(ctx, _strokes);
+		_lastwidth = z_cg_insertPoint(ctx, stroke, _lastpoint, _lastms, _lastwidth, point, ms);
+		_strokebounds.origin = point;
 	}
 	else{
-		curve = [_curves lastObject];
-		int lastIndex = (int)([curve count] - 1);
+		stroke = _strokes->end->a;
+		int lastIndex = stroke->len - 1;
 		if( curState == UIGestureRecognizerStateEnded){
-			z_IOS_insertLastPoint(curve, point);
+			z_cg_insertLastPoint(ctx, stroke, point);
 		}
 		else { // UIGestureRecognizerStateChanged
-			if( (ms - _lastms) < 35 ){
+			if( (ms-_lastms) < 35 || 4>z_cg_distance(point, _lastpoint) )
 				return;
-			}
-			if( 3>distanceBetweenPoints(point, _lastpoint) ){
-				return;
-			}
-			_lastwidth = z_IOS_insertPoint(curve, _lastpoint, _lastms, _lastwidth, point, ms);
+			_lastwidth = z_cg_insertPoint(ctx, stroke, _lastpoint, _lastms, _lastwidth, point, ms);
 		}
-		if ( nil==_imageContext ){
-			[self initImageContext];
-		}
+#if 0
+		NSLog(@"array(len=%d,  ref=%d)", stroke->len, stroke->ref);
+
+		NSLog(@"before rect expand:rect(x=%d,y=%d,w=%d,h=%d), point(x=%d,y=%d)",(int)_strokebounds.origin.x, (int)_strokebounds.origin.y,
+			  (int)_strokebounds.size.width, (int)_strokebounds.size.height, (int)point.x, (int)point.y);
+#endif
+		_strokebounds = z_CGRectExpandToPoint(_strokebounds, point);
+#if 0
+		NSLog(@"after rect expand:rect(x=%d,y=%d,w=%d,h=%d)",(int)_strokebounds.origin.x, (int)_strokebounds.origin.y,
+			  (int)_strokebounds.size.width, (int)_strokebounds.size.height);
+#endif
 		
-#if 0	// update all uiview rectangle
-		[self drawCurrent:curve fromIndex:lastIndex];
+		if ( nil==_imageContext ) [self initImageContext];
+#if 1	// update all uiview rectangle
+		[self drawCurrent:stroke fromIndex:lastIndex];
 		[self setNeedsDisplay];
 #else	// only update changed rect
 		CGRect updaterect = [self drawCurrent:curve fromIndex:lastIndex];
 		[self setNeedsDisplayInRect:updaterect];
 #endif
 	}
+	
 	_lastpoint = point;
 	_lastms = ms;
 }
 
 // returns the rect need be redraw!!
-- (CGRect)drawCurrent : (NSMutableArray*)points fromIndex:(int)index{
+- (CGRect)drawCurrent : (z_fpoint_array*)arr fromIndex:(int)index{
 	float max_width = 7.0f;
 	float min_width = 1.0f;
-	float w = max_width * z_get_stored_Width(points, index);
-	if( w<min_width ) w = min_width;
-	CGPoint point = z_get_stored_CGPoint(points, index);
 	
-	CGRect rect =  {point, CGSizeZero};
+	z_fpoint *zfpoint = (arr->point+index);
+	fz_point point = zfpoint->p;
+	float w = max_width * zfpoint->w;
+	if( w<min_width ) w = min_width;
+	
+	fz_rect rect = {point.x, point.y, point.x, point.y};
 	
 	CGContextMoveToPoint(_imageContext, point.x, point.y);
 	CGContextSetLineWidth(_imageContext, w);
 	index ++;
-	for(; index<[points count]; index++){
-		point = z_get_stored_CGPoint(points, index);
+	
+	for(; index<arr->len; index++) {
+		zfpoint = arr->point + index;
+		point = zfpoint->p;
 		CGContextAddLineToPoint(_imageContext, point.x, point.y);
 		CGContextStrokePath(_imageContext);
 		
-		float w = max_width * z_get_stored_Width(points, index);
+		float w = max_width * zfpoint->w;
 		if( w<min_width ) w = min_width;
+		zfpoint->w = w;
+		
 		CGContextMoveToPoint(_imageContext, point.x, point.y);
 		CGContextSetLineWidth(_imageContext, w);
 		
-		rect = CGRectExpendTo(rect, point);
+		fz_include_point_in_rect(&rect, &point);
 	}
-	rect = CGRectInset(rect, -max_width, -max_width);
+	fz_expand_rect(&rect, max_width);
 	_image = UIGraphicsGetImageFromCurrentImageContext();
 	[_image retain];
-	return rect;
+	
+	return CGRectMake(fminf(rect.x0, rect.x1), fminf(rect.y0, rect.y1),
+					  fabsf(rect.x1-rect.x0 ), fabsf(rect.y1-rect.y0 ));
 }
 
 - (void)drawRect:(CGRect)rect

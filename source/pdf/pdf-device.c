@@ -130,9 +130,10 @@ pdf_dev_stroke_state(fz_context *ctx, pdf_device *pdev, const fz_stroke_state *s
 			join = FZ_LINEJOIN_MITER;
 		fz_buffer_printf(ctx, gs->buf, "%d j\n", join);
 	}
-	if (!gs->stroke_state || gs->stroke_state->miterlimit != stroke_state->miterlimit)
+    // if 0 == miterlimit no need to set
+	if ((!gs->stroke_state || gs->stroke_state->miterlimit != stroke_state->miterlimit) && 0!=stroke_state->miterlimit)
 	{
-		fz_buffer_printf(ctx, gs->buf, "%f M\n", stroke_state->miterlimit);
+        fz_buffer_printf(ctx, gs->buf, "%f M\n", stroke_state->miterlimit);
 	}
 	if (gs->stroke_state == NULL && stroke_state->dash_len == 0)
 	{}
@@ -337,6 +338,9 @@ pdf_dev_alpha(fz_context *ctx, pdf_device *pdev, float alpha, int stroke)
 		}
 		pdev->num_alphas++;
 	}
+	// fixed by zl: [2016/12/16]
+	// must save alpha to g->alpha[stoke]
+	gs->alpha[stroke] = alpha;
 	fz_buffer_printf(ctx, gs->buf, "/Alp%d gs\n", i);
 }
 

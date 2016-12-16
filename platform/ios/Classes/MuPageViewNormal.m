@@ -231,6 +231,7 @@ static void addMarkupAnnot(fz_document *doc, fz_page *page, int type, NSArray *r
 	}
 }
 
+#if 0
 // 0123456789abcdef0123456789abcdef0123456789abcdef01234567890abcdef  
 // header------------------------------------------------------------
 // q                                                        2       bytes
@@ -323,6 +324,7 @@ static void addPointsContentStream(fz_document *doc, fz_page *page, NSArray *arr
 			   "add points contents stream error", ctx->error->message);
 	}
 }
+#endif
 
 static void addInkAnnot(fz_document *doc, fz_page *page, NSArray *curves)
 {
@@ -714,6 +716,7 @@ static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
 	MuHanddrawView *handsignView;
 	NSString *_imagefile;
 	z_device *_device;
+	BOOL _isSigning;
 	
 	NSArray *widgetRects;
 	NSArray *annotations;
@@ -729,6 +732,7 @@ static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
 }
 
 @synthesize signView = signView;
+@synthesize darwView = handsignView;
 
 - (CGRect) imageViewRectOfPage {
 	if(signView) {
@@ -984,6 +988,7 @@ static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
 	[self textSelectModeOff];
 }
 
+/*
 -(void) saveContentStream
 {
 	NSArray *curves = inkView.curves;
@@ -1004,6 +1009,7 @@ static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
 	});
 	[self inkModeOff];
 }
+ */
 
 -(void) saveInk
 {
@@ -1206,13 +1212,11 @@ static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
 	else
 		frameToCenter.origin.y = 0;
 
-	if (loadingView)
+	if (loadingView) {
 		loadingView.frame = frameToCenter;
-	else
+	}
+	else if(imageView) {
 		imageView.frame = frameToCenter;
-
-	if (imageView)
-	{
 		CGRect frm = [imageView frame];
 		if (hitView) [hitView setFrame: frm];
 		if (linkView) [linkView setFrame:frm];
@@ -1350,6 +1354,7 @@ static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
 
 - (void) updatePageAndTileWithTileFrame:(CGRect)tframe tileScale:(float)tscale viewFrame:(CGRect)vframe
 {
+	if(_isSigning) [self signingModeOff];
 	rect_list *rlist = NULL;
 	if( updateForContents==YES ){
 		[self ensureDisplaylists];
@@ -1613,17 +1618,34 @@ static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
 	[self addSubview:handsignView];
 }
 
-- (fz_path*) handsignModeOff {
+- (void) handsignModeOff {
 	[handsignView removeFromSuperview];
 	[handsignView release];
 	handsignView = nil;
-	return NULL;
+}
+
+- (void)signingModeOn {
+	_isSigning = YES;
+	if(!loadingView)
+		loadingView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
+	[loadingView startAnimating];
+	[self addSubview:loadingView];
+}
+
+- (void)signingModeOff {
+	_isSigning = NO;
+	[loadingView removeFromSuperview];
+	[loadingView release];
+	loadingView = nil;
 }
 
 - (void)addsign:(z_pdf_sign_appearance *)app signdevice:(z_device *)device {
 	// asyncronize so must keep
 	z_pdf_keep_sign_apperance(ctx, app);
 	z_keep_device(ctx, device);
+	
+	[self signingModeOn];
+	
 	dispatch_async(queue, ^{
 		fz_try(ctx) {
 			z_dosign_with_page(ctx, doc, page, device, app);
@@ -1637,6 +1659,7 @@ static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
 			z_drop_device(ctx, device);
 		}
 		fz_catch(ctx){
+			[self signingModeOff];
 			NSLog(@"add sign faild.\nerror message:%s", ctx->error->message);
 		}
 	});

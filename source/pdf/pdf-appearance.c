@@ -1622,6 +1622,9 @@ void pdf_set_annot_appearance(fz_context *ctx, pdf_document *doc, pdf_annot *ann
 		fz_drop_device(ctx, dev);
 
 		pdf_update_stream(ctx, doc, ap_obj, contents, 0);
+
+        printf((char*)contents->data);
+
 		fz_drop_buffer(ctx, contents);
 
 		/* Mark the appearance as changed - required for partial update */
@@ -2589,11 +2592,174 @@ void z_pdf_set_signature_appearance_with_image(fz_context *ctx, pdf_document *do
 	}
 }
 
-//TODO: to implement!!!
+static fz_stroke_state *z_new_default_stroke_state(fz_context *ctx, float w)
+{
+    fz_stroke_state *s = fz_new_stroke_state(ctx);
+    s->miterlimit = 0.0f;
+    s->linejoin = FZ_LINEJOIN_ROUND;
+    s->start_cap = FZ_LINECAP_ROUND;
+    s->end_cap = FZ_LINECAP_ROUND;
+    s->linewidth = w;
+    return s;
+}
+
+static void z_stroke_points_path(fz_context *ctx, fz_device *dev, z_fpoint_array* points,
+    const fz_matrix *ctm, fz_colorspace *colorspace, const float *color, float alpha) 
+{
+    if(!ctx || !dev || !points|| points->len<2)
+        return;
+
+    fz_path *path = NULL;
+    fz_stroke_state *stroke = NULL;
+    
+    fz_try(ctx) {
+        z_fpoint *curpoint = points->point + 0;
+        z_fpoint *lastpoint = NULL;// curpoint;
+
+        path = fz_new_path(ctx);
+        stroke = z_new_default_stroke_state(ctx, curpoint->w); 
+
+        for(int i=1; i<points->len-1; i++) {
+            lastpoint = curpoint;
+            curpoint = points->point + i;
+            if(lastpoint->w!=stroke->linewidth) {
+                fz_stroke_path(ctx, dev, path, stroke, ctm, colorspace, color, alpha);
+
+                fz_drop_stroke_state(ctx, stroke);
+                fz_drop_path(ctx, path);
+
+                stroke = z_new_default_stroke_state(ctx, lastpoint->w); 
+                path = fz_new_path(ctx);
+            }
+            fz_moveto(ctx, path, lastpoint->p.x, lastpoint->p.y);
+            fz_lineto(ctx, path, curpoint->p.x, curpoint->p.y);
+        }
+
+        fz_stroke_path(ctx, dev, path, stroke, ctm, colorspace, color, alpha);
+    }
+    fz_always(ctx) {
+        if(path) fz_drop_path(ctx, path);
+        if(stroke) fz_drop_stroke_state(ctx, stroke); 
+    }
+    fz_catch(ctx) {
+        fz_rethrow(ctx);
+    }
+}
+
+static void z_points_bounds(z_fpoint_arraylist *al, fz_rect *bound) {
+    if(!bound) return;
+
+    *bound = fz_empty_rect;
+
+    z_fpoint_arraylist_node *n = al->first; 
+    z_fpoint_array *a;
+    z_fpoint *p;
+
+    int inited = 0;
+    while(n) {
+        a = n->a;
+        if(a && a->len>=2) {
+            int i = 0;
+            if(inited==0) {
+                bound->x0 = bound->x1 = a->point[0].p.x;
+                bound->y0 = bound->y1 = a->point[0].p.y;
+                inited = 1;
+                i++;
+            }
+
+            for(; i<a->len; i++) {
+                p = a->point + i;
+                fz_include_point_in_rect(bound, &(p->p));
+            }
+        }
+        n = n->n;
+    }
+}
+
 void z_pdf_set_signature_appearance_with_path(fz_context *ctx, pdf_document *doc, pdf_annot *annot, z_pdf_sign_appearance *app) 
 {
-    // fz_stroke_path(ctx, dev, path, 
-    fz_throw(ctx, FZ_ERROR_GENERIC, "No implemented!");
+	pdf_obj *obj = annot->obj;
+	pdf_obj *dr = NULL;
+	fz_display_list *dlist = NULL;
+	fz_device *dev = NULL;
+	font_info font_rec;
+	fz_text *text = NULL;
+	fz_colorspace *cs = NULL;
+    const float red[3] = {1.0f, 0.0f, 0.0f};
+
+	fz_var(dlist);
+	fz_var(dev);
+    fz_var(cs);
+	fz_try(ctx)
+	{
+        fz_rect rect = annot->page->mediabox;
+        fz_matrix path_mtx = fz_identity;
+//        fz_rect bounds = fz_empty_rect;;
+
+		dlist = fz_new_display_list(ctx);
+		dev = fz_new_list_device(ctx, dlist);
+		cs = fz_device_rgb(ctx);
+
+//        z_points_bounds((z_fpoint_arraylist*)app->app, &bounds);
+//        fz_expand_rect(&bounds, 10.0f);
+
+        // fz_pre_translate(&image_ctm, rect.x0, rect.y0);
+        // fz_pre_scale(&path_mtx, fz_rect_dx(&rect), fz_rect_dy(&rect));
+
+        z_fpoint_arraylist *al = (z_fpoint_arraylist*)app->app;
+        z_fpoint_arraylist_node *n = al->first; 
+        while(n) {
+            z_stroke_points_path(ctx, dev, n->a, &path_mtx, cs, red, 0.8f); 
+            n = n->n;
+        } 
+
+        if(app->text && strlen(app->text)) {
+            const char *da = z_pdf_add_sign_annot_da(ctx, doc, obj);
+            dr = pdf_dict_getp(ctx, pdf_trailer(ctx, doc), "Root/AcroForm/DR");
+            if(dr) {
+                get_font_info(ctx, doc, dr, (char*)da, &font_rec);
+                switch (font_rec.da_rec.col_size) {
+                    case 1: cs = fz_device_gray(ctx); break;
+                    case 3: cs = fz_device_rgb(ctx); break;
+                    case 4: cs = fz_device_cmyk(ctx); break;
+                }
+
+                /* Display the distinguished name in the right-hand half */
+                rect = annot->rect;
+                fz_transform_rect(&rect, &annot->page->ctm);
+                rect.x0 = (rect.x0 + rect.x1)/2.0f;
+                rect.y0 = (rect.y0 + rect.y1)/2.0f;
+                text = fit_text(ctx, &font_rec, app->text, &rect);
+                fz_fill_text(ctx, dev, text, &annot->page->ctm, cs, font_rec.da_rec.col, 0.5f);
+            } 
+            else {
+                fz_warn(ctx, "Add text on image faild.");
+                // fz_warn(ctx, "No defualt resource(/DR) tag in AcroForm.");
+            }
+        }
+
+        rect = annot->rect;
+		pdf_set_annot_appearance(ctx, doc, annot, &rect, dlist);
+
+		/* Drop the cached xobject from the annotation structure to
+		 * force a redraw on next pdf_update_page call */
+		pdf_drop_xobject(ctx, annot->ap);
+		annot->ap = NULL;
+
+		insert_signature_appearance_layers(ctx, doc, annot);
+	}
+	fz_always(ctx)
+	{
+		fz_drop_device(ctx, dev);
+		fz_drop_display_list(ctx, dlist);
+		font_info_fin(ctx, &font_rec);
+		fz_drop_text(ctx, text);
+		fz_drop_colorspace(ctx, cs);
+	}
+	fz_catch(ctx)
+	{
+		fz_rethrow(ctx);
+	}
 }
 
 void pdf_update_appearance(fz_context *ctx, pdf_document *doc, pdf_annot *annot)

@@ -31,7 +31,7 @@ void doTestPdfSign(fz_context *ctx, pdf_document *doc, int pageno, fz_rect rect,
 {
     z_device * device = z_openssl_new_device(ctx, RES_PATH"/user/zl.pfx", "111111");
     fz_image * image = fz_new_image_from_file(ctx, RES_Image_file); 
-    z_pdf_sign_appearance *app = z_pdf_new_image_sign_appearance(ctx, image, rect, NULL);
+    z_pdf_sign_appearance *app = z_pdf_new_sign_appearance_with_image(ctx, image, rect, NULL);
             // (char*)"ntko(重庆软航科技有限公司)");
     
     pdf_page *page = pdf_load_page(ctx, doc, pageno);
