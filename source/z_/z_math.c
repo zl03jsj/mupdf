@@ -65,12 +65,25 @@ void z_drop_fpoint_arraylist(fz_context *ctx, z_fpoint_arraylist *l) {
     } 
 }
 
-z_fpoint_array *z_new_fpoint_array(fz_context *ctx, int initsize) {
+static const float defualt_max_width = 5.0f;
+static const float default_min_width = 1.0f;
+
+z_fpoint_array *z_new_fpoint_array(fz_context *ctx, int initsize, float maxwidth, float minwidth) {
     if(initsize<=0) return NULL;
     z_fpoint_array *a = fz_malloc(ctx, sizeof(z_fpoint_array));
     a->point = fz_malloc_array(ctx, initsize, sizeof(z_fpoint));
     a->ref = 1;
     a->len = 0;
+
+    if(maxwidth<0 || minwidth<0 || maxwidth<minwidth ){
+        fz_warn(ctx, "invalid maxwidth or minwidth, use default(max:%.2f, min:%.2f)\n", defualt_max_width, default_min_width);
+        maxwidth = defualt_max_width;
+        minwidth = default_min_width;
+    }
+
+    a->maxwidth = maxwidth;
+    a->minwidth = minwidth;
+
     a->cap = initsize;
     return a;
 }
@@ -106,8 +119,8 @@ void z_fpoint_arraylist_append(fz_context *ctx, z_fpoint_arraylist *l, z_fpoint_
     l->end = node;
 }
 
-z_fpoint_array *z_fpoint_arraylist_append_new(fz_context *ctx, z_fpoint_arraylist *l) {
-    z_fpoint_array *a = z_new_fpoint_array(ctx, 24);
+z_fpoint_array *z_fpoint_arraylist_append_new(fz_context *ctx, z_fpoint_arraylist *l, float max, float min) {
+    z_fpoint_array *a = z_new_fpoint_array(ctx, 24, max, min);
     z_fpoint_arraylist_append(ctx, l, a);
     return a; 
 }
@@ -225,7 +238,7 @@ float z_insertPoint(fz_context *ctx, z_fpoint_array *arr, fz_point lastpoint, in
 	z_ipoint bt = { {lastpoint.x,lastpoint.y}, lastms};
 	z_ipoint et = { zp, ms};
 	float w = (z_linewidth(bt, et, lastwidth, step) + lastwidth) / 2;
-	z_fpoint_array *points = z_new_fpoint_array(ctx, 51);
+	z_fpoint_array *points = z_new_fpoint_array(ctx, 51, arr->maxwidth, arr->minwidth);
     z_fpoint tmppoint = arr->point[len-1];
 	z_fpoint_add(ctx, points, tmppoint);
 
@@ -254,7 +267,7 @@ void z_insertLastPoint(fz_context *ctx, z_fpoint_array *arr, fz_point e) {
 	if(!arr) return;
 	long len= arr->len;
 	if(len==0 ) return;
-	z_fpoint_array *points = z_new_fpoint_array(ctx, 51);
+	z_fpoint_array *points = z_new_fpoint_array(ctx, 51, arr->maxwidth, arr->minwidth);
 	z_fpoint zb = arr->point[len-1];
 	z_fpoint_add(ctx, points, zb);
 	

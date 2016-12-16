@@ -1623,7 +1623,7 @@ void pdf_set_annot_appearance(fz_context *ctx, pdf_document *doc, pdf_annot *ann
 
 		pdf_update_stream(ctx, doc, ap_obj, contents, 0);
 
-        printf((char*)contents->data);
+        // printf((char*)contents->data);
 
 		fz_drop_buffer(ctx, contents);
 
@@ -2611,13 +2611,17 @@ static void z_stroke_points_path(fz_context *ctx, fz_device *dev, z_fpoint_array
 
     fz_path *path = NULL;
     fz_stroke_state *stroke = NULL;
+    float w, maxw, minw;
+    maxw = points->maxwidth;
+    minw = points->minwidth;
     
     fz_try(ctx) {
         z_fpoint *curpoint = points->point + 0;
         z_fpoint *lastpoint = NULL;// curpoint;
 
+        w = fz_max(curpoint->w*maxw, minw);
         path = fz_new_path(ctx);
-        stroke = z_new_default_stroke_state(ctx, curpoint->w); 
+        stroke = z_new_default_stroke_state(ctx, w); 
 
         for(int i=1; i<points->len-1; i++) {
             lastpoint = curpoint;
@@ -2628,7 +2632,8 @@ static void z_stroke_points_path(fz_context *ctx, fz_device *dev, z_fpoint_array
                 fz_drop_stroke_state(ctx, stroke);
                 fz_drop_path(ctx, path);
 
-                stroke = z_new_default_stroke_state(ctx, lastpoint->w); 
+                w = fz_max(lastpoint->w*maxw, minw);
+                stroke = z_new_default_stroke_state(ctx, w); 
                 path = fz_new_path(ctx);
             }
             fz_moveto(ctx, path, lastpoint->p.x, lastpoint->p.y);
@@ -2676,6 +2681,10 @@ static void z_points_bounds(z_fpoint_arraylist *al, fz_rect *bound) {
     }
 }
 
+#pragma message("define Z_DRAW_PATH_WIHT_ALPHA_CHANNEL or Z_DRAW_PATH_WIDHT_SOURCE_OR to transparent draw path")
+#define Z_DRAW_PATH_WITH_ALPHA_CHANNEL 0.8f
+// #define Z_DRAW_PATH_WIDHT_SOURCE_OR
+
 void z_pdf_set_signature_appearance_with_path(fz_context *ctx, pdf_document *doc, pdf_annot *annot, z_pdf_sign_appearance *app) 
 {
 	pdf_obj *obj = annot->obj;
@@ -2694,22 +2703,26 @@ void z_pdf_set_signature_appearance_with_path(fz_context *ctx, pdf_document *doc
 	{
         fz_rect rect = annot->page->mediabox;
         fz_matrix path_mtx = fz_identity;
-//        fz_rect bounds = fz_empty_rect;;
+        fz_rect bounds = fz_empty_rect;;
 
 		dlist = fz_new_display_list(ctx);
 		dev = fz_new_list_device(ctx, dlist);
 		cs = fz_device_rgb(ctx);
 
-//        z_points_bounds((z_fpoint_arraylist*)app->app, &bounds);
-//        fz_expand_rect(&bounds, 10.0f);
+        z_points_bounds((z_fpoint_arraylist*)app->app, &bounds);
+        fz_expand_rect(&bounds, 5.0f);
 
         // fz_pre_translate(&image_ctm, rect.x0, rect.y0);
         // fz_pre_scale(&path_mtx, fz_rect_dx(&rect), fz_rect_dy(&rect));
 
         z_fpoint_arraylist *al = (z_fpoint_arraylist*)app->app;
         z_fpoint_arraylist_node *n = al->first; 
+
+#if defined(Z_DRAW_PATH_WITH_SOURCE_OR)
+        fz_begin_group(ctx, dev, &bounds, 0, 0, FZ_BLEND_DARKEN, 1);
+#endif
         while(n) {
-            z_stroke_points_path(ctx, dev, n->a, &path_mtx, cs, red, 0.8f); 
+            z_stroke_points_path(ctx, dev, n->a, &path_mtx, cs, red, Z_DRAW_PATH_WITH_ALPHA_CHANNEL); 
             n = n->n;
         } 
 
@@ -2737,6 +2750,10 @@ void z_pdf_set_signature_appearance_with_path(fz_context *ctx, pdf_document *doc
                 // fz_warn(ctx, "No defualt resource(/DR) tag in AcroForm.");
             }
         }
+
+#if defined(Z_DRAW_PATH_WITH_SOURCE_OR)
+        fz_end_group(ctx, dev);
+#endif
 
         rect = annot->rect;
 		pdf_set_annot_appearance(ctx, doc, annot, &rect, dlist);

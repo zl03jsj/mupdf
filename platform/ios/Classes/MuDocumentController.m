@@ -1295,9 +1295,9 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 		MuHanddrawView *drawView = view.darwView;
 		
 		z_fpoint_arraylist *al = drawView.strokes;
-		CGRect rect = drawView.strokebounds;
+		CGRect rect = CGRectInset(drawView.strokebounds, -10.0f, -10.0f);
 		if(_app) z_pdf_drop_sign_appreance(ctx, _app);
-		_app = createAppearanceWithPointArrayList(al, drawView.strokebounds);
+		_app = createAppearanceWithPointArrayList(al, rect);
 		z_drop_fpoint_arraylist(ctx, al);
 		
 		if(_app) [self showDeviceCreateView];

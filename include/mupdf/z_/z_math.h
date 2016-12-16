@@ -48,6 +48,8 @@ struct z_ipoint_s {
 
 struct z_fpoint_array_s {
 	z_fpoint *point;
+    float maxwidth;
+    float minwidth;
     int ref;
 	int len;
     int cap;
@@ -71,13 +73,13 @@ void z_drop_fpoint_array(fz_context *ctx, z_fpoint_array *a);
 z_fpoint_arraylist* z_keep_fpoint_arraylist(fz_context *ctx, z_fpoint_arraylist *l);
 void z_drop_fpoint_arraylist(fz_context *ctx, z_fpoint_arraylist *l);
 
-z_fpoint_array *z_new_fpoint_array(fz_context *ctx, int initsize);
+z_fpoint_array *z_new_fpoint_array(fz_context *ctx, int initsize, float maxwidth, float minwidth);
 z_fpoint_array *z_resize_fpoints_array(fz_context *ctx, z_fpoint_array* a, int size);
 
 z_fpoint_arraylist *z_new_fpoint_arraylist(fz_context *ctx);
 void z_fpoint_arraylist_append(fz_context *ctx, z_fpoint_arraylist *l, z_fpoint_array *a);
 // must be drop after used
-z_fpoint_array *z_fpoint_arraylist_append_new(fz_context *ctx, z_fpoint_arraylist *l);
+z_fpoint_array *z_fpoint_arraylist_append_new(fz_context *ctx, z_fpoint_arraylist *l, float maxwidth, float minwidth);
 void z_fpoint_arraylist_removelast(fz_context *ctx, z_fpoint_arraylist *l);
 
 float z_movespeed(z_ipoint s, z_ipoint e);

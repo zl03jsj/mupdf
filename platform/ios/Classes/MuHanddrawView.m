@@ -19,6 +19,8 @@
 	CGContextRef _imageContext;
 	UIImage *_image;
 	z_fpoint_arraylist *_strokes;
+	float _maxwidth;
+	float _minwidth;
 }
 
 - (z_fpoint_arraylist*)getKeepStrokes {
@@ -53,6 +55,8 @@
 		_imageContext = nil;
 		_image = nil;
 		_strokebounds = CGRectZero;
+		_maxwidth = 7.0f;
+		_minwidth = 1.0f;
 	}
 	return self;
 }
@@ -64,6 +68,14 @@
 	if(_strokes) z_drop_fpoint_arraylist(ctx, _strokes);
 	[_color release];
 	[super dealloc];
+}
+
+-(void) refreshWidth:(z_fpoint_array*)a fromindex:(int)index {
+	z_fpoint *zfp;
+	for(; index<a->len; index++) {
+		zfp = (a->point + index);
+		zfp->w = fmaxf(_maxwidth * zfp->w, _minwidth);
+	}
 }
 
 -(void) onDrag:(UIPanGestureRecognizer *)rec
@@ -80,7 +92,7 @@
 		_strokes = z_new_fpoint_arraylist(ctx);
 	
 	if (curState == UIGestureRecognizerStateBegan) {
-		stroke = z_fpoint_arraylist_append_new(ctx, _strokes);
+		stroke = z_fpoint_arraylist_append_new(ctx, _strokes, _maxwidth, _minwidth);
 		_lastwidth = z_cg_insertPoint(ctx, stroke, _lastpoint, _lastms, _lastwidth, point, ms);
 		_strokebounds.origin = point;
 	}
@@ -89,12 +101,14 @@
 		int lastIndex = stroke->len - 1;
 		if( curState == UIGestureRecognizerStateEnded){
 			z_cg_insertLastPoint(ctx, stroke, point);
+			// [self refreshWidth:stroke fromindex:0];
 		}
 		else { // UIGestureRecognizerStateChanged
 			if( (ms-_lastms) < 35 || 4>z_cg_distance(point, _lastpoint) )
 				return;
 			_lastwidth = z_cg_insertPoint(ctx, stroke, _lastpoint, _lastms, _lastwidth, point, ms);
 		}
+		// [self refreshWidth:stroke fromindex:lastIndex+1];
 #if 0
 		NSLog(@"array(len=%d,  ref=%d)", stroke->len, stroke->ref);
 
@@ -123,13 +137,10 @@
 
 // returns the rect need be redraw!!
 - (CGRect)drawCurrent : (z_fpoint_array*)arr fromIndex:(int)index{
-	float max_width = 7.0f;
-	float min_width = 1.0f;
-	
 	z_fpoint *zfpoint = (arr->point+index);
 	fz_point point = zfpoint->p;
-	float w = max_width * zfpoint->w;
-	if( w<min_width ) w = min_width;
+	
+	float w = fmaxf(_maxwidth * zfpoint->w, _minwidth);
 	
 	fz_rect rect = {point.x, point.y, point.x, point.y};
 	
@@ -143,16 +154,14 @@
 		CGContextAddLineToPoint(_imageContext, point.x, point.y);
 		CGContextStrokePath(_imageContext);
 		
-		float w = max_width * zfpoint->w;
-		if( w<min_width ) w = min_width;
-		zfpoint->w = w;
+		w = fmaxf(_maxwidth * zfpoint->w, _minwidth);
 		
 		CGContextMoveToPoint(_imageContext, point.x, point.y);
 		CGContextSetLineWidth(_imageContext, w);
 		
 		fz_include_point_in_rect(&rect, &point);
 	}
-	fz_expand_rect(&rect, max_width);
+//	fz_expand_rect(&rect, max_width);
 	_image = UIGraphicsGetImageFromCurrentImageContext();
 	[_image retain];
 	
