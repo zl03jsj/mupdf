@@ -54,7 +54,9 @@ platform/android/*/.classpath
 platform/android/*/.project
 platform/android/*/.settings
 
+.ycm_extra_conf.py
 platform/ios/.ycm_extra_conf.py
+*.pyc
 *.filters
 *.obj
 *.suo
