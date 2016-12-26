@@ -1,17 +1,17 @@
-package com.artifex.mupdf;
+package com.z.math;
 
 import com.artifex.mupdf.fitz.Point;
 
 import java.util.ArrayList;
 
-public class ZBezier {
+public class Bezier {
     private Point mLastPoint;
     private float mLastWidth;
     private long mLastMS;
     private ArrayList<ZPoint> zPoints = new ArrayList<>();
     private int mLastSize;
 
-    public ZBezier() {
+    public Bezier() {
     }
 
     /**
@@ -27,7 +27,7 @@ public class ZBezier {
         return addMiddle(p);
     }
 
-    public int add(float x, float y){
+public int add(float x, float y){
         Point point = new Point(x, y);
         return add(point);
     }

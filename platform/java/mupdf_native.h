@@ -468,6 +468,14 @@ JNIEXPORT jstring JNICALL Java_com_artifex_mupdf_fitz_Document_getMetaData
 JNIEXPORT jboolean JNICALL Java_com_artifex_mupdf_fitz_Document_isUnencryptedPDF
   (JNIEnv *, jobject);
 
+/*
+ * Class:     com_artifex_mupdf_fitz_Document
+ * Method:    pdfSignWithImage
+ * Signature: (Lcom/artifex/mupdf/fitz/Page;Lcom/artifex/mupdf/fitz/Rect;[B)V
+ */
+JNIEXPORT void JNICALL Java_com_artifex_mupdf_fitz_Document_pdfSignWithImage
+  (JNIEnv *, jobject, jobject, jobject, jbyteArray);
+
 #ifdef __cplusplus
 }
 #endif
@@ -1601,6 +1609,28 @@ extern "C" {
 #define com_artifex_mupdf_fitz_TryLaterException_serialVersionUID -3042686055658047285LL
 #undef com_artifex_mupdf_fitz_TryLaterException_serialVersionUID
 #define com_artifex_mupdf_fitz_TryLaterException_serialVersionUID -3387516993124229948LL
+#ifdef __cplusplus
+}
+#endif
+#endif
+/* Header for class com_z_math_Bezier */
+
+#ifndef _Included_com_z_math_Bezier
+#define _Included_com_z_math_Bezier
+#ifdef __cplusplus
+extern "C" {
+#endif
+#ifdef __cplusplus
+}
+#endif
+#endif
+/* Header for class com_z_math_ZPoint */
+
+#ifndef _Included_com_z_math_ZPoint
+#define _Included_com_z_math_ZPoint
+#ifdef __cplusplus
+extern "C" {
+#endif
 #ifdef __cplusplus
 }
 #endif

@@ -2301,7 +2301,7 @@ FUN(Pixmap_newNative)(JNIEnv *env, jobject self, jobject colorspace_, jint x, ji
 
 	fz_try(ctx)
 	{
-		pixmap = fz_new_pixmap(ctx, colorspace, w, h);
+		pixmap = fz_new_pixmap(ctx, colorspace, w, h, 1.0f);
 		pixmap->x = x;
 		pixmap->y = y;
 	}
@@ -3207,7 +3207,7 @@ FUN(Image_toPixmap)(JNIEnv *env, jobject self, jint w, jint h)
 	fz_pixmap *pixmap = NULL;
 
 	fz_try(ctx)
-		pixmap = fz_get_pixmap_from_image(ctx, img, w, h);
+        pixmap = fz_get_pixmap_from_image(ctx, img, NULL, NULL, &w, &h);
 	fz_catch(ctx)
 		jni_rethrow(env, ctx);
 

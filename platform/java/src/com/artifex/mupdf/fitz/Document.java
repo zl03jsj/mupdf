@@ -1,5 +1,7 @@
 package com.artifex.mupdf.fitz;
 
+import java.io.OutputStream;
+
 public class Document
 {
 	static {
@@ -41,4 +43,13 @@ public class Document
 	public native String getMetaData(String key);
 
 	public native boolean isUnencryptedPDF();
+
+	public native void pdfSignWithImage(Page page, Rect r, byte[] imgdata);
+
+    // TODO: implement follow native functions
+//	public native void pdfSignKeywordWithImage(Page page, String word, byte[] imgdata);
+//	public native void pdfSignEverypageWithImage(int from, int to, Rect r, byte[] imgdata);
+//	public native void pdfSignRightsideCrosspageWithImage(int from, int to, byte[] imagedata, int y);
+//	public native void pdfSignCrossdoublepageWithImage(int from, int to, byte[] imagedata, int y);
+
 }

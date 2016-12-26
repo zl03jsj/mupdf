@@ -1,4 +1,4 @@
-package com.artifex.mupdf;
+package com.z.math;
 
 import com.artifex.mupdf.fitz.Point;
 
@@ -20,10 +20,7 @@ public class ZPoint {
 
     @Override
     public String toString() {
-        return "ZPoint{" +
-                "p=" + p +
-                ", w=" + w +
-                '}';
+        return "ZPoint{" + "p=" + p + ", w=" + w + '}';
     }
 
     synchronized ZPoint copy() {

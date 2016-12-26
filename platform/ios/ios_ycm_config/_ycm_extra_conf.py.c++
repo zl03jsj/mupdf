@@ -57,13 +57,14 @@ flags = [
 '-isystem', '/Users/zl03jsj/Documents/mupdf/include',
 '-isystem', '/Users/zl03jsj/Documents/mupdf/generated',
 '-isystem', '/Users/zl03jsj/Documents/mupdf/thirdparty/freetype/include',
-'-isystem', '/Users/zl03jsj/Library/Android/sdk/ndk-bundle/platforms/android-24/arch-arm64/usr/include',
 '-isystem', '/Users/zl03jsj/Documents/mupdf/include/openssl',
 '-isystem', '/usr/include',
 '-isystem', '/usr/local/include',
 '-isystem', '/Library/Developer/CommandLineTools/usr/include',
 '-isystem', '/Library/Developer/CommandLineTools/usr/include/c++/v1',
 '-isystem', '/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1',
+'-isystem', '/Library/Java/JavaVirtualMachines/jdk1.8.0_102.jdk/Contents/Home/include',
+'-isystem', '/Library/Java/JavaVirtualMachines/jdk1.8.0_102.jdk/Contents/Home/include/darwin',
 ]
  
 # Set this to the absolute path to the folder (NOT the file!) containing the
