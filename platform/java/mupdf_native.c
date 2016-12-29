@@ -10,6 +10,13 @@
 
 #include "mupdf_native.h" /* javah generated prototypes */
 
+#ifdef DEBUG
+#define SUPPORT_JNI_DEBUG_ \
+    printf("jni debug, input a char...\n"); getchar();
+#else
+#define SUPPORT_JNI_DEBUG_ 
+#endif
+
 #ifdef HAVE_ANDROID
 #include <android/log.h>
 #include <android/bitmap.h>
@@ -28,6 +35,25 @@
 
 #define FUN(A) Java_com_artifex_mupdf_fitz_ ## A
 #define PKG "com/artifex/mupdf/fitz/"
+
+/* log program context */
+#define Log(fmt, ...) z_log((char*)__FILE__, (char*)__FUNCTION__, __LINE__, fmt, ##__VA_ARGS__)
+
+static void z_log(char *file, char *func, int n, char* fmt, ...) 
+{
+    const int bufsize = 512;
+    char buf[bufsize];
+    int length = 0;
+    memset(buf, 0, sizeof(buf));
+    length = snprintf(buf, bufsize, "at file:%s(%d), funtion:%s\nmessage:", file, n, func);
+
+    va_list vl;
+    va_start(vl, fmt);
+    length += vsnprintf(buf+length, bufsize-length, fmt, vl);
+    va_end(vl);
+
+    printf("%s\n", buf); 
+}
 
 /* Do our best to avoid type casting warnings. */
 
@@ -143,6 +169,18 @@ static jmethodID mid_Shade_init;
 static jmethodID mid_StrokeState_init;
 static jmethodID mid_Text_init;
 static jmethodID mid_TextWalker_showGlyph;
+
+#define Z_Make_Class(clsstype, javaclass, member)    \
+static jclass cls_##javaclass;                       \
+static jfieldID fid_##javaclass##_##member;          \
+static const char *path_##javaclass = "com/z/"#javaclass;           \
+static inline clsstype* from_##javaclass(JNIEnv *env, jobject jobj){\
+   if(jobj == NULL) return NULL;                                    \
+   return (CAST(clsstype*, (*env)->GetLongField(env, jobj, fid_##javaclass##_##member)));}
+
+Z_Make_Class(z_pdf_sign_appearance, PdfSignAppearance, pointer);
+Z_Make_Class(z_device, OpensslSignDevice, pointer);
+Z_Make_Class(pdf_document, Pdfdocument, pointer);
 
 static pthread_key_t context_key;
 static fz_context *base_context;
@@ -403,7 +441,15 @@ static int find_fids(JNIEnv *env)
 	cls_Exception = get_class(&err, env, "java/lang/Exception");
 
 	cls_OutOfMemoryError = get_class(&err, env, "java/lang/OutOfMemoryError");
+    
+    cls_PdfSignAppearance = get_class(&err, env, path_PdfSignAppearance);
+    fid_PdfSignAppearance_pointer = get_field(&err, env, "pointer", "J"); 
 
+    cls_Pdfdocument = get_class(&err, env, path_Pdfdocument);
+    fid_Pdfdocument_pointer = get_field(&err, env, "pointer", "J"); 
+
+    cls_OpensslSignDevice = get_class(&err, env, path_OpensslSignDevice);
+    fid_OpensslSignDevice_pointer = get_field(&err, env, "pointer", "J"); 
 	return err;
 }
 
@@ -493,6 +539,10 @@ static fz_context *get_context(JNIEnv *env)
 	if (ctx != NULL)
 		return ctx;
 
+    //TODO: create new fz_locks_context for each context?
+    //to satisfy multi-document
+    //the cloned context never be droped, may be 
+    //it should be drop
 	ctx = fz_clone_context(base_context);
 	if (ctx == NULL)
 	{
@@ -3464,6 +3514,55 @@ FUN(Document_isUnencryptedPDF)(JNIEnv *env, jobject self)
 	return (cryptVer == 0) ? JNI_TRUE : JNI_FALSE;
 }
 
+JNIEXPORT jboolean JNICALL 
+FUN(Document_pdfAddSignature) (JNIEnv *env, jobject self, jobject _page, jobject _dev, jobject _app)
+{
+    SUPPORT_JNI_DEBUG_
+    fz_context *ctx = get_context(env);
+    pdf_document *doc = pdf_specifics(ctx, from_Document(env, self));
+    if(!doc) {
+        Log("document not pdf");
+        return JNI_FALSE;
+    }
+
+    pdf_page *page = (pdf_page*)from_Page(env, _page); 
+    z_pdf_sign_appearance *app = from_PdfSignAppearance(env, _app);
+    z_device *device = from_OpensslSignDevice(env, _dev);
+
+    fz_try(ctx) {
+        z_pdf_dosign_with_page(ctx, device, doc, page, app);
+    }
+    fz_catch(ctx) {
+        jni_rethrow(env, ctx);
+    }
+    return JNI_TRUE;
+}
+
+JNIEXPORT jboolean JNICALL Java_com_artifex_mupdf_fitz_Document_save
+(JNIEnv *env, jobject self, jstring saveto) {
+    fz_context *ctx = get_context(env);
+
+    pdf_document *doc = pdf_specifics(ctx, from_Document(env, self));
+    if(!doc) {
+        Log("document not pdf");
+        return JNI_FALSE;
+    } 
+
+    const char *savefile = (*env)->GetStringUTFChars(env, saveto, NULL);
+    fz_try(ctx) {
+        pdf_save_incremental_tofile(ctx, doc, (char*)savefile); 
+    }
+    fz_always(ctx) {
+        if(savefile) 
+            (*env)->ReleaseStringUTFChars(env, saveto, savefile);
+    }
+    fz_catch(ctx) {
+        jni_rethrow(env, ctx);
+    }
+
+    return JNI_TRUE;
+}
+
 JNIEXPORT jobject JNICALL
 FUN(Document_loadOutline)(JNIEnv *env, jobject self)
 {
@@ -3745,4 +3844,84 @@ FUN(DisplayList_finalize)(JNIEnv *env, jobject self)
 		return;
 
 	fz_drop_display_list(ctx, list);
+}
+
+JNIEXPORT void JNICALL Java_com_z_PdfSignAppearance_finalize
+(JNIEnv *env, jobject self) {
+	fz_context *ctx = get_context(env);
+    z_pdf_sign_appearance *app = from_PdfSignAppearance(env, self);
+    z_pdf_drop_sign_appreance(ctx, app); 
+}
+
+JNIEXPORT jlong JNICALL Java_com_z_PdfSignAppearance_newNativeWithImageFile
+  (JNIEnv *env, jclass self, jstring imgfile_, jobject rect_) 
+{
+	fz_context *ctx = get_context(env);
+
+    const char *imgfile = (*env)->GetStringUTFChars(env, imgfile_, NULL);
+
+    fz_image *image = NULL;
+    z_pdf_sign_appearance *app = NULL;
+
+    fz_try(ctx) {
+        image = fz_new_image_from_file(ctx, imgfile); 
+        app = z_pdf_new_sign_appearance_with_image(ctx, image, from_Rect(env, rect_), NULL);
+    }
+    fz_always(ctx) {
+        if(image) fz_drop_image(ctx, image);
+    }
+    fz_catch(ctx) {
+        jni_rethrow(env, ctx);
+    }
+
+    (*env)->ReleaseStringUTFChars(env, imgfile_, imgfile);
+
+    return jlong_cast(app); 
+}
+
+JNIEXPORT jlong JNICALL Java_com_z_PdfSignAppearance_newNativeWithImageData
+  (JNIEnv *env, jclass self, jbyteArray imgdata_, jobject rect_) 
+{
+	fz_context *ctx = get_context(env);
+    unsigned char *data = (unsigned char*)(*env)->GetByteArrayElements(env, imgdata_, 0);   
+    int size = (int)(*env)->GetArrayLength(env, imgdata_);   
+
+    fz_image *image = NULL;
+    z_pdf_sign_appearance *app = NULL;
+    fz_try(ctx) {
+        image = fz_new_image_from_data(ctx, data, size); 
+        app = z_pdf_new_sign_appearance_with_image(ctx, image, from_Rect(env, rect_), NULL);
+    }
+    fz_always(ctx) {
+        if(image) fz_drop_image(ctx, image);
+    }
+    fz_catch(ctx) {
+        jni_rethrow(env, ctx);
+    }
+
+    return jlong_cast(app); 
+}
+
+JNIEXPORT void JNICALL Java_com_z_OpensslSignDevice_finalize
+  (JNIEnv *env, jobject self)
+{
+    fz_context *ctx = get_context(env);
+    z_device *device = from_OpensslSignDevice(env, self);
+    z_drop_device(ctx, device); 
+}
+
+JNIEXPORT jlong JNICALL Java_com_z_OpensslSignDevice_newNativeWithPfxFile
+  (JNIEnv *env, jclass self, jstring pfxfile_, jstring password_)
+{
+    fz_context *ctx = get_context(env);
+    const char* pfxfile = (*env)->GetStringUTFChars(env, pfxfile_, NULL);
+    const char* password = (*env)->GetStringUTFChars(env, password_, NULL);
+
+    z_device *device = NULL;
+    fz_try(ctx)
+        device = z_openssl_new_device(ctx, (char*)pfxfile, (char*)password);
+    fz_catch(ctx)
+        jni_rethrow(env, ctx);
+
+    return jlong_cast(device); 
 }

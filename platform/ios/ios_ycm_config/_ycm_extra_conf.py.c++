@@ -39,6 +39,7 @@ flags = [
 '-Wextra',
 '-Wno-long-long',
 '-Wno-variadic-macros',
+'-Wno-unused-parameter',
 '-fexceptions',
 '-stdlib=libc++',
 # THIS IS IMPORTANT! Without a "-std=<something>" flag, clang won't know which

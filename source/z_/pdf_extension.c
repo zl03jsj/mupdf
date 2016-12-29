@@ -58,18 +58,38 @@ ImageType img_recognize(char *filename) {
 }
 
 int pdf_save_incremental_tofile(fz_context *ctx, pdf_document *doc,char *filename) {
-	fz_lock(ctx, FZ_LOCK_FREETYPE);
-	int ofs = fz_tell(ctx, doc->file);
-	fz_seek(ctx, doc->file, 0, SEEK_SET);
-	fz_buffer *buffer = fz_read_all(ctx, doc->file, doc->file_size);
-	fz_save_buffer(ctx, buffer, filename);
-	fz_seek(ctx, doc->file, ofs, SEEK_SET);
-	fz_unlock(ctx, FZ_LOCK_FREETYPE);
+    char *tmpfilename = NULL;
+    pdf_write_options opts = {0};
+    fz_buffer *buffer = NULL;
+    int saved = 0;
+    
+    fz_try(ctx) {
+        tmpfilename = new_unique_string(ctx, filename, NULL);
+        if(fz_file_exists(ctx, filename)) {
+            buffer = fz_read_file(ctx, filename);
+        }
+        else {
+            int ofs = fz_tell(ctx, doc->file);
+            fz_seek(ctx, doc->file, 0, SEEK_SET);
+            buffer = fz_read_all(ctx, doc->file, doc->file_size);
+            fz_seek(ctx, doc->file, ofs, SEEK_SET);
+        }
+        fz_save_buffer(ctx, buffer, tmpfilename); 
+        // opts.do_pretty = 1; // write tightly
+        opts.do_incremental = 1;
+        pdf_save_document(ctx, doc, tmpfilename, &opts);
+        saved = 1;
+    }
+    fz_always(ctx) {
+        if(buffer) fz_drop_buffer(ctx, buffer);
+    }
+    fz_catch(ctx){
+        if(tmpfilename) fz_free(ctx, tmpfilename);
+        fz_rethrow(ctx);
+    }
 
-	pdf_write_options opts = { 0 };
-    // opts.do_pretty = 1; // write tightly
-	opts.do_incremental = 1;
-	pdf_save_document(ctx, doc, filename, &opts);
+    if(saved) rename(tmpfilename, filename); 
+
 	return z_okay;
 }
 

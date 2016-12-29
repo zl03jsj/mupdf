@@ -12,9 +12,12 @@ public class Context
 	private static native int initNative();
 
 	public static void init() {
+        String absolutPath = System.getProperty("user.dir") + "/libmupdf.jnilib";
+        System.out.println("lib path=" + absolutPath);
 		if (!inited) {
 			inited = true;
-			System.loadLibrary("mupdf_java");
+			// System.loadLibrary("mupdf");
+			System.load(absolutPath);
 			if (initNative() < 0)
 				throw new RuntimeException("cannot initialize mupdf library");
 		}

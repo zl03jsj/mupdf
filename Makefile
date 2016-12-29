@@ -44,7 +44,6 @@ CFLAGS += $(OPENJPEG_CFLAGS)
 CFLAGS += $(OPENSSL_CFLAGS)
 CFLAGS += $(ZLIB_CFLAGS)
 CFLAGS += $(X11_CFLAGS)
-#CFLAGS += -DZ_pdf_sign_
 #CFLAGS += -DHAVE_OPENSSL
 
 
@@ -291,14 +290,6 @@ $(MUJSTEST) : $(MUPDF_LIB) $(THIRD_LIB)
 $(MUJSTEST) : $(MUJSTEST_OBJ)
 	$(LINK_CMD)
 
-# ifeq "$(Z_test_)" "yes"
-# Z_test := $(OUT)/z_test
-# Z_test_obj :=
-# $(Z_test_obj) : $(FITZ_HDR) $(PDF_HDR)
-# $(Z_test) : $(MUPDF_LIB) $(THIRD_LIB)
-# $(Z_test) : $(Z_test_obj)
-	# $(LINK_CMD) 
-
 ifeq "$(HAVE_X11)" "yes"
 MUVIEW_X11 := $(OUT)/mupdf-x11
 MUVIEW_X11_OBJ := $(addprefix $(OUT)/platform/x11/, x11_main.o x11_image.o pdfapp.o)
@@ -377,7 +368,7 @@ docdir ?= $(prefix)/share/doc/mupdf
 
 third: $(THIRD_LIB)
 extra: $(CURL_LIB) $(GLFW_LIB)
-libs: $(INSTALL_LIBS) compileinfo
+libs: showflags $(INSTALL_LIBS) showflags 
 apps: $(INSTALL_APPS)
 
 install: libs apps
@@ -439,9 +430,10 @@ debug:
 	$(MAKE) build=debug 
 	@echo make down!!!!!=====
 
-compileinfo:
+showflags:
 	@echo  =================
-	@echo flags=${CFLAGS}
+	@echo cc=$(CC)
+	@echo cflags=$(CFLAGS)
 	@echo opensslflags=${OPENSSL_CFLAGS}
 	@echo =================
 .PHONY: all clean nuke install third libs apps generate
