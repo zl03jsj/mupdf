@@ -9,7 +9,7 @@
 
 /*
 	fz_strsep: Given a pointer to a C string (or a pointer to NULL) break
-	it at the first occurence of a delimiter char (from a given set).
+	it at the first occurrence of a delimiter char (from a given set).
 
 	stringp: Pointer to a C string pointer (or NULL). Updated on exit to
 	point to the first char of the string after the delimiter that was
@@ -36,7 +36,7 @@ char *fz_strsep(char **stringp, const char *delim);
 
 	Returns the length (excluding terminator) of src.
 */
-int fz_strlcpy(char *dst, const char *src, int n);
+size_t fz_strlcpy(char *dst, const char *src, size_t n);
 
 /*
 	fz_strlcat: Concatenate 2 strings, with a maximum length.
@@ -50,17 +50,26 @@ int fz_strlcpy(char *dst, const char *src, int n);
 	Returns the real length that a concatenated dst + src would have been
 	(not including terminator).
 */
-int fz_strlcat(char *dst, const char *src, int n);
+size_t fz_strlcat(char *dst, const char *src, size_t n);
 
 /*
 	fz_dirname: extract the directory component from a path.
 */
-void fz_dirname(char *dir, const char *path, int dirsize);
+void fz_dirname(char *dir, const char *path, size_t dirsize);
 
 /*
 	fz_urldecode: decode url escapes.
 */
 char *fz_urldecode(char *url);
+
+/*
+	fz_format_output_path: create output file name using a template.
+		If the path contains %[0-9]*d, the first such pattern will be replaced
+		with the page number. If the template does not contain such a pattern, the page
+		number will be inserted before the file suffix. If the template does not have
+		a file suffix, the page number will be added to the end.
+*/
+void fz_format_output_path(fz_context *ctx, char *path, size_t size, const char *fmt, int page);
 
 /*
 	fz_cleanname: rewrite path to the shortest string that names the same path.

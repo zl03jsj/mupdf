@@ -3,6 +3,8 @@
 
 typedef unsigned char byte;
 
+typedef void (paintfn_t)(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp);
+
 static inline int lerp(int a, int b, int t)
 {
 	return a + (((b - a) * t) >> 16);
@@ -25,11 +27,11 @@ static inline const byte *sample_nearest(const byte *s, int w, int h, int str, i
 /* Blend premultiplied source image in constant alpha over destination */
 
 static inline void
-fz_paint_affine_alpha_N_lerp(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, byte * restrict hp)
+template_affine_alpha_N_lerp(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, byte * restrict hp)
 {
 	int k;
 
-	while (w--)
+	do
 	{
 		if (u + 32768 >= 0 && u < sw && v + 32768 >= 0 && v < sh)
 		{
@@ -42,17 +44,19 @@ fz_paint_affine_alpha_N_lerp(byte * restrict dp, int da, const byte * restrict s
 			const byte *c = sample_nearest(sp, sw, sh, ss, n1+sa, ui, vi+1);
 			const byte *d = sample_nearest(sp, sw, sh, ss, n1+sa, ui+1, vi+1);
 			int xa = sa ? fz_mul255(bilerp(a[n1], b[n1], c[n1], d[n1], uf, vf), alpha) : alpha;
-			int t;
-			t = 255 - xa;
-			for (k = 0; k < n1; k++)
+			if (xa != 0)
 			{
-				int x = bilerp(a[k], b[k], c[k], d[k], uf, vf);
-				dp[k] = fz_mul255(x, alpha) + fz_mul255(dp[k], t);
+				int t = 255 - xa;
+				for (k = 0; k < n1; k++)
+				{
+					int x = bilerp(a[k], b[k], c[k], d[k], uf, vf);
+					dp[k] = fz_mul255(x, alpha) + fz_mul255(dp[k], t);
+				}
+				if (da)
+					dp[n1] = xa + fz_mul255(dp[n1], t);
+				if (hp)
+					hp[0] = xa + fz_mul255(hp[0], t);
 			}
-			if (da)
-				dp[n1] = xa + fz_mul255(dp[n1], t);
-			if (hp)
-				hp[0] = xa + fz_mul255(hp[0], t);
 		}
 		dp += n1+da;
 		if (hp)
@@ -60,13 +64,14 @@ fz_paint_affine_alpha_N_lerp(byte * restrict dp, int da, const byte * restrict s
 		u += fa;
 		v += fb;
 	}
+	while (--w);
 }
 
 /* Special case code for gray -> rgb */
 static inline void
-fz_paint_affine_alpha_g2rgb_lerp(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int alpha, byte * restrict hp)
+template_affine_alpha_g2rgb_lerp(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int alpha, byte * restrict hp)
 {
-	while (w--)
+	do
 	{
 		if (u + 32768 >= 0 && u < sw && v + 32768 >= 0 && v < sh)
 		{
@@ -79,16 +84,19 @@ fz_paint_affine_alpha_g2rgb_lerp(byte * restrict dp, int da, const byte * restri
 			const byte *c = sample_nearest(sp, sw, sh, ss, 1+sa, ui, vi+1);
 			const byte *d = sample_nearest(sp, sw, sh, ss, 1+sa, ui+1, vi+1);
 			int y = (sa ? fz_mul255(bilerp(a[1], b[1], c[1], d[1], uf, vf), alpha) : alpha);
-			int x = bilerp(a[0], b[0], c[0], d[0], uf, vf);
-			int t = 255 - y;
-			x = fz_mul255(x, alpha);
-			dp[0] = x + fz_mul255(dp[0], t);
-			dp[1] = x + fz_mul255(dp[1], t);
-			dp[2] = x + fz_mul255(dp[2], t);
-			if (da)
-				dp[3] = y + fz_mul255(dp[3], t);
-			if (hp)
-				hp[0] = y + fz_mul255(hp[0], t);
+			if (y != 0)
+			{
+				int x = bilerp(a[0], b[0], c[0], d[0], uf, vf);
+				int t = 255 - y;
+				x = fz_mul255(x, alpha);
+				dp[0] = x + fz_mul255(dp[0], t);
+				dp[1] = x + fz_mul255(dp[1], t);
+				dp[2] = x + fz_mul255(dp[2], t);
+				if (da)
+					dp[3] = y + fz_mul255(dp[3], t);
+				if (hp)
+					hp[0] = y + fz_mul255(hp[0], t);
+			}
 		}
 		dp += 4;
 		if (hp)
@@ -96,53 +104,93 @@ fz_paint_affine_alpha_g2rgb_lerp(byte * restrict dp, int da, const byte * restri
 		u += fa;
 		v += fb;
 	}
+	while (--w);
 }
 
 static inline void
-fz_paint_affine_alpha_N_near(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, byte * restrict hp)
+template_affine_alpha_N_near_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, byte * restrict hp)
+{
+	int k;
+	int ui = u >> 16;
+	TRACK_FN();
+	if (ui < 0 || ui >= sw)
+		return;
+	sp += ui * (n1+sa);
+	do
+	{
+		int vi = v >> 16;
+		if (vi >= 0 && vi < sh)
+		{
+			const byte *sample = sp + (vi * ss);
+			int a = (sa ? fz_mul255(sample[n1], alpha) : alpha);
+			if (a != 0)
+			{
+				int t = 255 - a;
+				for (k = 0; k < n1; k++)
+					dp[k] = fz_mul255(sample[k], alpha) + fz_mul255(dp[k], t);
+				if (da)
+					dp[n1] = a + fz_mul255(dp[n1], t);
+				if (hp)
+					hp[0] = a + fz_mul255(hp[0], t);
+			}
+		}
+		dp += n1+da;
+		if (hp)
+			hp++;
+		v += fb;
+	}
+	while (--w);
+}
+
+static inline void
+template_affine_alpha_N_near_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, byte * restrict hp)
+{
+	int k;
+	int vi = v >> 16;
+	if (vi < 0 || vi >= sh)
+		return;
+	sp += vi * ss;
+	do
+	{
+		int ui = u >> 16;
+		if (ui >= 0 && ui < sw)
+		{
+			const byte *sample = sp + (ui * (n1+sa));
+			int a = (sa ? fz_mul255(sample[n1], alpha) : alpha);
+			if (a != 0)
+			{
+				int t = 255 - a;
+				for (k = 0; k < n1; k++)
+					dp[k] = fz_mul255(sample[k], alpha) + fz_mul255(dp[k], t);
+				if (da)
+					dp[n1] = a + fz_mul255(dp[n1], t);
+				if (hp)
+					hp[0] = a + fz_mul255(hp[0], t);
+			}
+		}
+		dp += n1+da;
+		if (hp)
+			hp++;
+		u += fa;
+	}
+	while (--w);
+}
+
+static inline void
+template_affine_alpha_N_near(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, byte * restrict hp)
 {
 	int k;
 
-	if (fa == 0)
+	do
 	{
 		int ui = u >> 16;
-		if (ui < 0 || ui >= sw)
-			return;
-		sp += ui * (n1+sa);
-		while (w--)
-		{
-			int vi = v >> 16;
-			if (vi >= 0 && vi < sh)
-			{
-				const byte *sample = sp + (vi * ss);
-				int a = (sa ? fz_mul255(sample[n1], alpha) : alpha);
-				int t = 255 - a;
-				for (k = 0; k < n1; k++)
-					dp[k] = fz_mul255(sample[k], alpha) + fz_mul255(dp[k], t);
-				if (da)
-					dp[n1] = a + fz_mul255(dp[n1], t);
-				if (hp)
-					hp[0] = a + fz_mul255(hp[0], t);
-			}
-			dp += n1+da;
-			if (hp)
-				hp++;
-			v += fb;
-		}
-	}
-	else if (fb == 0)
-	{
 		int vi = v >> 16;
-		if (vi < 0 || vi >= sh)
-			return;
-		sp += vi * ss;
-		while (w--)
+		if (ui >= 0 && ui < sw && vi >= 0 && vi < sh)
 		{
-			int ui = u >> 16;
-			if (ui >= 0 && ui < sw)
+			const byte *sample = sp + (vi * ss) + (ui * (n1+sa));
+			int a = (sa ? fz_mul255(sample[n1], alpha) : alpha);
+			if (a != 0)
 			{
-				const byte *sample = sp + (ui * (n1+sa));
-				int a = (sa ? fz_mul255(sample[n1], alpha) : alpha);
 				int t = 255 - a;
 				for (k = 0; k < n1; k++)
 					dp[k] = fz_mul255(sample[k], alpha) + fz_mul255(dp[k], t);
@@ -151,85 +199,33 @@ fz_paint_affine_alpha_N_near(byte * restrict dp, int da, const byte * restrict s
 				if (hp)
 					hp[0] = a + fz_mul255(hp[0], t);
 			}
-			dp += n1+da;
-			if (hp)
-				hp++;
-			u += fa;
 		}
+		dp += n1+da;
+		if (hp)
+			hp++;
+		u += fa;
+		v += fb;
 	}
-	else
-	{
-		while (w--)
-		{
-			int ui = u >> 16;
-			int vi = v >> 16;
-			if (ui >= 0 && ui < sw && vi >= 0 && vi < sh)
-			{
-				const byte *sample = sp + (vi * ss) + (ui * (n1+sa));
-				int a = (sa ? fz_mul255(sample[n1], alpha) : alpha);
-				int t = 255 - a;
-				for (k = 0; k < n1; k++)
-					dp[k] = fz_mul255(sample[k], alpha) + fz_mul255(dp[k], t);
-				if (da)
-					dp[n1] = a + fz_mul255(dp[n1], t);
-				if (hp)
-					hp[0] = a + fz_mul255(hp[0], t);
-			}
-			dp += n1+da;
-			if (hp)
-				hp++;
-			u += fa;
-			v += fb;
-		}
-	}
+	while (--w);
 }
 
 static inline void
-fz_paint_affine_alpha_g2rgb_near(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int alpha, byte * restrict hp)
+template_affine_alpha_g2rgb_near_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int alpha, byte * restrict hp)
 {
-	if (fa == 0)
-	{
-		int ui = u >> 16;
-		if (ui < 0 || ui >= sw)
-			return;
-		sp += ui * (1+sa);
-		while (w--)
-		{
-			int vi = v >> 16;
-			if (vi >= 0 && vi < sh)
-			{
-				const byte *sample = sp + (vi * ss);
-				int x = fz_mul255(sample[0], alpha);
-				int a = (sa ? fz_mul255(sample[1], alpha) : alpha);
-				int t = 255 - a;
-				dp[0] = x + fz_mul255(dp[0], t);
-				dp[1] = x + fz_mul255(dp[1], t);
-				dp[2] = x + fz_mul255(dp[2], t);
-				if (da)
-					dp[3] = a + fz_mul255(dp[3], t);
-				if (hp)
-					hp[0] = a + fz_mul255(hp[0], t);
-			}
-			dp += 3 + da;
-			if (hp)
-				hp++;
-			v += fb;
-		}
-	}
-	else if (fb == 0)
+	int ui = u >> 16;
+	if (ui < 0 || ui >= sw)
+		return;
+	sp += ui * (1+sa);
+	do
 	{
 		int vi = v >> 16;
-		if (vi < 0 || vi >= sh)
-			return;
-		sp += vi * ss;
-		while (w--)
+		if (vi >= 0 && vi < sh)
 		{
-			int ui = u >> 16;
-			if (ui >= 0 && ui < sw)
+			const byte *sample = sp + (vi * ss);
+			int x = fz_mul255(sample[0], alpha);
+			int a = (sa ? fz_mul255(sample[1], alpha) : alpha);
+			if (a != 0)
 			{
-				const byte *sample = sp + (ui * (1+sa));
-				int x = fz_mul255(sample[0], alpha);
-				int a = (sa ? fz_mul255(sample[1], alpha) : alpha);
 				int t = 255 - a;
 				dp[0] = x + fz_mul255(dp[0], t);
 				dp[1] = x + fz_mul255(dp[1], t);
@@ -239,23 +235,32 @@ fz_paint_affine_alpha_g2rgb_near(byte * restrict dp, int da, const byte * restri
 				if (hp)
 					hp[0] = a + fz_mul255(hp[0], t);
 			}
-			dp += 3 + da;
-			if (hp)
-				hp++;
-			u += fa;
 		}
+		dp += 3 + da;
+		if (hp)
+			hp++;
+		v += fb;
 	}
-	else
+	while (--w);
+}
+
+static inline void
+template_affine_alpha_g2rgb_near_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int alpha, byte * restrict hp)
+{
+	int vi = v >> 16;
+	if (vi < 0 || vi >= sh)
+		return;
+	sp += vi * ss;
+	do
 	{
-		while (w--)
+		int ui = u >> 16;
+		if (ui >= 0 && ui < sw)
 		{
-			int ui = u >> 16;
-			int vi = v >> 16;
-			if (ui >= 0 && ui < sw && vi >= 0 && vi < sh)
+			const byte *sample = sp + (ui * (1+sa));
+			int x = fz_mul255(sample[0], alpha);
+			int a = (sa ? fz_mul255(sample[1], alpha) : alpha);
+			if (a != 0)
 			{
-				const byte *sample = sp + (vi * ss) + (ui * (1+sa));
-				int x = fz_mul255(sample[0], alpha);
-				int a = (sa ? fz_mul255(sample[1], alpha): alpha);
 				int t = 255 - a;
 				dp[0] = x + fz_mul255(dp[0], t);
 				dp[1] = x + fz_mul255(dp[1], t);
@@ -265,23 +270,55 @@ fz_paint_affine_alpha_g2rgb_near(byte * restrict dp, int da, const byte * restri
 				if (hp)
 					hp[0] = a + fz_mul255(hp[0], t);
 			}
-			dp += 3 + da;
-			if (hp)
-				hp++;
-			u += fa;
-			v += fb;
 		}
+		dp += 3 + da;
+		if (hp)
+			hp++;
+		u += fa;
 	}
+	while (--w);
+}
+
+static inline void
+template_affine_alpha_g2rgb_near(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int alpha, byte * restrict hp)
+{
+	do
+	{
+		int ui = u >> 16;
+		int vi = v >> 16;
+		if (ui >= 0 && ui < sw && vi >= 0 && vi < sh)
+		{
+			const byte *sample = sp + (vi * ss) + (ui * (1+sa));
+			int x = fz_mul255(sample[0], alpha);
+			int a = (sa ? fz_mul255(sample[1], alpha): alpha);
+			if (a != 0)
+			{
+				int t = 255 - a;
+				dp[0] = x + fz_mul255(dp[0], t);
+				dp[1] = x + fz_mul255(dp[1], t);
+				dp[2] = x + fz_mul255(dp[2], t);
+				if (da)
+					dp[3] = a + fz_mul255(dp[3], t);
+				if (hp)
+					hp[0] = a + fz_mul255(hp[0], t);
+			}
+		}
+		dp += 3 + da;
+		if (hp)
+			hp++;
+		u += fa;
+		v += fb;
+	}
+	while (--w);
 }
 
 /* Blend premultiplied source image over destination */
-
 static inline void
-fz_paint_affine_N_lerp(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, byte * restrict hp)
+template_affine_N_lerp(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, byte * restrict hp)
 {
 	int k;
 
-	while (w--)
+	do
 	{
 		if (u + 32768 >= 0 && u < sw && v + 32768 >= 0 && v < sh)
 		{
@@ -294,16 +331,19 @@ fz_paint_affine_N_lerp(byte * restrict dp, int da, const byte * restrict sp, int
 			const byte *c = sample_nearest(sp, sw, sh, ss, n1+sa, ui, vi+1);
 			const byte *d = sample_nearest(sp, sw, sh, ss, n1+sa, ui+1, vi+1);
 			int y = sa ? bilerp(a[n1], b[n1], c[n1], d[n1], uf, vf) : 255;
-			int t = 255 - y;
-			for (k = 0; k < n1; k++)
+			if (y != 0)
 			{
-				int x = bilerp(a[k], b[k], c[k], d[k], uf, vf);
-				dp[k] = x + fz_mul255(dp[k], t);
+				int t = 255 - y;
+				for (k = 0; k < n1; k++)
+				{
+					int x = bilerp(a[k], b[k], c[k], d[k], uf, vf);
+					dp[k] = x + fz_mul255(dp[k], t);
+				}
+				if (da)
+					dp[n1] = y + fz_mul255(dp[n1], t);
+				if (hp)
+					hp[0] = y + fz_mul255(hp[0], t);
 			}
-			if (da)
-				dp[n1] = y + fz_mul255(dp[n1], t);
-			if (hp)
-				hp[0] = y + fz_mul255(hp[0], t);
 		}
 		dp += n1 + da;
 		if (hp)
@@ -311,12 +351,13 @@ fz_paint_affine_N_lerp(byte * restrict dp, int da, const byte * restrict sp, int
 		u += fa;
 		v += fb;
 	}
+	while (--w);
 }
 
 static inline void
-fz_paint_affine_solid_g2rgb_lerp(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, byte * restrict hp)
+template_affine_solid_g2rgb_lerp(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, byte * restrict hp)
 {
-	while (w--)
+	do
 	{
 		if (u + 32768 >= 0 && u < sw && v + 32768 >= 0 && v < sh)
 		{
@@ -329,15 +370,18 @@ fz_paint_affine_solid_g2rgb_lerp(byte * restrict dp, int da, const byte * restri
 			const byte *c = sample_nearest(sp, sw, sh, ss, 1+sa, ui, vi+1);
 			const byte *d = sample_nearest(sp, sw, sh, ss, 1+sa, ui+1, vi+1);
 			int y = (sa ? bilerp(a[1], b[1], c[1], d[1], uf, vf) : 255);
-			int t = 255 - y;
-			int x = bilerp(a[0], b[0], c[0], d[0], uf, vf);
-			dp[0] = x + fz_mul255(dp[0], t);
-			dp[1] = x + fz_mul255(dp[1], t);
-			dp[2] = x + fz_mul255(dp[2], t);
-			if (da)
-				dp[3] = y + fz_mul255(dp[3], t);
-			if (hp)
-				hp[0] = y + fz_mul255(hp[0], t);
+			if (y != 0)
+			{
+				int t = 255 - y;
+				int x = bilerp(a[0], b[0], c[0], d[0], uf, vf);
+				dp[0] = x + fz_mul255(dp[0], t);
+				dp[1] = x + fz_mul255(dp[1], t);
+				dp[2] = x + fz_mul255(dp[2], t);
+				if (da)
+					dp[3] = y + fz_mul255(dp[3], t);
+				if (hp)
+					hp[0] = y + fz_mul255(hp[0], t);
+			}
 		}
 		dp += 3 + da;
 		if (hp)
@@ -345,310 +389,335 @@ fz_paint_affine_solid_g2rgb_lerp(byte * restrict dp, int da, const byte * restri
 		u += fa;
 		v += fb;
 	}
+	while (--w);
 }
 
 static inline void
-fz_paint_affine_N_near(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, byte * restrict hp)
+template_affine_N_near_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, byte * restrict hp)
 {
 	int k;
-
-	if (fa == 0)
-	{
-		int ui = u >> 16;
-		if (ui < 0 || ui >= sw)
-			return;
-		sp += ui*(n1+sa);
-		while (w--)
-		{
-			int vi = v >> 16;
-			if (vi >= 0 && vi < sh)
-			{
-				const byte *sample = sp + (vi * ss);
-				int a = (sa ? sample[n1] : 255);
-				/* If a is 0, then sample[k] = 0 for all k, as premultiplied */
-				if (a != 0)
-				{
-					int t = 255 - a;
-					if (t == 0)
-					{
-						if (n1+da == 4 && n1+sa == 4)
-						{
-							*(int32_t *)dp = *(int32_t *)sample;
-						}
-						else
-						{
-							for (k = 0; k < n1; k++)
-								dp[k] = sample[k];
-							if (da)
-								dp[n1] = a;
-						}
-						if (hp)
-							hp[0] = a;
-					}
-					else
-					{
-						for (k = 0; k < n1; k++)
-							dp[k] = sample[k] + fz_mul255(dp[k], t);
-						if (da)
-							dp[n1] = a + fz_mul255(dp[n1], t);
-						if (hp)
-							hp[0] = a + fz_mul255(hp[0], t);
-					}
-				}
-			}
-			dp += n1+da;
-			if (hp)
-				hp++;
-			v += fb;
-		}
-	}
-	else if (fb == 0)
+	int ui = u >> 16;
+	if (ui < 0 || ui >= sw)
+		return;
+	sp += ui*(n1+sa);
+	do
 	{
 		int vi = v >> 16;
-		if (vi < 0 || vi >= sh)
-			return;
-		sp += vi * ss;
-		while (w--)
+		if (vi >= 0 && vi < sh)
 		{
-			int ui = u >> 16;
-			if (ui >= 0 && ui < sw)
+			const byte *sample = sp + (vi * ss);
+			int a = (sa ? sample[n1] : 255);
+			/* If a is 0, then sample[k] = 0 for all k, as premultiplied */
+			if (a != 0)
 			{
-				const byte *sample = sp + (ui * (n1+sa));
-				int a = sa ? sample[n1] : 255;
-				/* If a is 0, then sample[k] = 0 for all k, as premultiplied */
-				if (a != 0)
+				int t = 255 - a;
+				if (t == 0)
 				{
-					int t = 255 - a;
-					if (t == 0)
+					if (n1+da == 4 && n1+sa == 4)
 					{
-						if (n1+da == 4 && n1+sa == 4)
-						{
-							*(int32_t *)dp = *(int32_t *)sample;
-						}
-						else
-						{
-							for (k = 0; k < n1; k++)
-								dp[k] = sample[k];
-							if (da)
-								dp[n1] = a;
-						}
-						if (hp)
-							hp[0] = a;
+						*(int32_t *)dp = *(int32_t *)sample;
 					}
 					else
 					{
-						for (k = 0; k < n1; k++)
-							dp[k] = sample[k] + fz_mul255(dp[k], t);
-						if(da)
-							dp[n1] = a + fz_mul255(dp[n1], t);
-						if (hp)
-							hp[0] = a + fz_mul255(hp[0], t);
-					}
-				}
-			}
-			dp += n1+da;
-			if (hp)
-				hp++;
-			u += fa;
-		}
-	}
-	else
-	{
-		while (w--)
-		{
-			int ui = u >> 16;
-			int vi = v >> 16;
-			if (ui >= 0 && ui < sw && vi >= 0 && vi < sh)
-			{
-				const byte *sample = sp + (vi * ss) + (ui * (n1+sa));
-				int a = sa ? sample[n1] : 255;
-				/* If a is 0, then sample[k] = 0 for all k, as premultiplied */
-				if (a != 0)
-				{
-					int t = 255 - a;
-					if (t == 0)
-					{
-						if (n1+da == 4 && n1+sa == 4)
-						{
-							*(int32_t *)dp = *(int32_t *)sample;
-						}
-						else
-						{
-							for (k = 0; k < n1; k++)
-								dp[k] = sample[k];
-							if (da)
-								dp[n1] = a;
-						}
-						if (hp)
-							hp[0] = a;
-					}
-					else
-					{
-						for (k = 0; k < n1; k++)
-							dp[k] = sample[k] + fz_mul255(dp[k], t);
+						dp[0] = sample[0];
+						if (n1 > 1)
+							dp[1] = sample[1];
+						if (n1 > 2)
+							dp[2] = sample[2];
+						for (k = 3; k < n1; k++)
+							dp[k] = sample[k];
 						if (da)
-							dp[n1] = a + fz_mul255(dp[n1], t);
-						if (hp)
-							hp[0] = a + fz_mul255(hp[0], t);
+							dp[n1] = a;
 					}
+					if (hp)
+						hp[0] = a;
+				}
+				else
+				{
+					for (k = 0; k < n1; k++)
+						dp[k] = sample[k] + fz_mul255(dp[k], t);
+					if (da)
+						dp[n1] = a + fz_mul255(dp[n1], t);
+					if (hp)
+						hp[0] = a + fz_mul255(hp[0], t);
 				}
 			}
-			dp += n1+da;
-			if (hp)
-				hp++;
-			u += fa;
-			v += fb;
 		}
+		dp += n1+da;
+		if (hp)
+			hp++;
+		v += fb;
 	}
+	while (--w);
 }
 
 static inline void
-fz_paint_affine_solid_g2rgb_near(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, byte * restrict hp)
+template_affine_N_near_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, byte * restrict hp)
 {
-	if (fa == 0)
+	int k;
+	int vi = v >> 16;
+	if (vi < 0 || vi >= sh)
+		return;
+	sp += vi * ss;
+	do
 	{
 		int ui = u >> 16;
-		if (ui < 0 || ui >= sw)
-			return;
-		sp += ui * (1+sa);
-		while (w--)
+		if (ui >= 0 && ui < sw)
 		{
-			int vi = v >> 16;
-			if (vi >= 0 && vi < sh)
+			const byte *sample = sp + (ui * (n1+sa));
+			int a = sa ? sample[n1] : 255;
+			/* If a is 0, then sample[k] = 0 for all k, as premultiplied */
+			if (a != 0)
 			{
-				const byte *sample = sp + (vi * ss);
-				int a = (sa ? sample[1] : 255);
-				if (a != 0)
+				int t = 255 - a;
+				if (t == 0)
 				{
-					int x = sample[0];
-					int t = 255 - a;
-					if (t == 0)
+					if (n1+da == 4 && n1+sa == 4)
 					{
-						dp[0] = x;
-						dp[1] = x;
-						dp[2] = x;
-						if (da)
-							dp[3] = a;
-						if (hp)
-							hp[0] = a;
+						*(int32_t *)dp = *(int32_t *)sample;
 					}
 					else
 					{
-						dp[0] = x + fz_mul255(dp[0], t);
-						dp[1] = x + fz_mul255(dp[1], t);
-						dp[2] = x + fz_mul255(dp[2], t);
+						dp[0] = sample[0];
+						if (n1 > 1)
+							dp[1] = sample[1];
+						if (n1 > 2)
+							dp[2] = sample[2];
+						for (k = 3; k < n1; k++)
+							dp[k] = sample[k];
 						if (da)
-							dp[3] = a + fz_mul255(dp[3], t);
-						if (hp)
-							hp[0] = a + fz_mul255(hp[0], t);
+							dp[n1] = a;
 					}
+					if (hp)
+						hp[0] = a;
+				}
+				else
+				{
+					for (k = 0; k < n1; k++)
+						dp[k] = sample[k] + fz_mul255(dp[k], t);
+					if(da)
+						dp[n1] = a + fz_mul255(dp[n1], t);
+					if (hp)
+						hp[0] = a + fz_mul255(hp[0], t);
 				}
 			}
-			dp += 3 + da;
-			if (hp)
-				hp++;
-			v += fb;
 		}
+		dp += n1+da;
+		if (hp)
+			hp++;
+		u += fa;
 	}
-	else if (fb == 0)
+	while (--w);
+}
+
+static inline void
+template_affine_N_near(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, byte * restrict hp)
+{
+	int k;
+	do
+	{
+		int ui = u >> 16;
+		int vi = v >> 16;
+		if (ui >= 0 && ui < sw && vi >= 0 && vi < sh)
+		{
+			const byte *sample = sp + (vi * ss) + (ui * (n1+sa));
+			int a = sa ? sample[n1] : 255;
+			/* If a is 0, then sample[k] = 0 for all k, as premultiplied */
+			if (a != 0)
+			{
+				int t = 255 - a;
+				if (t == 0)
+				{
+					if (n1+da == 4 && n1+sa == 4)
+					{
+						*(int32_t *)dp = *(int32_t *)sample;
+					}
+					else
+					{
+						dp[0] = sample[0];
+						if (n1 > 1)
+							dp[1] = sample[1];
+						if (n1 > 2)
+							dp[2] = sample[2];
+						for (k = 3; k < n1; k++)
+							dp[k] = sample[k];
+						if (da)
+							dp[n1] = a;
+					}
+					if (hp)
+						hp[0] = a;
+				}
+				else
+				{
+					for (k = 0; k < n1; k++)
+						dp[k] = sample[k] + fz_mul255(dp[k], t);
+					if (da)
+						dp[n1] = a + fz_mul255(dp[n1], t);
+					if (hp)
+						hp[0] = a + fz_mul255(hp[0], t);
+				}
+			}
+		}
+		dp += n1+da;
+		if (hp)
+			hp++;
+		u += fa;
+		v += fb;
+	}
+	while (--w);
+}
+
+static inline void
+template_affine_solid_g2rgb_near_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, byte * restrict hp)
+{
+	int ui = u >> 16;
+	if (ui < 0 || ui >= sw)
+		return;
+	sp += ui * (1+sa);
+	do
 	{
 		int vi = v >> 16;
-		if (vi < 0 || vi >= sh)
-			return;
-		sp += vi * ss;
-		while (w--)
+		if (vi >= 0 && vi < sh)
 		{
-			int ui = u >> 16;
-			if (ui >= 0 && ui < sw)
+			const byte *sample = sp + (vi * ss);
+			int a = (sa ? sample[1] : 255);
+			if (a != 0)
 			{
-				const byte *sample = sp + (ui * (1+sa));
-				int a = (sa ? sample[1] : 255);
-				if (a != 0)
+				int x = sample[0];
+				int t = 255 - a;
+				if (t == 0)
 				{
-					int x = sample[0];
-					int t = 255 - a;
-					if (t == 0)
-					{
-						dp[0] = x;
-						dp[1] = x;
-						dp[2] = x;
-						if (da)
-							dp[3] = a;
-						if (hp)
-							hp[0] = a;
-					}
-					else
-					{
-						dp[0] = x + fz_mul255(dp[0], t);
-						dp[1] = x + fz_mul255(dp[1], t);
-						dp[2] = x + fz_mul255(dp[2], t);
-						if (da)
-							dp[3] = a + fz_mul255(dp[3], t);
-						if (hp)
-							hp[0] = a + fz_mul255(hp[0], t);
-					}
+					dp[0] = x;
+					dp[1] = x;
+					dp[2] = x;
+					if (da)
+						dp[3] = a;
+					if (hp)
+						hp[0] = a;
+				}
+				else
+				{
+					dp[0] = x + fz_mul255(dp[0], t);
+					dp[1] = x + fz_mul255(dp[1], t);
+					dp[2] = x + fz_mul255(dp[2], t);
+					if (da)
+						dp[3] = a + fz_mul255(dp[3], t);
+					if (hp)
+						hp[0] = a + fz_mul255(hp[0], t);
 				}
 			}
-			dp += 3 + da;
-			if (hp)
-				hp++;
-			u += fa;
 		}
+		dp += 3 + da;
+		if (hp)
+			hp++;
+		v += fb;
 	}
-	else
+	while (--w);
+}
+
+static inline void
+template_affine_solid_g2rgb_near_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, byte * restrict hp)
+{
+	int vi = v >> 16;
+	if (vi < 0 || vi >= sh)
+		return;
+	sp += vi * ss;
+	do
 	{
-		while (w--)
+		int ui = u >> 16;
+		if (ui >= 0 && ui < sw)
 		{
-			int ui = u >> 16;
-			int vi = v >> 16;
-			if (ui >= 0 && ui < sw && vi >= 0 && vi < sh)
+			const byte *sample = sp + (ui * (1+sa));
+			int a = (sa ? sample[1] : 255);
+			if (a != 0)
 			{
-				const byte *sample = sp + (vi * ss) + (ui * (1+sa));
-				int a = sa ? sample[1] : 255;
-				if (a != 0)
+				int x = sample[0];
+				int t = 255 - a;
+				if (t == 0)
 				{
-					int x = sample[0];
-					int t = 255 - a;
-					if (t == 0)
-					{
-						dp[0] = x;
-						dp[1] = x;
-						dp[2] = x;
-						if (da)
-							dp[3] = a;
-						if (hp)
-							hp[0] = a;
-					}
-					else
-					{
-						dp[0] = x + fz_mul255(dp[0], t);
-						dp[1] = x + fz_mul255(dp[1], t);
-						dp[2] = x + fz_mul255(dp[2], t);
-						if (da)
-							dp[3] = a + fz_mul255(dp[3], t);
-						if (hp)
-							hp[0] = a + fz_mul255(hp[0], t);
-					}
+					dp[0] = x;
+					dp[1] = x;
+					dp[2] = x;
+					if (da)
+						dp[3] = a;
+					if (hp)
+						hp[0] = a;
+				}
+				else
+				{
+					dp[0] = x + fz_mul255(dp[0], t);
+					dp[1] = x + fz_mul255(dp[1], t);
+					dp[2] = x + fz_mul255(dp[2], t);
+					if (da)
+						dp[3] = a + fz_mul255(dp[3], t);
+					if (hp)
+						hp[0] = a + fz_mul255(hp[0], t);
 				}
 			}
-			dp += 3 + da;
-			if (hp)
-				hp++;
-			u += fa;
-			v += fb;
 		}
+		dp += 3 + da;
+		if (hp)
+			hp++;
+		u += fa;
 	}
+	while (--w);
+}
+
+static inline void
+template_affine_solid_g2rgb_near(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, byte * restrict hp)
+{
+	do
+	{
+		int ui = u >> 16;
+		int vi = v >> 16;
+		if (ui >= 0 && ui < sw && vi >= 0 && vi < sh)
+		{
+			const byte *sample = sp + (vi * ss) + (ui * (1+sa));
+			int a = sa ? sample[1] : 255;
+			if (a != 0)
+			{
+				int x = sample[0];
+				int t = 255 - a;
+				if (t == 0)
+				{
+					dp[0] = x;
+					dp[1] = x;
+					dp[2] = x;
+					if (da)
+						dp[3] = a;
+					if (hp)
+						hp[0] = a;
+				}
+				else
+				{
+					dp[0] = x + fz_mul255(dp[0], t);
+					dp[1] = x + fz_mul255(dp[1], t);
+					dp[2] = x + fz_mul255(dp[2], t);
+					if (da)
+						dp[3] = a + fz_mul255(dp[3], t);
+					if (hp)
+						hp[0] = a + fz_mul255(hp[0], t);
+				}
+			}
+		}
+		dp += 3 + da;
+		if (hp)
+			hp++;
+		u += fa;
+		v += fb;
+	}
+	while (--w);
 }
 
 /* Blend non-premultiplied color in source image mask over destination */
 
 static inline void
-fz_paint_affine_color_N_lerp(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int u, int v, int fa, int fb, int w, int n1, const byte * restrict color, byte * restrict hp)
+template_affine_color_N_lerp(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int u, int v, int fa, int fb, int w, int n1, const byte * restrict color, byte * restrict hp)
 {
 	int sa = color[n1];
 	int k;
 
-	while (w--)
+	do
 	{
 		if (u + 32768 >= 0 && u < sw && v + 32768 >= 0 && v < sh)
 		{
@@ -662,12 +731,15 @@ fz_paint_affine_color_N_lerp(byte * restrict dp, int da, const byte * restrict s
 			const byte *d = sample_nearest(sp, sw, sh, ss, 1, ui+1, vi+1);
 			int ma = bilerp(a[0], b[0], c[0], d[0], uf, vf);
 			int masa = FZ_COMBINE(FZ_EXPAND(ma), sa);
-			for (k = 0; k < n1; k++)
-				dp[k] = FZ_BLEND(color[k], dp[k], masa);
-			if (da)
-				dp[n1] = FZ_BLEND(255, dp[n1], masa);
-			if (hp)
-				hp[0] = FZ_BLEND(255, hp[0], masa);
+			if (masa != 0)
+			{
+				for (k = 0; k < n1; k++)
+					dp[k] = FZ_BLEND(color[k], dp[k], masa);
+				if (da)
+					dp[n1] = FZ_BLEND(255, dp[n1], masa);
+				if (hp)
+					hp[0] = FZ_BLEND(255, hp[0], masa);
+			}
 		}
 		dp += n1 + da;
 		if (hp)
@@ -675,15 +747,16 @@ fz_paint_affine_color_N_lerp(byte * restrict dp, int da, const byte * restrict s
 		u += fa;
 		v += fb;
 	}
+	while (--w);
 }
 
 static inline void
-fz_paint_affine_color_N_near(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int u, int v, int fa, int fb, int w, int n1, const byte * restrict color, byte * restrict hp)
+template_affine_color_N_near(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int u, int v, int fa, int fb, int w, int n1, const byte * restrict color, byte * restrict hp)
 {
 	int sa = color[n1];
 	int k;
 
-	while (w--)
+	do
 	{
 		int ui = u >> 16;
 		int vi = v >> 16;
@@ -691,12 +764,15 @@ fz_paint_affine_color_N_near(byte * restrict dp, int da, const byte * restrict s
 		{
 			int ma = sp[vi * ss + ui];
 			int masa = FZ_COMBINE(FZ_EXPAND(ma), sa);
-			for (k = 0; k < n1; k++)
-				dp[k] = FZ_BLEND(color[k], dp[k], masa);
-			if (da)
-				dp[n1] = FZ_BLEND(255, dp[n1], masa);
-			if (hp)
-				hp[0] = FZ_BLEND(255, hp[0], masa);
+			if (masa)
+			{
+				for (k = 0; k < n1; k++)
+					dp[k] = FZ_BLEND(color[k], dp[k], masa);
+				if (da)
+					dp[n1] = FZ_BLEND(255, dp[n1], masa);
+				if (hp)
+					hp[0] = FZ_BLEND(255, hp[0], masa);
+			}
 		}
 		dp += n1+da;
 		if (hp)
@@ -704,58 +780,533 @@ fz_paint_affine_color_N_near(byte * restrict dp, int da, const byte * restrict s
 		u += fa;
 		v += fb;
 	}
+	while (--w);
 }
 
 static void
-fz_paint_affine_lerp(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color/*unused*/, byte * restrict hp)
+paint_affine_lerp_da_sa_0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 0, hp);
+}
+
+static void
+paint_affine_lerp_da_sa_alpha_0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 0, alpha, hp);
+}
+
+static void
+paint_affine_lerp_da_0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 0, hp);
+}
+
+static void
+paint_affine_lerp_da_alpha_0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 0, alpha, hp);
+}
+
+static void
+paint_affine_lerp_da_1(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, hp);
+}
+
+static void
+paint_affine_lerp_da_alpha_1(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, alpha, hp);
+}
+
+static void
+paint_affine_lerp_1(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_lerp(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, hp);
+}
+
+static void
+paint_affine_lerp_alpha_1(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_lerp(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, alpha, hp);
+}
+
+#if FZ_PLOTTERS_G
+static void
+paint_affine_lerp_da_sa_1(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, hp);
+}
+
+static void
+paint_affine_lerp_da_sa_alpha_1(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, alpha, hp);
+}
+
+static void
+paint_affine_lerp_sa_1(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_lerp(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, hp);
+}
+
+static void
+paint_affine_lerp_sa_alpha_1(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_lerp(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, alpha, hp);
+}
+#endif /* FZ_PLOTTERS_G */
+
+#if FZ_PLOTTERS_RGB
+static void
+paint_affine_lerp_da_sa_3(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, hp);
+}
+
+static void
+paint_affine_lerp_da_sa_alpha_3(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, alpha, hp);
+}
+
+static void
+paint_affine_lerp_da_3(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, hp);
+}
+
+static void
+paint_affine_lerp_da_alpha_3(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, alpha, hp);
+}
+
+static void
+paint_affine_lerp_sa_3(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_lerp(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, hp);
+}
+
+static void
+paint_affine_lerp_sa_alpha_3(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_lerp(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, alpha, hp);
+}
+
+static void
+paint_affine_lerp_3(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_lerp(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, hp);
+}
+
+static void
+paint_affine_lerp_alpha_3(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_lerp(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, alpha, hp);
+}
+#endif /* FZ_PLOTTERS_RGB */
+
+#if FZ_PLOTTERS_CMYK
+static void
+paint_affine_lerp_da_sa_4(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, hp);
+}
+
+static void
+paint_affine_lerp_da_sa_alpha_4(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, alpha, hp);
+}
+
+static void
+paint_affine_lerp_da_4(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, hp);
+}
+
+static void
+paint_affine_lerp_da_alpha_4(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, alpha, hp);
+}
+
+static void
+paint_affine_lerp_sa_4(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_lerp(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, hp);
+}
+
+static void
+paint_affine_lerp_sa_alpha_4(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_lerp(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, alpha, hp);
+}
+
+static void
+paint_affine_lerp_4(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_lerp(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, hp);
+}
+
+static void
+paint_affine_lerp_alpha_4(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_lerp(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, alpha, hp);
+}
+#endif /* FZ_PLOTTERS_CMYK */
+
+#if FZ_PLOTTERS_N
+static void
+paint_affine_lerp_da_sa_N(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, hp);
+}
+
+static void
+paint_affine_lerp_da_sa_alpha_N(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, alpha, hp);
+}
+
+static void
+paint_affine_lerp_da_N(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, hp);
+}
+
+static void
+paint_affine_lerp_da_alpha_N(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, alpha, hp);
+}
+
+static void
+paint_affine_lerp_sa_N(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_lerp(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, hp);
+}
+
+static void
+paint_affine_lerp_sa_alpha_N(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_lerp(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, alpha, hp);
+}
+
+static void
+paint_affine_lerp_N(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_lerp(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, hp);
+}
+
+static void
+paint_affine_lerp_alpha_N(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_lerp(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, alpha, hp);
+}
+#endif /* FZ_PLOTTERS_N */
+
+static paintfn_t *
+fz_paint_affine_lerp(int da, int sa, int fa, int fb, int n, int alpha)
+{
+	switch(n)
+	{
+	case 0:
+		if (da)
+		{
+			if (sa)
+			{
+				if (alpha == 255)
+					return paint_affine_lerp_da_sa_0;
+				else if (alpha > 0)
+					return paint_affine_lerp_da_sa_alpha_0;
+			}
+			else
+			{
+				if (alpha == 255)
+					return paint_affine_lerp_da_0;
+				else if (alpha > 0)
+					return paint_affine_lerp_da_alpha_0;
+			}
+		}
+		break;
+
+	case 1:
+		if (sa)
+		{
+#if FZ_PLOTTERS_G
+			if (da)
+			{
+				if (alpha == 255)
+					return paint_affine_lerp_da_sa_1;
+				else if (alpha > 0)
+					return paint_affine_lerp_da_sa_alpha_1;
+			}
+			else
+			{
+				if (alpha == 255)
+					return paint_affine_lerp_sa_1;
+				else if (alpha > 0)
+					return paint_affine_lerp_sa_alpha_1;
+			}
+#else
+			goto fallback;
+#endif /* FZ_PLOTTERS_H */
+		}
+		else
+		{
+			if (da)
+			{
+				if (alpha == 255)
+					return paint_affine_lerp_da_1;
+				else if (alpha > 0)
+					return paint_affine_lerp_da_alpha_1;
+			}
+			else
+			{
+				if (alpha == 255)
+					return paint_affine_lerp_1;
+				else if (alpha > 0)
+					return paint_affine_lerp_alpha_1;
+			}
+		}
+		break;
+
+#if FZ_PLOTTERS_RGB
+	case 3:
+		if (da)
+		{
+			if (sa)
+			{
+				if (alpha == 255)
+					return paint_affine_lerp_da_sa_3;
+				else if (alpha > 0)
+					return paint_affine_lerp_da_sa_alpha_3;
+			}
+			else
+			{
+				if (alpha == 255)
+					return paint_affine_lerp_da_3;
+				else if (alpha > 0)
+					return paint_affine_lerp_da_alpha_3;
+			}
+		}
+		else
+		{
+			if (sa)
+			{
+				if (alpha == 255)
+					return paint_affine_lerp_sa_3;
+				else if (alpha > 0)
+					return paint_affine_lerp_sa_alpha_3;
+			}
+			else
+			{
+				if (alpha == 255)
+					return paint_affine_lerp_3;
+				else if (alpha > 0)
+					return paint_affine_lerp_alpha_3;
+			}
+		}
+		break;
+#endif /* FZ_PLOTTERS_RGB */
+
+#if FZ_PLOTTERS_CMYK
+	case 4:
+		if (da)
+		{
+			if (sa)
+			{
+				if (alpha == 255)
+					return paint_affine_lerp_da_sa_4;
+				else if (alpha > 0)
+					return paint_affine_lerp_da_sa_alpha_4;
+			}
+			else
+			{
+				if (alpha == 255)
+					return paint_affine_lerp_da_4;
+				else if (alpha > 0)
+					return paint_affine_lerp_da_alpha_4;
+			}
+		}
+		else
+		{
+			if (sa)
+			{
+				if (alpha == 255)
+					return paint_affine_lerp_sa_4;
+				else if (alpha > 0)
+					return paint_affine_lerp_sa_alpha_4;
+			}
+			else
+			{
+				if (alpha == 255)
+					return paint_affine_lerp_4;
+				else if (alpha > 0)
+					return paint_affine_lerp_alpha_4;
+			}
+		}
+		break;
+#endif /* FZ_PLOTTERS_CMYK */
+
+#if !FZ_PLOTTERS_G
+fallback:
+#endif /* FZ_PLOTTERS_G */
+	default:
+#if FZ_PLOTTERS_N
+		if (da)
+		{
+			if (sa)
+			{
+				if (alpha == 255)
+					return paint_affine_lerp_da_sa_N;
+				else if (alpha > 0)
+					return paint_affine_lerp_da_sa_alpha_N;
+			}
+			else
+			{
+				if (alpha == 255)
+					return paint_affine_lerp_da_N;
+				else if (alpha > 0)
+					return paint_affine_lerp_da_alpha_N;
+			}
+		}
+		else
+		{
+			if (sa)
+			{
+				if (alpha == 255)
+					return paint_affine_lerp_sa_N;
+				else if (alpha > 0)
+					return paint_affine_lerp_sa_alpha_N;
+			}
+			else
+			{
+				if (alpha == 255)
+					return paint_affine_lerp_N;
+				else if (alpha > 0)
+					return paint_affine_lerp_alpha_N;
+			}
+		}
+#endif /* FZ_PLOTTERS_N */
+		break;
+	}
+	return NULL;
+}
+
+#if FZ_PLOTTERS_RGB
+static void
+paint_affine_lerp_da_sa_g2rgb(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_solid_g2rgb_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, hp);
+}
+
+static void
+paint_affine_lerp_da_sa_g2rgb_alpha(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_g2rgb_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, alpha, hp);
+}
+
+static void
+paint_affine_lerp_da_g2rgb(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_solid_g2rgb_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, hp);
+}
+
+static void
+paint_affine_lerp_da_g2rgb_alpha(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_g2rgb_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, alpha, hp);
+}
+
+static void
+paint_affine_lerp_sa_g2rgb(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_solid_g2rgb_lerp(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, hp);
+}
+
+static void
+paint_affine_lerp_sa_g2rgb_alpha(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_g2rgb_lerp(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, alpha, hp);
+}
+
+static void
+paint_affine_lerp_g2rgb(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_solid_g2rgb_lerp(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, hp);
+}
+
+static void
+paint_affine_lerp_g2rgb_alpha(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_g2rgb_lerp(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, alpha, hp);
+}
+
+static paintfn_t *
+fz_paint_affine_g2rgb_lerp(int da, int sa, int fa, int fb, int n, int alpha)
 {
 	if (da)
 	{
 		if (sa)
 		{
 			if (alpha == 255)
-			{
-				switch (n)
-				{
-				case 1: fz_paint_affine_N_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, hp); break;
-				case 3: fz_paint_affine_N_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, hp); break;
-				case 4: fz_paint_affine_N_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, hp); break;
-				default: fz_paint_affine_N_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, hp); break;
-				}
-			}
+				return paint_affine_lerp_da_sa_g2rgb;
 			else if (alpha > 0)
-			{
-				switch (n)
-				{
-				case 1: fz_paint_affine_alpha_N_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, alpha, hp); break;
-				case 3: fz_paint_affine_alpha_N_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, alpha, hp); break;
-				case 4: fz_paint_affine_alpha_N_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, alpha, hp); break;
-				default: fz_paint_affine_alpha_N_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, alpha, hp); break;
-				}
-			}
+				return paint_affine_lerp_da_sa_g2rgb_alpha;
 		}
 		else
 		{
 			if (alpha == 255)
-			{
-				switch (n)
-				{
-				case 1: fz_paint_affine_N_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, hp); break;
-				case 3: fz_paint_affine_N_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, hp); break;
-				case 4: fz_paint_affine_N_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, hp); break;
-				default: fz_paint_affine_N_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, hp); break;
-				}
-			}
+				return paint_affine_lerp_da_g2rgb;
 			else if (alpha > 0)
-			{
-				switch (n)
-				{
-				case 1: fz_paint_affine_alpha_N_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, alpha, hp); break;
-				case 3: fz_paint_affine_alpha_N_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, alpha, hp); break;
-				case 4: fz_paint_affine_alpha_N_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, alpha, hp); break;
-				default: fz_paint_affine_alpha_N_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, alpha, hp); break;
-				}
-			}
+				return paint_affine_lerp_da_g2rgb_alpha;
 		}
 	}
 	else
@@ -763,77 +1314,1447 @@ fz_paint_affine_lerp(byte * restrict dp, int da, const byte * restrict sp, int s
 		if (sa)
 		{
 			if (alpha == 255)
+				return paint_affine_lerp_sa_g2rgb;
+			else if (alpha > 0)
+				return paint_affine_lerp_sa_g2rgb_alpha;
+		}
+		else
+		{
+			if (alpha == 255)
+				return paint_affine_lerp_g2rgb;
+			else if (alpha > 0)
+				return paint_affine_lerp_g2rgb_alpha;
+		}
+	}
+	return NULL;
+}
+#endif /* FZ_PLOTTERS_RGB */
+
+static void
+paint_affine_near_da_sa_0_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fa0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 0, hp);
+}
+
+static void
+paint_affine_near_da_sa_alpha_0_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fa0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 0, alpha, hp);
+}
+
+static void
+paint_affine_near_da_0_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fa0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 0, hp);
+}
+
+static void
+paint_affine_near_da_alpha_0_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fa0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 0, alpha, hp);
+}
+
+static void
+paint_affine_near_da_sa_0_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fb0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 0, hp);
+}
+
+static void
+paint_affine_near_da_sa_alpha_0_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fb0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 0, alpha, hp);
+}
+
+static void
+paint_affine_near_da_0_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fb0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 0, hp);
+}
+
+static void
+paint_affine_near_da_alpha_0_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fb0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 0, alpha, hp);
+}
+
+static void
+paint_affine_near_da_sa_0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 0, hp);
+}
+
+static void
+paint_affine_near_da_sa_alpha_0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 0, alpha, hp);
+}
+
+static void
+paint_affine_near_da_0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 0, hp);
+}
+
+static void
+paint_affine_near_da_alpha_0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 0, alpha, hp);
+}
+
+static void
+paint_affine_near_1_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fa0(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, hp);
+}
+
+static void
+paint_affine_near_1_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fb0(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, hp);
+}
+
+static void
+paint_affine_near_1(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, hp);
+}
+
+static void
+paint_affine_near_alpha_1_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fa0(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, alpha, hp);
+}
+
+static void
+paint_affine_near_alpha_1_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fb0(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, alpha, hp);
+}
+
+static void
+paint_affine_near_alpha_1(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, alpha, hp);
+}
+
+static void
+paint_affine_near_da_1_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fa0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, hp);
+}
+
+static void
+paint_affine_near_da_alpha_1_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fa0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, alpha, hp);
+}
+
+static void
+paint_affine_near_da_1_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fb0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, hp);
+}
+
+static void
+paint_affine_near_da_alpha_1_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fb0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, alpha, hp);
+}
+
+static void
+paint_affine_near_da_1(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, hp);
+}
+
+static void
+paint_affine_near_da_alpha_1(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, alpha, hp);
+}
+
+#if FZ_PLOTTERS_G
+static void
+paint_affine_near_da_sa_1_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fa0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, hp);
+}
+
+static void
+paint_affine_near_da_sa_alpha_1_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fa0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, alpha, hp);
+}
+
+static void
+paint_affine_near_sa_1_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fa0(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, hp);
+}
+
+static void
+paint_affine_near_sa_alpha_1_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fa0(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, alpha, hp);
+}
+
+static void
+paint_affine_near_da_sa_1_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fb0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, hp);
+}
+
+static void
+paint_affine_near_da_sa_alpha_1_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fb0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, alpha, hp);
+}
+
+static void
+paint_affine_near_sa_alpha_1_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fb0(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, alpha, hp);
+}
+
+static void
+paint_affine_near_da_sa_1(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, hp);
+}
+
+static void
+paint_affine_near_sa_1_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fb0(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, hp);
+}
+
+static void
+paint_affine_near_da_sa_alpha_1(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, alpha, hp);
+}
+
+static void
+paint_affine_near_sa_1(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, hp);
+}
+
+static void
+paint_affine_near_sa_alpha_1(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, alpha, hp);
+}
+#endif /* FZ_PLOTTERS_G */
+
+#if FZ_PLOTTERS_RGB
+static void
+paint_affine_near_da_sa_3_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fa0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, hp);
+}
+
+static void
+paint_affine_near_da_sa_alpha_3_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fa0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, alpha, hp);
+}
+
+static void
+paint_affine_near_da_3_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fa0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, hp);
+}
+
+static void
+paint_affine_near_da_alpha_3_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fa0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, alpha, hp);
+}
+
+static void
+paint_affine_near_sa_3_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fa0(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, hp);
+}
+
+static void
+paint_affine_near_sa_alpha_3_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fa0(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, alpha, hp);
+}
+
+static void
+paint_affine_near_3_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fa0(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, hp);
+}
+
+static void
+paint_affine_near_alpha_3_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fa0(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, alpha, hp);
+}
+
+static void
+paint_affine_near_da_sa_3_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fb0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, hp);
+}
+
+static void
+paint_affine_near_da_sa_alpha_3_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fb0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, alpha, hp);
+}
+
+static void
+paint_affine_near_da_3_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fb0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, hp);
+}
+
+static void
+paint_affine_near_da_alpha_3_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fb0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, alpha, hp);
+}
+
+static void
+paint_affine_near_sa_alpha_3_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fb0(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, alpha, hp);
+}
+
+static void
+paint_affine_near_da_sa_3(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, hp);
+}
+
+static void
+paint_affine_near_alpha_3_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fb0(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, alpha, hp);
+}
+
+static void
+paint_affine_near_3_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fb0(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, hp);
+}
+
+static void
+paint_affine_near_sa_3_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fb0(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, hp);
+}
+
+static void
+paint_affine_near_da_sa_alpha_3(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, alpha, hp);
+}
+
+static void
+paint_affine_near_da_3(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, hp);
+}
+
+static void
+paint_affine_near_sa_3(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, hp);
+}
+
+static void
+paint_affine_near_da_alpha_3(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, alpha, hp);
+}
+
+static void
+paint_affine_near_sa_alpha_3(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, alpha, hp);
+}
+
+static void
+paint_affine_near_3(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, hp);
+}
+
+static void
+paint_affine_near_alpha_3(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, alpha, hp);
+}
+#endif /* FZ_PLOTTERS_RGB */
+
+#if FZ_PLOTTERS_CMYK
+static void
+paint_affine_near_da_sa_4_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fa0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, hp);
+}
+
+static void
+paint_affine_near_da_sa_alpha_4_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fa0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, alpha, hp);
+}
+
+static void
+paint_affine_near_da_4_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fa0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, hp);
+}
+
+static void
+paint_affine_near_da_alpha_4_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fa0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, alpha, hp);
+}
+
+static void
+paint_affine_near_sa_4_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fa0(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, hp);
+}
+
+static void
+paint_affine_near_sa_alpha_4_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fa0(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, alpha, hp);
+}
+
+static void
+paint_affine_near_4_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fa0(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, hp);
+}
+
+static void
+paint_affine_near_alpha_4_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fa0(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, alpha, hp);
+}
+
+static void
+paint_affine_near_da_sa_4_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fb0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, hp);
+}
+
+static void
+paint_affine_near_da_sa_alpha_4_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fb0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, alpha, hp);
+}
+
+static void
+paint_affine_near_da_4_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fb0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, hp);
+}
+
+static void
+paint_affine_near_da_alpha_4_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fb0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, alpha, hp);
+}
+
+static void
+paint_affine_near_sa_4_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fb0(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, hp);
+}
+
+static void
+paint_affine_near_sa_alpha_4_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fb0(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, alpha, hp);
+}
+
+static void
+paint_affine_near_4_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fb0(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, hp);
+}
+
+static void
+paint_affine_near_alpha_4_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fb0(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, alpha, hp);
+}
+
+static void
+paint_affine_near_da_sa_4(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, hp);
+}
+
+static void
+paint_affine_near_da_sa_alpha_4(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, alpha, hp);
+}
+
+static void
+paint_affine_near_da_4(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, hp);
+}
+
+static void
+paint_affine_near_da_alpha_4(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, alpha, hp);
+}
+
+static void
+paint_affine_near_sa_4(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, hp);
+}
+
+static void
+paint_affine_near_sa_alpha_4(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, alpha, hp);
+}
+
+static void
+paint_affine_near_4(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, hp);
+}
+
+static void
+paint_affine_near_alpha_4(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, alpha, hp);
+}
+#endif /* FZ_PLOTTERS_CMYK */
+
+#if FZ_PLOTTERS_N
+static void
+paint_affine_near_da_sa_N_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fa0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, hp);
+}
+
+static void
+paint_affine_near_da_sa_alpha_N_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fa0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, alpha, hp);
+}
+
+static void
+paint_affine_near_da_N_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fa0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, hp);
+}
+
+static void
+paint_affine_near_da_alpha_N_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fa0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, alpha, hp);
+}
+
+static void
+paint_affine_near_sa_N_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fa0(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, hp);
+}
+
+static void
+paint_affine_near_sa_alpha_N_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fa0(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, alpha, hp);
+}
+
+static void
+paint_affine_near_N_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fa0(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, hp);
+}
+
+static void
+paint_affine_near_alpha_N_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fa0(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, alpha, hp);
+}
+
+static void
+paint_affine_near_da_sa_N_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fb0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, hp);
+}
+
+static void
+paint_affine_near_da_sa_alpha_N_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fb0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, alpha, hp);
+}
+
+static void
+paint_affine_near_da_N_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fb0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, hp);
+}
+
+static void
+paint_affine_near_da_alpha_N_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fb0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, alpha, hp);
+}
+
+static void
+paint_affine_near_sa_N_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fb0(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, hp);
+}
+
+static void
+paint_affine_near_sa_alpha_N_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fb0(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, alpha, hp);
+}
+
+static void
+paint_affine_near_N_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near_fb0(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, hp);
+}
+
+static void
+paint_affine_near_alpha_N_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near_fb0(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, alpha, hp);
+}
+
+static void
+paint_affine_near_da_sa_N(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, hp);
+}
+
+static void
+paint_affine_near_da_sa_alpha_N(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, alpha, hp);
+}
+
+static void
+paint_affine_near_da_N(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, hp);
+}
+
+static void
+paint_affine_near_da_alpha_N(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, alpha, hp);
+}
+
+static void
+paint_affine_near_sa_N(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, hp);
+}
+
+static void
+paint_affine_near_sa_alpha_N(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, alpha, hp);
+}
+
+static void
+paint_affine_near_N(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_N_near(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, hp);
+}
+
+static void
+paint_affine_near_alpha_N(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_N_near(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, alpha, hp);
+}
+#endif
+
+static paintfn_t *
+fz_paint_affine_near(int da, int sa, int fa, int fb, int n, int alpha)
+{
+	switch(n)
+	{
+	case 0:
+		if (da)
+		{
+			if (sa)
 			{
-				switch (n)
+				if (alpha == 255)
 				{
-				case 1: fz_paint_affine_N_lerp(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, hp); break;
-				case 3: fz_paint_affine_N_lerp(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, hp); break;
-				case 4: fz_paint_affine_N_lerp(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, hp); break;
-				default: fz_paint_affine_N_lerp(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, hp); break;
+					if (fa == 0)
+						return paint_affine_near_da_sa_0_fa0;
+					else if (fb == 0)
+						return paint_affine_near_da_sa_0_fb0;
+					else
+						return paint_affine_near_da_sa_0;
+				}
+				else if (alpha > 0)
+				{
+					if (fa == 0)
+						return paint_affine_near_da_sa_alpha_0_fa0;
+					else if (fb == 0)
+						return paint_affine_near_da_sa_alpha_0_fb0;
+					else
+						return paint_affine_near_da_sa_alpha_0;
 				}
 			}
-			else if (alpha > 0)
+			else
 			{
-				switch (n)
+				if (alpha == 255)
 				{
-				case 1: fz_paint_affine_alpha_N_lerp(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, alpha, hp); break;
-				case 3: fz_paint_affine_alpha_N_lerp(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, alpha, hp); break;
-				case 4: fz_paint_affine_alpha_N_lerp(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, alpha, hp); break;
-				default: fz_paint_affine_alpha_N_lerp(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, alpha, hp); break;
+					if (fa == 0)
+						return paint_affine_near_da_0_fa0;
+					else if (fb == 0)
+						return paint_affine_near_da_0_fb0;
+					else
+						return paint_affine_near_da_0;
+				}
+				else if (alpha > 0)
+				{
+					if (fa == 0)
+						return paint_affine_near_da_alpha_0_fa0;
+					else if (fb == 0)
+						return paint_affine_near_da_alpha_0_fb0;
+					else
+						return paint_affine_near_da_alpha_0;
+				}
+			}
+		}
+		break;
+
+	case 1:
+		if (sa)
+		{
+#if FZ_PLOTTERS_G
+			if (da)
+			{
+				if (alpha == 255)
+				{
+					if (fa == 0)
+						return paint_affine_near_da_sa_1_fa0;
+					else if (fb == 0)
+						return paint_affine_near_da_sa_1_fb0;
+					else
+						return paint_affine_near_da_sa_1;
+				}
+				else if (alpha > 0)
+				{
+					if (fa == 0)
+						return paint_affine_near_da_sa_alpha_1_fa0;
+					else if (fb == 0)
+						return paint_affine_near_da_sa_alpha_1_fb0;
+					else
+						return paint_affine_near_da_sa_alpha_1;
+				}
+			}
+			else
+			{
+				if (alpha == 255)
+				{
+					if (fa == 0)
+						return paint_affine_near_sa_1_fa0;
+					else if (fb == 0)
+						return paint_affine_near_sa_1_fb0;
+					else
+						return paint_affine_near_sa_1;
+				}
+				else if (alpha > 0)
+				{
+					if (fa == 0)
+						return paint_affine_near_sa_alpha_1_fa0;
+					else if (fb == 0)
+						return paint_affine_near_sa_alpha_1_fb0;
+					else
+						return paint_affine_near_sa_alpha_1;
+				}
+			}
+#else
+			goto fallback;
+#endif /* FZ_PLOTTERS_G */
+		}
+		else
+		{
+			if (da)
+			{
+				if (alpha == 255)
+				{
+					if (fa == 0)
+						return paint_affine_near_da_1_fa0;
+					else if (fb == 0)
+						return paint_affine_near_da_1_fb0;
+					else
+						return paint_affine_near_da_1;
+				}
+				else if (alpha > 0)
+				{
+					if (fa == 0)
+						return paint_affine_near_da_alpha_1_fa0;
+					else if (fb == 0)
+						return paint_affine_near_da_alpha_1_fb0;
+					else
+						return paint_affine_near_da_alpha_1;
+				}
+			}
+			else
+			{
+				if (alpha == 255)
+				{
+					if (fa == 0)
+						return paint_affine_near_1_fa0;
+					else if (fb == 0)
+						return paint_affine_near_1_fb0;
+					else
+						return paint_affine_near_1;
+				}
+				else if (alpha > 0)
+				{
+					if (fa == 0)
+						return paint_affine_near_alpha_1_fa0;
+					else if (fb == 0)
+						return paint_affine_near_alpha_1_fb0;
+					else
+						return paint_affine_near_alpha_1;
+				}
+			}
+		}
+		break;
+
+#if FZ_PLOTTERS_RGB
+	case 3:
+		if (da)
+		{
+			if (sa)
+			{
+				if (alpha == 255)
+				{
+					if (fa == 0)
+						return paint_affine_near_da_sa_3_fa0;
+					else if (fb == 0)
+						return paint_affine_near_da_sa_3_fb0;
+					else
+						return paint_affine_near_da_sa_3;
+				}
+				else if (alpha > 0)
+				{
+					if (fa == 0)
+						return paint_affine_near_da_sa_alpha_3_fa0;
+					else if (fb == 0)
+						return paint_affine_near_da_sa_alpha_3_fb0;
+					else
+						return paint_affine_near_da_sa_alpha_3;
+				}
+			}
+			else
+			{
+				if (alpha == 255)
+				{
+					if (fa == 0)
+						return paint_affine_near_da_3_fa0;
+					else if (fb == 0)
+						return paint_affine_near_da_3_fb0;
+					else
+						return paint_affine_near_da_3;
+				}
+				else if (alpha > 0)
+				{
+					if (fa == 0)
+						return paint_affine_near_da_alpha_3_fa0;
+					else if (fb == 0)
+						return paint_affine_near_da_alpha_3_fb0;
+					else
+						return paint_affine_near_da_alpha_3;
 				}
 			}
 		}
 		else
 		{
-			if (alpha == 255)
+			if (sa)
 			{
-				switch (n)
+				if (alpha == 255)
 				{
-				case 1: fz_paint_affine_N_lerp(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, hp); break;
-				case 3: fz_paint_affine_N_lerp(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, hp); break;
-				case 4: fz_paint_affine_N_lerp(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, hp); break;
-				default: fz_paint_affine_N_lerp(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, hp); break;
+					if (fa == 0)
+						return paint_affine_near_sa_3_fa0;
+					else if (fb == 0)
+						return paint_affine_near_sa_3_fb0;
+					else
+						return paint_affine_near_sa_3;
+				}
+				else if (alpha > 0)
+				{
+					if (fa == 0)
+						return paint_affine_near_sa_alpha_3_fa0;
+					else if (fb == 0)
+						return paint_affine_near_sa_alpha_3_fb0;
+					else
+						return paint_affine_near_sa_alpha_3;
 				}
 			}
-			else if (alpha > 0)
+			else
 			{
-				switch (n)
+				if (alpha == 255)
 				{
-				case 1: fz_paint_affine_alpha_N_lerp(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, alpha, hp); break;
-				case 3: fz_paint_affine_alpha_N_lerp(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, alpha, hp); break;
-				case 4: fz_paint_affine_alpha_N_lerp(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, alpha, hp); break;
-				default: fz_paint_affine_alpha_N_lerp(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, alpha, hp); break;
+					if (fa == 0)
+						return paint_affine_near_3_fa0;
+					else if (fb == 0)
+						return paint_affine_near_3_fb0;
+					else
+						return paint_affine_near_3;
+				}
+				else if (alpha > 0)
+				{
+					if (fa == 0)
+						return paint_affine_near_alpha_3_fa0;
+					else if (fb == 0)
+						return paint_affine_near_alpha_3_fb0;
+					else
+						return paint_affine_near_alpha_3;
 				}
 			}
 		}
+		break;
+#endif /* FZ_PLOTTERS_RGB */
+
+#if FZ_PLOTTERS_CMYK
+	case 4:
+		if (da)
+		{
+			if (sa)
+			{
+				if (alpha == 255)
+				{
+					if (fa == 0)
+						return paint_affine_near_da_sa_4_fa0;
+					else if (fb == 0)
+						return paint_affine_near_da_sa_4_fb0;
+					else
+						return paint_affine_near_da_sa_4;
+				}
+				else if (alpha > 0)
+				{
+					if (fa == 0)
+						return paint_affine_near_da_sa_alpha_4_fa0;
+					else if (fb == 0)
+						return paint_affine_near_da_sa_alpha_4_fb0;
+					else
+						return paint_affine_near_da_sa_alpha_4;
+				}
+			}
+			else
+			{
+				if (alpha == 255)
+				{
+					if (fa == 0)
+						return paint_affine_near_da_4_fa0;
+					else if (fb == 0)
+						return paint_affine_near_da_4_fb0;
+					else
+						return paint_affine_near_da_4;
+				}
+				else if (alpha > 0)
+				{
+					if (fa == 0)
+						return paint_affine_near_da_alpha_4_fa0;
+					else if (fb == 0)
+						return paint_affine_near_da_alpha_4_fb0;
+					else
+						return paint_affine_near_da_alpha_4;
+				}
+			}
+		}
+		else
+		{
+			if (sa)
+			{
+				if (alpha == 255)
+				{
+					if (fa == 0)
+						return paint_affine_near_sa_4_fa0;
+					else if (fb == 0)
+						return paint_affine_near_sa_4_fb0;
+					else
+						return paint_affine_near_sa_4;
+				}
+				else if (alpha > 0)
+				{
+					if (fa == 0)
+						return paint_affine_near_sa_alpha_4_fa0;
+					else if (fb == 0)
+						return paint_affine_near_sa_alpha_4_fb0;
+					else
+						return paint_affine_near_sa_alpha_4;
+				}
+			}
+			else
+			{
+				if (alpha == 255)
+				{
+					if (fa == 0)
+						return paint_affine_near_4_fa0;
+					else if (fb == 0)
+						return paint_affine_near_4_fb0;
+					else
+						return paint_affine_near_4;
+				}
+				else if (alpha > 0)
+				{
+					if (fa == 0)
+						return paint_affine_near_alpha_4_fa0;
+					else if (fb == 0)
+						return paint_affine_near_alpha_4_fb0;
+					else
+						return paint_affine_near_alpha_4;
+				}
+			}
+		}
+		break;
+#endif /* FZ_PLOTTERS_CMYK */
+
+#if !FZ_PLOTTERS_G
+fallback:
+#endif /* FZ_PLOTTERS_G */
+	default:
+#if FZ_PLOTTERS_N
+		if (da)
+		{
+			if (sa)
+			{
+				if (alpha == 255)
+				{
+					if (fa == 0)
+						return paint_affine_near_da_sa_N_fa0;
+					else if (fb == 0)
+						return paint_affine_near_da_sa_N_fb0;
+					else
+						return paint_affine_near_da_sa_N;
+				}
+				else if (alpha > 0)
+				{
+					if (fa == 0)
+						return paint_affine_near_da_sa_alpha_N_fa0;
+					else if (fb == 0)
+						return paint_affine_near_da_sa_alpha_N_fb0;
+					else
+						return paint_affine_near_da_sa_alpha_N;
+				}
+			}
+			else
+			{
+				if (alpha == 255)
+				{
+					if (fa == 0)
+						return paint_affine_near_da_N_fa0;
+					else if (fb == 0)
+						return paint_affine_near_da_N_fb0;
+					else
+						return paint_affine_near_da_N;
+				}
+				else if (alpha > 0)
+				{
+					if (fa == 0)
+						return paint_affine_near_da_alpha_N_fa0;
+					else if (fb == 0)
+						return paint_affine_near_da_alpha_N_fb0;
+					else
+						return paint_affine_near_da_alpha_N;
+				}
+			}
+		}
+		else
+		{
+			if (sa)
+			{
+				if (alpha == 255)
+				{
+					if (fa == 0)
+						return paint_affine_near_sa_N_fa0;
+					else if (fb == 0)
+						return paint_affine_near_sa_N_fb0;
+					else
+						return paint_affine_near_sa_N;
+				}
+				else if (alpha > 0)
+				{
+					if (fa == 0)
+						return paint_affine_near_sa_alpha_N_fa0;
+					else if (fb == 0)
+						return paint_affine_near_sa_alpha_N_fb0;
+					else
+						return paint_affine_near_sa_alpha_N;
+				}
+			}
+			else
+			{
+				if (alpha == 255)
+				{
+					if (fa == 0)
+						return paint_affine_near_N_fa0;
+					else if (fb == 0)
+						return paint_affine_near_N_fb0;
+					else
+						return paint_affine_near_N;
+				}
+				else if (alpha > 0)
+				{
+					if (fa == 0)
+						return paint_affine_near_alpha_N_fa0;
+					else if (fb == 0)
+						return paint_affine_near_alpha_N_fb0;
+					else
+						return paint_affine_near_alpha_N;
+				}
+			}
+		}
+#endif /* FZ_PLOTTERS_N */
+		break;
 	}
+	return NULL;
+}
+
+#if FZ_PLOTTERS_RGB
+static void
+paint_affine_near_da_sa_g2rgb_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_solid_g2rgb_near_fa0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, hp);
 }
 
 static void
-fz_paint_affine_g2rgb_lerp(byte *dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color/*unused*/, byte * restrict hp)
+paint_affine_near_da_sa_alpha_g2rgb_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_g2rgb_near_fa0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, alpha, hp);
+}
+
+static void
+paint_affine_near_da_g2rgb_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_solid_g2rgb_near_fa0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, hp);
+}
+
+static void
+paint_affine_near_da_alpha_g2rgb_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_g2rgb_near_fa0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, alpha, hp);
+}
+
+static void
+paint_affine_near_sa_g2rgb_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_solid_g2rgb_near_fa0(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, hp);
+}
+
+static void
+paint_affine_near_sa_alpha_g2rgb_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_g2rgb_near_fa0(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, alpha, hp);
+}
+
+static void
+paint_affine_near_g2rgb_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_solid_g2rgb_near_fa0(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, hp);
+}
+
+static void
+paint_affine_near_alpha_g2rgb_fa0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_g2rgb_near_fa0(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, alpha, hp);
+}
+
+static void
+paint_affine_near_da_sa_g2rgb_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_solid_g2rgb_near_fb0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, hp);
+}
+
+static void
+paint_affine_near_da_sa_alpha_g2rgb_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_g2rgb_near_fb0(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, alpha, hp);
+}
+
+static void
+paint_affine_near_da_g2rgb_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_solid_g2rgb_near_fb0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, hp);
+}
+
+static void
+paint_affine_near_da_alpha_g2rgb_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_g2rgb_near_fb0(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, alpha, hp);
+}
+
+static void
+paint_affine_near_sa_g2rgb_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_solid_g2rgb_near_fb0(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, hp);
+}
+
+static void
+paint_affine_near_sa_alpha_g2rgb_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_g2rgb_near_fb0(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, alpha, hp);
+}
+
+static void
+paint_affine_near_g2rgb_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_solid_g2rgb_near_fb0(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, hp);
+}
+
+static void
+paint_affine_near_alpha_g2rgb_fb0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_g2rgb_near_fb0(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, alpha, hp);
+}
+
+static void
+paint_affine_near_da_sa_g2rgb(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_solid_g2rgb_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, hp);
+}
+
+static void
+paint_affine_near_da_sa_alpha_g2rgb(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_g2rgb_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, alpha, hp);
+}
+
+static void
+paint_affine_near_da_g2rgb(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_solid_g2rgb_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, hp);
+}
+
+static void
+paint_affine_near_da_alpha_g2rgb(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_g2rgb_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, alpha, hp);
+}
+
+static void
+paint_affine_near_sa_g2rgb(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_solid_g2rgb_near(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, hp);
+}
+
+static void
+paint_affine_near_sa_alpha_g2rgb(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_g2rgb_near(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, alpha, hp);
+}
+
+static void
+paint_affine_near_g2rgb(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_solid_g2rgb_near(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, hp);
+}
+
+static void
+paint_affine_near_alpha_g2rgb(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n1, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_alpha_g2rgb_near(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, alpha, hp);
+}
+
+static paintfn_t *
+fz_paint_affine_g2rgb_near(int da, int sa, int fa, int fb, int n, int alpha)
 {
 	if (da)
 	{
 		if (sa)
 		{
-			if (alpha == 255)
+			if (fa == 0)
 			{
-				fz_paint_affine_solid_g2rgb_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, hp);
+				if (alpha == 255)
+					return paint_affine_near_da_sa_g2rgb_fa0;
+				else if (alpha > 0)
+					return paint_affine_near_da_sa_alpha_g2rgb_fa0;
 			}
-			else if (alpha > 0)
+			else if (fb == 0)
 			{
-				fz_paint_affine_alpha_g2rgb_lerp(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, alpha, hp);
+				if (alpha == 255)
+					return paint_affine_near_da_sa_g2rgb_fb0;
+				else if (alpha > 0)
+					return paint_affine_near_da_sa_alpha_g2rgb_fb0;
+			}
+			else
+			{
+				if (alpha == 255)
+					return paint_affine_near_da_sa_g2rgb;
+				else if (alpha > 0)
+					return paint_affine_near_da_sa_alpha_g2rgb;
 			}
 		}
 		else
 		{
-			if (alpha == 255)
+			if (fa == 0)
 			{
-				fz_paint_affine_solid_g2rgb_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, hp);
+				if (alpha == 255)
+					return paint_affine_near_da_g2rgb_fa0;
+				else if (alpha > 0)
+					return paint_affine_near_da_alpha_g2rgb_fa0;
 			}
-			else if (alpha > 0)
+			else if (fb == 0)
 			{
-				fz_paint_affine_alpha_g2rgb_lerp(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, alpha, hp);
+				if (alpha == 255)
+					return paint_affine_near_da_g2rgb_fb0;
+				else if (alpha > 0)
+					return paint_affine_near_da_alpha_g2rgb_fb0;
+			}
+			else
+			{
+				if (alpha == 255)
+					return paint_affine_near_da_g2rgb;
+				else if (alpha > 0)
+					return paint_affine_near_da_alpha_g2rgb;
 			}
 		}
 	}
@@ -841,238 +2762,241 @@ fz_paint_affine_g2rgb_lerp(byte *dp, int da, const byte * restrict sp, int sw, i
 	{
 		if (sa)
 		{
-			if (alpha == 255)
+			if (fa == 0)
 			{
-				fz_paint_affine_solid_g2rgb_lerp(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, hp);
+				if (alpha == 255)
+					return paint_affine_near_sa_g2rgb_fa0;
+				else if (alpha > 0)
+					return paint_affine_near_sa_alpha_g2rgb_fa0;
 			}
-			else if (alpha > 0)
+			else if (fb == 0)
 			{
-				fz_paint_affine_alpha_g2rgb_lerp(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, alpha, hp);
+				if (alpha == 255)
+					return paint_affine_near_sa_g2rgb_fb0;
+				else if (alpha > 0)
+					return paint_affine_near_sa_alpha_g2rgb_fb0;
+			}
+			else
+			{
+				if (alpha == 255)
+					return paint_affine_near_sa_g2rgb;
+				else if (alpha > 0)
+					return paint_affine_near_sa_alpha_g2rgb;
 			}
 		}
 		else
 		{
-			if (alpha == 255)
+			if (fa == 0)
 			{
-				fz_paint_affine_solid_g2rgb_lerp(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, hp);
+				if (alpha == 255)
+					return paint_affine_near_g2rgb_fa0;
+				else if (alpha > 0)
+					return paint_affine_near_alpha_g2rgb_fa0;
 			}
-			else if (alpha > 0)
+			else if (fb == 0)
 			{
-				fz_paint_affine_alpha_g2rgb_lerp(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, alpha, hp);
+				if (alpha == 255)
+					return paint_affine_near_g2rgb_fb0;
+				else if (alpha > 0)
+					return paint_affine_near_alpha_g2rgb_fb0;
+			}
+			else
+			{
+				if (alpha == 255)
+					return paint_affine_near_g2rgb;
+				else if (alpha > 0)
+					return paint_affine_near_alpha_g2rgb;
 			}
 		}
 	}
+	return NULL;
+}
+#endif /* FZ_PLOTTERS_RGB */
+
+static void
+paint_affine_color_lerp_da_0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_color_N_lerp(dp, 1, sp, sw, sh, ss, u, v, fa, fb, w, 0, color, hp);
+}
+
+#if FZ_PLOTTERS_G
+static void
+paint_affine_color_lerp_da_1(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_color_N_lerp(dp, 1, sp, sw, sh, ss, u, v, fa, fb, w, 1, color, hp);
 }
 
 static void
-fz_paint_affine_near(byte *dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color/*unused */, byte * restrict hp)
+paint_affine_color_lerp_1(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
 {
-	if (da)
-	{
-		if (sa)
-		{
-			if (alpha == 255)
-			{
-				switch (n)
-				{
-				case 0: fz_paint_affine_N_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 0, hp); break;
-				case 1: fz_paint_affine_N_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, hp); break;
-				case 3: fz_paint_affine_N_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, hp); break;
-				case 4: fz_paint_affine_N_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, hp); break;
-				default: fz_paint_affine_N_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, hp); break;
-				}
-			}
-			else if (alpha > 0)
-			{
-				switch (n)
-				{
-				case 0: fz_paint_affine_alpha_N_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 0, alpha, hp); break;
-				case 1: fz_paint_affine_alpha_N_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, alpha, hp); break;
-				case 3: fz_paint_affine_alpha_N_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, alpha, hp); break;
-				case 4: fz_paint_affine_alpha_N_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, alpha, hp); break;
-				default: fz_paint_affine_alpha_N_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, alpha, hp); break;
-				}
-			}
-		}
-		else
-		{
-			if (alpha == 255)
-			{
-				switch (n)
-				{
-				case 0: fz_paint_affine_N_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 0, hp); break;
-				case 1: fz_paint_affine_N_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, hp); break;
-				case 3: fz_paint_affine_N_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, hp); break;
-				case 4: fz_paint_affine_N_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, hp); break;
-				default: fz_paint_affine_N_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, hp); break;
-				}
-			}
-			else if (alpha > 0)
-			{
-				switch (n)
-				{
-				case 0: fz_paint_affine_alpha_N_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 0, alpha, hp); break;
-				case 1: fz_paint_affine_alpha_N_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, alpha, hp); break;
-				case 3: fz_paint_affine_alpha_N_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, alpha, hp); break;
-				case 4: fz_paint_affine_alpha_N_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, alpha, hp); break;
-				default: fz_paint_affine_alpha_N_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, alpha, hp); break;
-				}
-			}
-		}
-	}
-	else
-	{
-		if (sa)
-		{
-			if (alpha == 255)
-			{
-				switch (n)
-				{
-				case 1: fz_paint_affine_N_near(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, hp); break;
-				case 3: fz_paint_affine_N_near(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, hp); break;
-				case 4: fz_paint_affine_N_near(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, hp); break;
-				default: fz_paint_affine_N_near(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, hp); break;
-				}
-			}
-			else if (alpha > 0)
-			{
-				switch (n)
-				{
-				case 1: fz_paint_affine_alpha_N_near(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 1, alpha, hp); break;
-				case 3: fz_paint_affine_alpha_N_near(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 3, alpha, hp); break;
-				case 4: fz_paint_affine_alpha_N_near(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, 4, alpha, hp); break;
-				default: fz_paint_affine_alpha_N_near(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, n, alpha, hp); break;
-				}
-			}
-		}
-		else
-		{
-			if (alpha == 255)
-			{
-				switch (n)
-				{
-				case 1: fz_paint_affine_N_near(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, hp); break;
-				case 3: fz_paint_affine_N_near(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, hp); break;
-				case 4: fz_paint_affine_N_near(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, hp); break;
-				default: fz_paint_affine_N_near(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, hp); break;
-				}
-			}
-			else if (alpha > 0)
-			{
-				switch (n)
-				{
-				case 1: fz_paint_affine_alpha_N_near(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 1, alpha, hp); break;
-				case 3: fz_paint_affine_alpha_N_near(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 3, alpha, hp); break;
-				case 4: fz_paint_affine_alpha_N_near(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, 4, alpha, hp); break;
-				default: fz_paint_affine_alpha_N_near(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, n, alpha, hp); break;
-				}
-			}
-		}
-	}
+	TRACK_FN();
+	template_affine_color_N_lerp(dp, 0, sp, sw, sh, ss, u, v, fa, fb, w, 1, color, hp);
+}
+#endif /* FZ_PLOTTERS_G */
+
+#if FZ_PLOTTERS_RGB
+static void
+paint_affine_color_lerp_3(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_color_N_lerp(dp, 0, sp, sw, sh, ss, u, v, fa, fb, w, 3, color, hp);
 }
 
 static void
-fz_paint_affine_g2rgb_near(byte *dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color/*unused*/, byte * restrict hp)
+paint_affine_color_lerp_da_3(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
 {
-	if (da)
-	{
-		if (sa)
-		{
-			if (alpha == 255)
-			{
-				fz_paint_affine_solid_g2rgb_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, hp);
-			}
-			else if (alpha > 0)
-			{
-				fz_paint_affine_alpha_g2rgb_near(dp, 1, sp, sw, sh, ss, 1, u, v, fa, fb, w, alpha, hp);
-			}
-		}
-		else
-		{
-			if (alpha == 255)
-			{
-				fz_paint_affine_solid_g2rgb_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, hp);
-			}
-			else if (alpha > 0)
-			{
-				fz_paint_affine_alpha_g2rgb_near(dp, 1, sp, sw, sh, ss, 0, u, v, fa, fb, w, alpha, hp);
-			}
-		}
-	}
-	else
-	{
-		if (sa)
-		{
-			if (alpha == 255)
-			{
-				fz_paint_affine_solid_g2rgb_near(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, hp);
-			}
-			else if (alpha > 0)
-			{
-				fz_paint_affine_alpha_g2rgb_near(dp, 0, sp, sw, sh, ss, 1, u, v, fa, fb, w, alpha, hp);
-			}
-		}
-		else
-		{
-			if (alpha == 255)
-			{
-				fz_paint_affine_solid_g2rgb_near(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, hp);
-			}
-			else if (alpha > 0)
-			{
-				fz_paint_affine_alpha_g2rgb_near(dp, 0, sp, sw, sh, ss, 0, u, v, fa, fb, w, alpha, hp);
-			}
-		}
-	}
+	TRACK_FN();
+	template_affine_color_N_lerp(dp, 1, sp, sw, sh, ss, u, v, fa, fb, w, 3, color, hp);
+}
+#endif /* FZ_PLOTTERS_RGB */
+
+#if FZ_PLOTTERS_CMYK
+static void
+paint_affine_color_lerp_da_4(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_color_N_lerp(dp, 1, sp, sw, sh, ss, u, v, fa, fb, w, 4, color, hp);
 }
 
 static void
-fz_paint_affine_color_lerp(byte *dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha/*unused*/, const byte * restrict color, byte * restrict hp)
+paint_affine_color_lerp_4(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
 {
-	if (da)
-	{
-		switch (n)
-		{
-		case 1: fz_paint_affine_color_N_lerp(dp, 1, sp, sw, sh, ss, u, v, fa, fb, w, 1, color, hp); break;
-		case 3: fz_paint_affine_color_N_lerp(dp, 1, sp, sw, sh, ss, u, v, fa, fb, w, 3, color, hp); break;
-		case 4: fz_paint_affine_color_N_lerp(dp, 1, sp, sw, sh, ss, u, v, fa, fb, w, 4, color, hp); break;
-		default: fz_paint_affine_color_N_lerp(dp, 1, sp, sw, sh, ss, u, v, fa, fb, w, n, color, hp); break;
-		}
-	}
-	else
-	{
-		switch (n)
-		{
-		case 1: fz_paint_affine_color_N_lerp(dp, 0, sp, sw, sh, ss, u, v, fa, fb, w, 1, color, hp); break;
-		case 3: fz_paint_affine_color_N_lerp(dp, 0, sp, sw, sh, ss, u, v, fa, fb, w, 3, color, hp); break;
-		case 4: fz_paint_affine_color_N_lerp(dp, 0, sp, sw, sh, ss, u, v, fa, fb, w, 4, color, hp); break;
-		default: fz_paint_affine_color_N_lerp(dp, 0, sp, sw, sh, ss, u, v, fa, fb, w, n, color, hp); break;
-		}
-	}
+	TRACK_FN();
+	template_affine_color_N_lerp(dp, 0, sp, sw, sh, ss, u, v, fa, fb, w, 4, color, hp);
+}
+#endif /* FZ_PLOTTERS_G */
+
+#if FZ_PLOTTERS_N
+static void
+paint_affine_color_lerp_da_N(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_color_N_lerp(dp, 1, sp, sw, sh, ss, u, v, fa, fb, w, n, color, hp);
 }
 
 static void
-fz_paint_affine_color_near(byte *dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha/*unused*/, const byte * restrict color, byte * restrict hp)
+paint_affine_color_lerp_N(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
 {
-	if (da)
+	TRACK_FN();
+	template_affine_color_N_lerp(dp, 0, sp, sw, sh, ss, u, v, fa, fb, w, n, color, hp);
+}
+#endif /* FZ_PLOTTERS_CMYK */
+
+static paintfn_t *
+fz_paint_affine_color_lerp(int da, int sa, int fa, int fb, int n, int alpha)
+{
+	switch (n)
 	{
-		switch (n)
-		{
-		case 1: fz_paint_affine_color_N_near(dp, 1, sp, sw, sh, ss, u, v, fa, fb, w, 1, color, hp); break;
-		case 3: fz_paint_affine_color_N_near(dp, 1, sp, sw, sh, ss, u, v, fa, fb, w, 3, color, hp); break;
-		case 4: fz_paint_affine_color_N_near(dp, 1, sp, sw, sh, ss, u, v, fa, fb, w, 4, color, hp); break;
-		default: fz_paint_affine_color_N_near(dp, 1, sp, sw, sh, ss, u, v, fa, fb, w, n, color, hp); break;
-		}
+	case 0: return da ? paint_affine_color_lerp_da_0 : NULL;
+#if FZ_PLOTTERS_G
+	case 1: return da ? paint_affine_color_lerp_da_1 : paint_affine_color_lerp_1;
+#endif /* FZ_PLOTTERS_G */
+#if FZ_PLOTTERS_RGB
+	case 3: return da ? paint_affine_color_lerp_da_3 : paint_affine_color_lerp_3;
+#endif /* FZ_PLOTTERS_RGB */
+#if FZ_PLOTTERS_CMYK
+	case 4: return da ? paint_affine_color_lerp_da_4 : paint_affine_color_lerp_4;
+#endif /* FZ_PLOTTERS_CMYK */
+#if FZ_PLOTTERS_N
+	default: return da ? paint_affine_color_lerp_da_N : paint_affine_color_lerp_N;
+#endif /* FZ_PLOTTERS_N */
 	}
-	else
+	return NULL;
+}
+
+static void
+paint_affine_color_near_da_0(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_color_N_near(dp, 1, sp, sw, sh, ss, u, v, fa, fb, w, 0, color, hp);
+}
+
+#if FZ_PLOTTERS_G
+static void
+paint_affine_color_near_da_1(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_color_N_near(dp, 1, sp, sw, sh, ss, u, v, fa, fb, w, 1, color, hp);
+}
+
+static void
+paint_affine_color_near_1(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_color_N_near(dp, 0, sp, sw, sh, ss, u, v, fa, fb, w, 1, color, hp);
+}
+#endif /* FZ_PLOTTERS_G */
+
+#if FZ_PLOTTERS_RGB
+static void
+paint_affine_color_near_da_3(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_color_N_near(dp, 1, sp, sw, sh, ss, u, v, fa, fb, w, 3, color, hp);
+}
+
+static void
+paint_affine_color_near_3(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_color_N_near(dp, 0, sp, sw, sh, ss, u, v, fa, fb, w, 3, color, hp);
+}
+#endif /* FZ_PLOTTERS_RGB */
+
+#if FZ_PLOTTERS_CMYK
+static void
+paint_affine_color_near_da_4(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_color_N_near(dp, 1, sp, sw, sh, ss, u, v, fa, fb, w, 4, color, hp);
+}
+
+static void
+paint_affine_color_near_4(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_color_N_near(dp, 0, sp, sw, sh, ss, u, v, fa, fb, w, 4, color, hp);
+}
+#endif /* FZ_PLOTTERS_CMYK */
+
+#if FZ_PLOTTERS_N
+static void
+paint_affine_color_near_da_N(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_color_N_near(dp, 1, sp, sw, sh, ss, u, v, fa, fb, w, n, color, hp);
+}
+
+static void
+paint_affine_color_near_N(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp)
+{
+	TRACK_FN();
+	template_affine_color_N_near(dp, 0, sp, sw, sh, ss, u, v, fa, fb, w, n, color, hp);
+}
+#endif /* FZ_PLOTTERS_N */
+
+static paintfn_t *
+fz_paint_affine_color_near(int da, int sa, int fa, int fb, int n, int alpha)
+{
+	switch (n)
 	{
-		switch (n)
-		{
-		case 1: fz_paint_affine_color_N_near(dp, 0, sp, sw, sh, ss, u, v, fa, fb, w, 1, color, hp); break;
-		case 3: fz_paint_affine_color_N_near(dp, 0, sp, sw, sh, ss, u, v, fa, fb, w, 3, color, hp); break;
-		case 4: fz_paint_affine_color_N_near(dp, 0, sp, sw, sh, ss, u, v, fa, fb, w, 4, color, hp); break;
-		default: fz_paint_affine_color_N_near(dp, 0, sp, sw, sh, ss, u, v, fa, fb, w, n, color, hp); break;
-		}
+	case 0: return da ? paint_affine_color_near_da_0 : NULL;
+#if FZ_PLOTTERS_G
+	case 1: return da ? paint_affine_color_near_da_1 : paint_affine_color_near_1;
+#endif /* FZ_PLOTTERS_G */
+#if FZ_PLOTTERS_RGB
+	case 3: return da ? paint_affine_color_near_da_3 : paint_affine_color_near_3;
+#endif /* FZ_PLOTTERS_RGB */
+#if FZ_PLOTTERS_CMYK
+	case 4: return da ? paint_affine_color_near_da_4 : paint_affine_color_near_4;
+#endif /* FZ_PLOTTERS_CMYK */
+#if FZ_PLOTTERS_N
+	default: return da ? paint_affine_color_near_da_N : paint_affine_color_near_N;
+#else
+	default: return NULL;
+#endif /* FZ_PLOTTERS_N */
 	}
 }
 
@@ -1276,7 +3200,7 @@ fz_paint_image_imp(fz_pixmap * restrict dst, const fz_irect *scissor, const fz_p
 	int sw, sh, ss, sa, n, hs, da;
 	fz_irect bbox;
 	int dolerp;
-	void (*paintfn)(byte * restrict dp, int da, const byte * restrict sp, int sw, int sh, int ss, int sa, int u, int v, int fa, int fb, int w, int n, int alpha, const byte * restrict color, byte * restrict hp);
+	paintfn_t *paintfn;
 	fz_matrix local_ctm = *ctm;
 	fz_rect rect;
 	int is_rectilinear;
@@ -1321,7 +3245,7 @@ fz_paint_image_imp(fz_pixmap * restrict dst, const fz_irect *scissor, const fz_p
 	if (shape && shape->y + shape->h < h)
 		h = shape->y + shape->h;
 	h -= y;
-	if (w < 0 || h < 0)
+	if (w <= 0 || h <= 0)
 		return;
 
 	/* map from screen space (x,y) to image space (u,v) */
@@ -1363,36 +3287,42 @@ fz_paint_image_imp(fz_pixmap * restrict dst, const fz_irect *scissor, const fz_p
 	/* TODO: if (fb == 0 && fa == 1) call fz_paint_span */
 
 	/* Sometimes we can get an alpha only input to be
-	 * ploted. In this case treat it as a greyscale
+	 * plotted. In this case treat it as a greyscale
 	 * input. */
-	if (img->n == sa && n > 0)
+	if (img->n == sa && color)
 		sa = 0;
 
+#if FZ_PLOTTERS_RGB
 	if (n == 3 && img->n == 1 + sa && !color)
 	{
 		if (dolerp)
-			paintfn = fz_paint_affine_g2rgb_lerp;
+			paintfn = fz_paint_affine_g2rgb_lerp(da, sa, fa, fb, n, alpha);
 		else
-			paintfn = fz_paint_affine_g2rgb_near;
+			paintfn = fz_paint_affine_g2rgb_near(da, sa, fa, fb, n, alpha);
 	}
 	else
+#endif /* FZ_PLOTTERS_RGB */
 	{
 		assert((!color && img->n - sa == n) || (color && img->n - sa == 1));
 		if (dolerp)
 		{
 			if (color)
-				paintfn = fz_paint_affine_color_lerp;
+				paintfn = fz_paint_affine_color_lerp(da, sa, fa, fb, n, alpha);
 			else
-				paintfn = fz_paint_affine_lerp;
+				paintfn = fz_paint_affine_lerp(da, sa, fa, fb, n, alpha);
 		}
 		else
 		{
 			if (color)
-				paintfn = fz_paint_affine_color_near;
+				paintfn = fz_paint_affine_color_near(da, sa, fa, fb, n, alpha);
 			else
-				paintfn = fz_paint_affine_near;
+				paintfn = fz_paint_affine_near(da, sa, fa, fb, n, alpha);
 		}
 	}
+
+	assert(paintfn);
+	if (paintfn == NULL)
+		return;
 
 	if (dolerp)
 	{

@@ -26,12 +26,13 @@ typedef enum
 }
 fz_permission;
 
-typedef void (fz_document_close_fn)(fz_context *ctx, fz_document *doc);
+typedef void (fz_document_drop_fn)(fz_context *ctx, fz_document *doc);
 typedef int (fz_document_needs_password_fn)(fz_context *ctx, fz_document *doc);
 typedef int (fz_document_authenticate_password_fn)(fz_context *ctx, fz_document *doc, const char *password);
 typedef int (fz_document_has_permission_fn)(fz_context *ctx, fz_document *doc, fz_permission permission);
 typedef fz_outline *(fz_document_load_outline_fn)(fz_context *ctx, fz_document *doc);
 typedef void (fz_document_layout_fn)(fz_context *ctx, fz_document *doc, float w, float h, float em);
+typedef int (fz_document_resolve_link_fn)(fz_context *ctx, fz_document *doc, const char *uri, float *xp, float *yp);
 typedef int (fz_document_count_pages_fn)(fz_context *ctx, fz_document *doc);
 typedef fz_page *(fz_document_load_page_fn)(fz_context *ctx, fz_document *doc, int number);
 typedef int (fz_document_lookup_metadata_fn)(fz_context *ctx, fz_document *doc, const char *key, char *buf, int size);
@@ -39,8 +40,8 @@ typedef int (fz_document_lookup_metadata_fn)(fz_context *ctx, fz_document *doc, 
 typedef fz_link *(fz_page_load_links_fn)(fz_context *ctx, fz_page *page);
 typedef fz_rect *(fz_page_bound_page_fn)(fz_context *ctx, fz_page *page, fz_rect *);
 typedef void (fz_page_run_page_contents_fn)(fz_context *ctx, fz_page *page, fz_device *dev, const fz_matrix *transform, fz_cookie *cookie);
-typedef void (fz_page_drop_page_imp_fn)(fz_context *ctx, fz_page *page);
-typedef fz_transition *(fz_page_page_presentation_fn)(fz_context *ctx, fz_page *page, float *duration);
+typedef void (fz_page_drop_page_fn)(fz_context *ctx, fz_page *page);
+typedef fz_transition *(fz_page_page_presentation_fn)(fz_context *ctx, fz_page *page, fz_transition *transition, float *duration);
 
 typedef fz_annot *(fz_page_first_annot_fn)(fz_context *ctx, fz_page *page);
 
@@ -49,24 +50,32 @@ typedef int (fz_page_separation_disabled_fn)(fz_context *ctx, fz_page *page, int
 typedef int (fz_page_count_separations_fn)(fz_context *ctx, fz_page *page);
 typedef const char *(fz_page_get_separation_fn)(fz_context *ctx, fz_page *page, int separation, uint32_t *rgb, uint32_t *cmyk);
 
-typedef void (fz_annot_drop_imp_fn)(fz_context *ctx, fz_annot *annot);
+typedef void (fz_annot_drop_fn)(fz_context *ctx, fz_annot *annot);
 typedef fz_annot *(fz_annot_next_fn)(fz_context *ctx, fz_annot *annot);
 typedef fz_rect *(fz_annot_bound_fn)(fz_context *ctx, fz_annot *annot, fz_rect *rect);
 typedef void (fz_annot_run_fn)(fz_context *ctx, fz_annot *annot, fz_device *dev, const fz_matrix *transform, fz_cookie *cookie);
 
+/*
+	Structure definition is public so other classes can
+	derive from it. Do not access the members directly.
+*/
 struct fz_annot_s
 {
 	int refs;
-	fz_annot_drop_imp_fn *drop_annot_imp;
+	fz_annot_drop_fn *drop_annot;
 	fz_annot_bound_fn *bound_annot;
 	fz_annot_run_fn *run_annot;
 	fz_annot_next_fn *next_annot;
 };
 
+/*
+	Structure definition is public so other classes can
+	derive from it. Do not access the members directly.
+*/
 struct fz_page_s
 {
 	int refs;
-	fz_page_drop_page_imp_fn *drop_page_imp;
+	fz_page_drop_page_fn *drop_page;
 	fz_page_bound_page_fn *bound_page;
 	fz_page_run_page_contents_fn *run_page_contents;
 	fz_page_load_links_fn *load_links;
@@ -78,19 +87,25 @@ struct fz_page_s
 	fz_page_get_separation_fn *get_separation;
 };
 
+/*
+	Structure definition is public so other classes can
+	derive from it. Do not access the members directly.
+*/
 struct fz_document_s
 {
 	int refs;
-	fz_document_close_fn *close;
+	fz_document_drop_fn *drop_document;
 	fz_document_needs_password_fn *needs_password;
 	fz_document_authenticate_password_fn *authenticate_password;
 	fz_document_has_permission_fn *has_permission;
 	fz_document_load_outline_fn *load_outline;
 	fz_document_layout_fn *layout;
+	fz_document_resolve_link_fn *resolve_link;
 	fz_document_count_pages_fn *count_pages;
 	fz_document_load_page_fn *load_page;
 	fz_document_lookup_metadata_fn *lookup_metadata;
 	int did_layout;
+	int is_reflowable;
 };
 
 typedef fz_document *(fz_document_open_fn)(fz_context *ctx, const char *filename);
@@ -103,16 +118,6 @@ struct fz_document_handler_s
 	fz_document_open_fn *open;
 	fz_document_open_with_stream_fn *open_with_stream;
 };
-
-extern fz_document_handler pdf_document_handler;
-extern fz_document_handler xps_document_handler;
-extern fz_document_handler svg_document_handler;
-extern fz_document_handler cbz_document_handler;
-extern fz_document_handler img_document_handler;
-extern fz_document_handler tiff_document_handler;
-extern fz_document_handler html_document_handler;
-extern fz_document_handler epub_document_handler;
-extern fz_document_handler gprf_document_handler;
 
 void fz_register_document_handler(fz_context *ctx, const fz_document_handler *handler);
 
@@ -149,7 +154,7 @@ fz_document *fz_open_document_with_stream(fz_context *ctx, const char *magic, fz
 */
 void *fz_new_document_of_size(fz_context *ctx, int size);
 
-#define fz_new_document(C,M) ((M*)Memento_label(fz_new_document_of_size(ctx, sizeof(M)), #M))
+#define fz_new_document(C,M) ((M*)Memento_label(fz_new_document_of_size(C, sizeof(M)), #M))
 
 /*
 	fz_keep_document: Keep a reference to an open document.
@@ -197,6 +202,13 @@ int fz_authenticate_password(fz_context *ctx, fz_document *doc, const char *pass
 fz_outline *fz_load_outline(fz_context *ctx, fz_document *doc);
 
 /*
+	fz_is_document_reflowable: Is the document reflowable.
+
+	Returns 1 to indicate reflowable documents, otherwise 0.
+*/
+int fz_is_document_reflowable(fz_context *ctx, fz_document *doc);
+
+/*
 	fz_layout_document: Layout reflowable document types.
 
 	w, h: Page size in points.
@@ -210,6 +222,15 @@ void fz_layout_document(fz_context *ctx, fz_document *doc, float w, float h, flo
 	May return 0 for documents with no pages.
 */
 int fz_count_pages(fz_context *ctx, fz_document *doc);
+
+/*
+	fz_resolve_link: Resolve an internal link to a page number.
+
+	xp, yp: Pointer to store coordinate of destination on the page.
+
+	Returns -1 if the URI cannot be resolved.
+*/
+int fz_resolve_link(fz_context *ctx, fz_document *doc, const char *uri, float *xp, float *yp);
 
 /*
 	fz_load_page: Load a page.
@@ -334,15 +355,15 @@ void *fz_new_annot(fz_context *ctx, int size);
 /*
 	fz_page_presentation: Get the presentation details for a given page.
 
-	duration: NULL, or a pointer to a place to set the page duration in
-	seconds. (Will be set to 0 if unspecified).
+	transition: A pointer to a transition struct to fill out.
 
-	Returns: a pointer to a transition structure, or NULL if there isn't
-	one.
+	duration: A pointer to a place to set the page duration in seconds.
+	Will be set to 0 if no transition is specified for the page.
 
-	Does not throw exceptions.
+	Returns: a pointer to a the transition structure, or NULL if there is no
+	transition specified for the page.
 */
-fz_transition *fz_page_presentation(fz_context *ctx, fz_page *page, float *duration);
+fz_transition *fz_page_presentation(fz_context *ctx, fz_page *page, fz_transition *transition, float *duration);
 
 /*
 	fz_has_permission: Check permission flags on document.

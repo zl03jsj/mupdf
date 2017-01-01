@@ -235,7 +235,7 @@ match_att_has_condition(fz_xml *node, const char *att, const char *needle)
 {
 	const char *haystack = fz_xml_att(node, att);
 	const char *ss;
-	int n;
+	size_t n;
 	if (haystack) {
 		/* Try matching whole property first. */
 		if (!strcmp(haystack, needle))
@@ -622,14 +622,14 @@ sort_properties(fz_css_match *match)
 }
 
 void
-fz_match_css(fz_context *ctx, fz_css_match *match, fz_css_rule *css, fz_xml *node)
+fz_match_css(fz_context *ctx, fz_css_match *match, fz_css *css, fz_xml *node)
 {
 	fz_css_rule *rule;
 	fz_css_selector *sel;
-	fz_css_property *prop, *head, *tail;
+	fz_css_property *prop;
 	const char *s;
 
-	for (rule = css; rule; rule = rule->next)
+	for (rule = css->rule; rule; rule = rule->next)
 	{
 		sel = rule->selector;
 		while (sel)
@@ -649,16 +649,13 @@ fz_match_css(fz_context *ctx, fz_css_match *match, fz_css_rule *css, fz_xml *nod
 	{
 		fz_try(ctx)
 		{
-			head = tail = prop = fz_parse_css_properties(ctx, s);
+			prop = fz_parse_css_properties(ctx, css->pool, s);
 			while (prop)
 			{
 				add_property(match, prop->name, prop->value, INLINE_SPECIFICITY);
-				tail = prop;
 				prop = prop->next;
 			}
-			if (tail)
-				tail->next = css->garbage;
-			css->garbage = head;
+			/* We can "leak" the property here, since it is freed along with the pool allocator. */
 		}
 		fz_catch(ctx)
 		{
@@ -670,13 +667,13 @@ fz_match_css(fz_context *ctx, fz_css_match *match, fz_css_rule *css, fz_xml *nod
 }
 
 void
-fz_match_css_at_page(fz_context *ctx, fz_css_match *match, fz_css_rule *css)
+fz_match_css_at_page(fz_context *ctx, fz_css_match *match, fz_css *css)
 {
 	fz_css_rule *rule;
 	fz_css_selector *sel;
 	fz_css_property *prop;
 
-	for (rule = css; rule; rule = rule->next)
+	for (rule = css->rule; rule; rule = rule->next)
 	{
 		sel = rule->selector;
 		while (sel)
@@ -761,12 +758,12 @@ fz_add_css_font_face(fz_context *ctx, fz_html_font_set *set, fz_archive *zip, co
 }
 
 void
-fz_add_css_font_faces(fz_context *ctx, fz_html_font_set *set, fz_archive *zip, const char *base_uri, fz_css_rule *css)
+fz_add_css_font_faces(fz_context *ctx, fz_html_font_set *set, fz_archive *zip, const char *base_uri, fz_css *css)
 {
 	fz_css_rule *rule;
 	fz_css_selector *sel;
 
-	for (rule = css; rule; rule = rule->next)
+	for (rule = css->rule; rule; rule = rule->next)
 	{
 		sel = rule->selector;
 		while (sel)
@@ -894,24 +891,32 @@ number_from_value(fz_css_value *value, float initial, int initial_unit)
 	{
 		float x = fz_css_strtof(value->data, &p);
 
-		if (p[0] == 'e' && p[1] == 'm')
+		if (p[0] == 'e' && p[1] == 'm' && p[2] == 0)
 			return make_number(x, N_SCALE);
-		if (p[0] == 'e' && p[1] == 'x')
+		if (p[0] == 'e' && p[1] == 'x' && p[2] == 0)
 			return make_number(x / 2, N_SCALE);
 
-		if (p[0] == 'i' && p[1] == 'n')
+		if (p[0] == 'i' && p[1] == 'n' && p[2] == 0)
 			return make_number(x * 72, N_LENGTH);
-		if (p[0] == 'c' && p[1] == 'm')
+		if (p[0] == 'c' && p[1] == 'm' && p[2] == 0)
 			return make_number(x * 7200 / 254, N_LENGTH);
-		if (p[0] == 'm' && p[1] == 'm')
+		if (p[0] == 'm' && p[1] == 'm' && p[2] == 0)
 			return make_number(x * 720 / 254, N_LENGTH);
-		if (p[0] == 'p' && p[1] == 'c')
+		if (p[0] == 'p' && p[1] == 'c' && p[2] == 0)
 			return make_number(x * 12, N_LENGTH);
 
-		if (p[0] == 'p' && p[1] == 't')
+		if (p[0] == 'p' && p[1] == 't' && p[2] == 0)
 			return make_number(x, N_LENGTH);
-		if (p[0] == 'p' && p[1] == 'x')
+		if (p[0] == 'p' && p[1] == 'x' && p[2] == 0)
 			return make_number(x, N_LENGTH);
+
+		/* FIXME: 'rem' should be 'em' of root element. This is a bad approximation. */
+		if (p[0] == 'r' && p[1] == 'e' && p[2] == 'm' && p[3] == 0)
+			return make_number(x * 16, N_LENGTH);
+
+		/* FIXME: 'ch' should be width of '0' character. This is an approximation. */
+		if (p[0] == 'c' && p[1] == 'h' && p[2] == 0)
+			return make_number(x / 2, N_LENGTH);
 
 		return make_number(x, N_LENGTH);
 	}
@@ -1013,7 +1018,9 @@ color_from_value(fz_css_value *value, fz_css_color initial)
 
 	if (value->type == CSS_HASH)
 	{
-		int r, g, b, n;
+		int r, g, b;
+		size_t n;
+hex_color:
 		n = strlen(value->data);
 		if (n == 3)
 		{
@@ -1085,7 +1092,7 @@ color_from_value(fz_css_value *value, fz_css_color initial)
 			return make_color(0xC0, 0xC0, 0xC0, 255);
 		if (!strcmp(value->data, "gray"))
 			return make_color(0x80, 0x80, 0x80, 255);
-		return make_color(0, 0, 0, 255);
+		goto hex_color; /* last ditch attempt: maybe it's a #XXXXXX color without the # */
 	}
 	return initial;
 }
@@ -1269,10 +1276,10 @@ fz_apply_css_style(fz_context *ctx, fz_html_font_set *set, fz_css_style *style, 
 	style->color = color_from_property(match, "color", black);
 	style->background_color = color_from_property(match, "background-color", transparent);
 
-	style->border_style[0] = border_style_from_property(match, "border-top-style");
-	style->border_style[1] = border_style_from_property(match, "border-right-style");
-	style->border_style[2] = border_style_from_property(match, "border-bottom-style");
-	style->border_style[3] = border_style_from_property(match, "border-left-style");
+	style->border_style_0 = border_style_from_property(match, "border-top-style");
+	style->border_style_1 = border_style_from_property(match, "border-right-style");
+	style->border_style_2 = border_style_from_property(match, "border-bottom-style");
+	style->border_style_3 = border_style_from_property(match, "border-left-style");
 
 	style->border_color[0] = color_from_property(match, "border-top-color", style->color);
 	style->border_color[1] = color_from_property(match, "border-right-color", style->color);

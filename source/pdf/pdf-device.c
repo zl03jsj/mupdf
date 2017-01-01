@@ -239,9 +239,10 @@ pdf_dev_color(fz_context *ctx, pdf_device *pdev, fz_colorspace *colorspace, cons
 	if (cspace == 0)
 	{
 		/* If it's an unknown colorspace, fallback to rgb */
-		colorspace->to_rgb(ctx, colorspace, color, rgb);
+		fz_convert_color(ctx, fz_device_rgb(ctx), rgb, colorspace, color);
 		color = rgb;
 		colorspace = fz_device_rgb(ctx);
+		cspace = 3;
 	}
 
 	if (gs->colorspace[stroke] != colorspace)
@@ -250,7 +251,7 @@ pdf_dev_color(fz_context *ctx, pdf_device *pdev, fz_colorspace *colorspace, cons
 		diff = 1;
 	}
 
-	for (i=0; i < colorspace->n; i++)
+	for (i=0; i < cspace; i++)
 		if (gs->color[stroke][i] != color[i])
 		{
 			gs->color[stroke][i] = color[i];
@@ -387,10 +388,10 @@ pdf_dev_font(fz_context *ctx, pdf_device *pdev, fz_font *font)
 	if (gs->font >= 0 && pdev->cid_fonts[gs->font] == font)
 		return;
 
-	if (font->t3procs)
+	if (fz_font_t3_procs(ctx, font))
 		fz_throw(ctx, FZ_ERROR_GENERIC, "pdf device does not support type 3 fonts");
-	if (font->ft_substitute)
-		fz_throw(ctx, FZ_ERROR_GENERIC, "pdf device does not support substitute fnots");
+	if (fz_font_flags(font)->ft_substitute)
+		fz_throw(ctx, FZ_ERROR_GENERIC, "pdf device does not support substitute fonts");
 	if (!pdf_font_writing_supported(font))
 		fz_throw(ctx, FZ_ERROR_GENERIC, "pdf device does not support font types found in this file");
 
@@ -473,7 +474,7 @@ pdf_dev_text_span(fz_context *ctx, pdf_device *pdev, fz_text_span *span)
 		if (fabsf(dx) > 0 || fabsf(dy) > 0)
 			fz_buffer_printf(ctx, gs->buf, "%f %f %f %f %f %f Tm\n", tm.a, tm.b, tm.c, tm.d, tm.e, tm.f);
 
-		if (span->font->t3procs)
+		if (fz_font_t3_procs(ctx, span->font))
 			fz_buffer_printf(ctx, gs->buf, "<%02x> Tj\n", it->gid);
 		else
 			fz_buffer_printf(ctx, gs->buf, "<%04x> Tj\n", it->gid);
@@ -568,15 +569,16 @@ pdf_dev_new_form(fz_context *ctx, pdf_obj **form_ref, pdf_device *pdev, const fz
 		group = pdf_new_dict(ctx, doc, 5);
 		fz_try(ctx)
 		{
+			int n = fz_colorspace_n(ctx, colorspace);
 			pdf_dict_put_drop(ctx, group, PDF_NAME_Type, PDF_NAME_Group);
 			pdf_dict_put_drop(ctx, group, PDF_NAME_S, PDF_NAME_Transparency);
 			pdf_dict_put_drop(ctx, group, PDF_NAME_K, pdf_new_bool(ctx, doc, knockout));
 			pdf_dict_put_drop(ctx, group, PDF_NAME_I, pdf_new_bool(ctx, doc, isolated));
-			if (!colorspace)
+			if (n == 0)
 			{}
-			else if (colorspace->n == 1)
+			if (n == 1)
 				pdf_dict_put_drop(ctx, group, PDF_NAME_CS, PDF_NAME_DeviceGray);
-			else if (colorspace->n == 4)
+			else if (n == 4)
 				pdf_dict_put_drop(ctx, group, PDF_NAME_CS, PDF_NAME_DeviceCMYK);
 			else
 				pdf_dict_put_drop(ctx, group, PDF_NAME_CS, PDF_NAME_DeviceRGB);
@@ -861,6 +863,10 @@ pdf_dev_fill_image_mask(fz_context *ctx, fz_device *dev, fz_image *image, const 
 	fz_pre_translate(&local_ctm, 0, -1);
 	pdf_dev_ctm(ctx, pdev, &local_ctm);
 	fz_buffer_printf(ctx, gs->buf, "/Img%d Do Q\n", pdf_to_num(ctx, im_res));
+
+	/* Possibly add to page resources */
+	pdf_dev_add_image_res(ctx, dev, im_res);
+	pdf_drop_obj(ctx, im_res);
 }
 
 static void
@@ -907,12 +913,13 @@ pdf_dev_begin_mask(fz_context *ctx, fz_device *dev, const fz_rect *bbox, int lum
 
 	fz_try(ctx)
 	{
+		int n = fz_colorspace_n(ctx, colorspace);
 		smask = pdf_new_dict(ctx, doc, 4);
 		pdf_dict_put_drop(ctx, smask, PDF_NAME_Type, PDF_NAME_Mask);
 		pdf_dict_put_drop(ctx, smask, PDF_NAME_S, (luminosity ? PDF_NAME_Luminosity : PDF_NAME_Alpha));
 		pdf_dict_put(ctx, smask, PDF_NAME_G, form_ref);
-		color_obj = pdf_new_array(ctx, doc, colorspace->n);
-		for (i = 0; i < colorspace->n; i++)
+		color_obj = pdf_new_array(ctx, doc, n);
+		for (i = 0; i < n; i++)
 			pdf_array_push_drop(ctx, color_obj, pdf_new_real(ctx, doc, color[i]));
 		pdf_dict_put_drop(ctx, smask, PDF_NAME_BC, color_obj);
 		color_obj = NULL;
@@ -1041,12 +1048,17 @@ pdf_dev_end_tile(fz_context *ctx, fz_device *dev)
 }
 
 static void
-pdf_dev_close(fz_context *ctx, fz_device *dev)
+pdf_dev_close_device(fz_context *ctx, fz_device *dev)
+{
+	pdf_device *pdev = (pdf_device*)dev;
+	pdf_dev_end_text(ctx, pdev);
+}
+
+static void
+pdf_dev_drop_device(fz_context *ctx, fz_device *dev)
 {
 	pdf_device *pdev = (pdf_device*)dev;
 	int i;
-
-	pdf_dev_end_text(ctx, pdev);
 
 	for (i = pdev->num_gstates-1; i >= 0; i--)
 		fz_drop_stroke_state(ctx, pdev->gstates[i].stroke_state);
@@ -1070,7 +1082,8 @@ fz_device *pdf_new_pdf_device(fz_context *ctx, pdf_document *doc, const fz_matri
 {
 	pdf_device *dev = fz_new_device(ctx, sizeof *dev);
 
-	dev->super.close = pdf_dev_close;
+	dev->super.close_device = pdf_dev_close_device;
+	dev->super.drop_device = pdf_dev_drop_device;
 
 	dev->super.fill_path = pdf_dev_fill_path;
 	dev->super.stroke_path = pdf_dev_stroke_path;

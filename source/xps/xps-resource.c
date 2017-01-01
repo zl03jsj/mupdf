@@ -1,4 +1,5 @@
-#include "mupdf/xps.h"
+#include "mupdf/fitz.h"
+#include "xps-imp.h"
 
 static fz_xml *
 xps_lookup_resource(fz_context *ctx, xps_document *doc, xps_resource *dict, char *name, char **urip)
@@ -145,10 +146,8 @@ xps_drop_resource_dictionary(fz_context *ctx, xps_document *doc, xps_resource *d
 	while (dict)
 	{
 		next = dict->next;
-		if (dict->base_xml)
-			fz_drop_xml(ctx, dict->base_xml);
-		if (dict->base_uri)
-			fz_free(ctx, dict->base_uri);
+		fz_drop_xml(ctx, dict->base_xml);
+		fz_free(ctx, dict->base_uri);
 		fz_free(ctx, dict);
 		dict = next;
 	}

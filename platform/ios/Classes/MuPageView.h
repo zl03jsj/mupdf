@@ -4,7 +4,7 @@
 #import "MuHanddrawView.h"
 
 @protocol MuPageView
--(int) number;
+@property (NS_NONATOMIC_IOSONLY, readonly) int number;
 -(void) willRotate;
 -(void) showLinks;
 -(void) hideLinks;

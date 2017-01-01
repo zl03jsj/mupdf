@@ -3,26 +3,36 @@
 fz_rect *
 pdf_to_rect(fz_context *ctx, pdf_obj *array, fz_rect *r)
 {
-	float a = pdf_to_real(ctx, pdf_array_get(ctx, array, 0));
-	float b = pdf_to_real(ctx, pdf_array_get(ctx, array, 1));
-	float c = pdf_to_real(ctx, pdf_array_get(ctx, array, 2));
-	float d = pdf_to_real(ctx, pdf_array_get(ctx, array, 3));
-	r->x0 = fz_min(a, c);
-	r->y0 = fz_min(b, d);
-	r->x1 = fz_max(a, c);
-	r->y1 = fz_max(b, d);
+	if (!pdf_is_array(ctx, array))
+		*r = fz_empty_rect;
+	else
+	{
+		float a = pdf_to_real(ctx, pdf_array_get(ctx, array, 0));
+		float b = pdf_to_real(ctx, pdf_array_get(ctx, array, 1));
+		float c = pdf_to_real(ctx, pdf_array_get(ctx, array, 2));
+		float d = pdf_to_real(ctx, pdf_array_get(ctx, array, 3));
+		r->x0 = fz_min(a, c);
+		r->y0 = fz_min(b, d);
+		r->x1 = fz_max(a, c);
+		r->y1 = fz_max(b, d);
+	}
 	return r;
 }
 
 fz_matrix *
 pdf_to_matrix(fz_context *ctx, pdf_obj *array, fz_matrix *m)
 {
-	m->a = pdf_to_real(ctx, pdf_array_get(ctx, array, 0));
-	m->b = pdf_to_real(ctx, pdf_array_get(ctx, array, 1));
-	m->c = pdf_to_real(ctx, pdf_array_get(ctx, array, 2));
-	m->d = pdf_to_real(ctx, pdf_array_get(ctx, array, 3));
-	m->e = pdf_to_real(ctx, pdf_array_get(ctx, array, 4));
-	m->f = pdf_to_real(ctx, pdf_array_get(ctx, array, 5));
+	if (!pdf_is_array(ctx, array))
+		*m = fz_identity;
+	else
+	{
+		m->a = pdf_to_real(ctx, pdf_array_get(ctx, array, 0));
+		m->b = pdf_to_real(ctx, pdf_array_get(ctx, array, 1));
+		m->c = pdf_to_real(ctx, pdf_array_get(ctx, array, 2));
+		m->d = pdf_to_real(ctx, pdf_array_get(ctx, array, 3));
+		m->e = pdf_to_real(ctx, pdf_array_get(ctx, array, 4));
+		m->f = pdf_to_real(ctx, pdf_array_get(ctx, array, 5));
+	}
 	return m;
 }
 
@@ -45,119 +55,159 @@ rune_from_utf16be(int *out, unsigned char *s, unsigned char *end)
 	return 1;
 }
 
-/* Convert Unicode/PdfDocEncoding string into utf-8 */
-char *
-pdf_to_utf8(fz_context *ctx, pdf_document *doc, pdf_obj *src)
+static size_t
+skip_language_code_utf16be(unsigned char *s, size_t n, size_t i)
 {
-	fz_buffer *stmbuf = NULL;
-	unsigned char *srcptr;
+	/* skip language escape codes */
+	if (i + 6 <= n && s[i+0] == 0 && s[i+1] == 27 && s[i+4] == 0 && s[i+5] == 27)
+		return 6;
+	else if (i + 8 <= n && s[i+0] == 0 && s[i+1] == 27 && s[i+6] == 0 && s[i+7] == 27)
+		return 8;
+	return 0;
+}
+
+static size_t
+skip_language_code_utf8(unsigned char *s, size_t n, size_t i)
+{
+	/* skip language escape codes */
+	if (i + 3 <= n && s[i] == 27 && s[i+3])
+		return 3;
+	else if (i + 5 <= n && s[i] == 27 && s[i+5] == 27)
+		return 5;
+	return 0;
+}
+
+char *
+pdf_to_utf8_imp(fz_context *ctx, unsigned char *srcptr, size_t srclen)
+{
 	char *dstptr, *dst;
-	int srclen;
-	int dstlen = 0;
+	size_t dstlen = 0;
 	int ucs;
-	int i;
+	size_t i, n;
 
-	fz_var(stmbuf);
-	fz_try(ctx)
+	/* UTF-16BE */
+	if (srclen >= 2 && srcptr[0] == 254 && srcptr[1] == 255)
 	{
-		if (pdf_is_string(ctx, src))
+		i = 2;
+		while (i + 2 <= srclen)
 		{
-			srcptr = (unsigned char *) pdf_to_str_buf(ctx, src);
-			srclen = pdf_to_str_len(ctx, src);
-		}
-		else if (pdf_is_stream(ctx, src))
-		{
-			stmbuf = pdf_load_stream(ctx, doc, pdf_to_num(ctx, src), pdf_to_gen(ctx, src));
-			srclen = fz_buffer_storage(ctx, stmbuf, (unsigned char **)&srcptr);
-		}
-		else
-		{
-			srclen = 0;
-		}
-
-		/* UTF-16BE */
-		if (srclen >= 2 && srcptr[0] == 254 && srcptr[1] == 255)
-		{
-			i = 2;
-			while (i + 2 <= srclen)
+			n = skip_language_code_utf16be(srcptr, srclen, i);
+			if (n)
+				i += n;
+			else
 			{
-				/* skip language escape codes */
-				if (i + 6 <= srclen &&
-					srcptr[i+0] == 0 && srcptr[i+1] == 27 &&
-					srcptr[i+4] == 0 && srcptr[i+5] == 27)
-				{
-					i += 6;
-				}
-				else if (i + 8 <= srclen &&
-					srcptr[i+0] == 0 && srcptr[i+1] == 27 &&
-					srcptr[i+6] == 0 && srcptr[i+7] == 27)
-				{
-					i += 8;
-				}
-				else
-				{
-					i += rune_from_utf16be(&ucs, srcptr + i, srcptr + srclen);
-					dstlen += fz_runelen(ucs);
-				}
-			}
-
-			dstptr = dst = fz_malloc(ctx, dstlen + 1);
-
-			i = 2;
-			while (i + 2 <= srclen)
-			{
-				/* skip language escape codes */
-				if (i + 6 <= srclen &&
-					srcptr[i+0] == 0 && srcptr[i+1] == 27 &&
-					srcptr[i+4] == 0 && srcptr[i+5] == 27)
-				{
-					i += 6;
-				}
-				else if (i + 8 <= srclen &&
-					srcptr[i+0] == 0 && srcptr[i+1] == 27 &&
-					srcptr[i+6] == 0 && srcptr[i+7] == 27)
-				{
-					i += 8;
-				}
-				else
-				{
-					i += rune_from_utf16be(&ucs, srcptr + i, srcptr + srclen);
-					dstptr += fz_runetochar(dstptr, ucs);
-				}
+				i += rune_from_utf16be(&ucs, srcptr + i, srcptr + srclen);
+				dstlen += fz_runelen(ucs);
 			}
 		}
 
-		/* PDFDocEncoding */
-		else
+		dstptr = dst = fz_malloc(ctx, dstlen + 1);
+
+		i = 2;
+		while (i + 2 <= srclen)
 		{
-			for (i = 0; i < srclen; i++)
-				dstlen += fz_runelen(pdf_doc_encoding[srcptr[i]]);
-
-			dstptr = dst = fz_malloc(ctx, dstlen + 1);
-
-			for (i = 0; i < srclen; i++)
+			n = skip_language_code_utf16be(srcptr, srclen, i);
+			if (n)
+				i += n;
+			else
 			{
-				ucs = pdf_doc_encoding[srcptr[i]];
+				i += rune_from_utf16be(&ucs, srcptr + i, srcptr + srclen);
 				dstptr += fz_runetochar(dstptr, ucs);
 			}
 		}
 	}
-	fz_always(ctx)
+
+	/* UTF-8 */
+	else if (srclen >= 3 && srcptr[0] == 239 && srcptr[1] == 187 && srcptr[2] == 191)
 	{
-		fz_drop_buffer(ctx, stmbuf);
-	}
-	fz_catch(ctx)
-	{
-		fz_rethrow(ctx);
+		i = 3;
+		while (i < srclen)
+		{
+			n = skip_language_code_utf8(srcptr, srclen, i);
+			if (n)
+				i += n;
+			else
+			{
+				i += 1;
+				dstlen += 1;
+			}
+		}
+
+		dstptr = dst = fz_malloc(ctx, dstlen + 1);
+
+		i = 3;
+		while (i < srclen)
+		{
+			n = skip_language_code_utf8(srcptr, srclen, i);
+			if (n)
+				i += n;
+			else
+				*dstptr++ = srcptr[i++];
+		}
 	}
 
-	*dstptr = '\0';
+	/* PDFDocEncoding */
+	else
+	{
+		for (i = 0; i < srclen; i++)
+			dstlen += fz_runelen(pdf_doc_encoding[srcptr[i]]);
+
+		dstptr = dst = fz_malloc(ctx, dstlen + 1);
+
+		for (i = 0; i < srclen; i++)
+		{
+			ucs = pdf_doc_encoding[srcptr[i]];
+			dstptr += fz_runetochar(dstptr, ucs);
+		}
+	}
+
+	*dstptr = 0;
 	return dst;
+}
+
+/* Convert Unicode/PdfDocEncoding string into utf-8 */
+char *
+pdf_to_utf8(fz_context *ctx, pdf_obj *src)
+{
+	unsigned char *srcptr;
+	size_t srclen;
+	srcptr = (unsigned char *) pdf_to_str_buf(ctx, src);
+	srclen = pdf_to_str_len(ctx, src);
+	return pdf_to_utf8_imp(ctx, srcptr, srclen);
+}
+
+/* Load text stream and convert to UTF-8 */
+char *
+pdf_load_stream_as_utf8(fz_context *ctx, pdf_obj *src)
+{
+	fz_buffer *stmbuf;
+	unsigned char *srcptr;
+	size_t srclen;
+	char *dst;
+
+	stmbuf = pdf_load_stream(ctx, src);
+	srclen = fz_buffer_storage(ctx, stmbuf, &srcptr);
+	fz_try(ctx)
+		dst = pdf_to_utf8_imp(ctx, srcptr, srclen);
+	fz_always(ctx)
+		fz_drop_buffer(ctx, stmbuf);
+	fz_catch(ctx)
+		fz_rethrow(ctx);
+	return dst;
+}
+
+/* Load text stream or text string and convert to UTF-8 */
+char *
+pdf_load_stream_or_string_as_utf8(fz_context *ctx, pdf_obj *src)
+{
+	if (pdf_is_stream(ctx, src))
+		return pdf_load_stream_as_utf8(ctx, src);
+	return pdf_to_utf8(ctx, src);
 }
 
 /* Convert Unicode/PdfDocEncoding string into ucs-2 */
 unsigned short *
-pdf_to_ucs2(fz_context *ctx, pdf_document *doc, pdf_obj *src)
+pdf_to_ucs2(fz_context *ctx, pdf_obj *src)
 {
 	unsigned char *srcptr = (unsigned char *) pdf_to_str_buf(ctx, src);
 	unsigned short *dstptr, *dst;
@@ -218,7 +268,7 @@ pdf_to_ucs2_buf(fz_context *ctx, unsigned short *buffer, pdf_obj *src)
 
 /* Convert UCS-2 string into PdfDocEncoding for authentication */
 char *
-pdf_from_ucs2(fz_context *ctx, pdf_document *doc, unsigned short *src)
+pdf_from_ucs2(fz_context *ctx, unsigned short *src)
 {
 	int i, j, len;
 	char *docstr;
@@ -258,7 +308,7 @@ pdf_from_ucs2(fz_context *ctx, pdf_document *doc, unsigned short *src)
 pdf_obj *
 pdf_to_utf8_name(fz_context *ctx, pdf_document *doc, pdf_obj *src)
 {
-	char *buf = pdf_to_utf8(ctx, doc, src);
+	char *buf = pdf_to_utf8(ctx, src);
 	pdf_obj *dst = pdf_new_name(ctx, doc, buf);
 	fz_free(ctx, buf);
 	return dst;

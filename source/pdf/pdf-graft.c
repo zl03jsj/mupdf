@@ -33,17 +33,15 @@ pdf_new_graft_map(fz_context *ctx, pdf_document *src)
 pdf_graft_map *
 fz_keep_graft_map(fz_context *ctx, pdf_graft_map *map)
 {
-	if (map)
-		++map->refs;
-	return map;
+	return fz_keep_imp(ctx, map, &map->refs);
 }
 
 void
 pdf_drop_graft_map(fz_context *ctx, pdf_graft_map *map)
 {
-	if (map && --map->refs == 0)
+	if (fz_drop_imp(ctx, map, &map->refs))
 	{
-		fz_drop_document(ctx, (fz_document*)map->src);
+		fz_drop_document(ctx, &map->src->super);
 		fz_free(ctx, map->dst_from_src);
 		fz_free(ctx, map);
 	}
@@ -112,7 +110,7 @@ pdf_graft_object(fz_context *ctx, pdf_document *dst, pdf_document *src, pdf_obj 
 			ref = pdf_new_indirect(ctx, dst, new_num, 0);
 			if (pdf_is_stream(ctx, obj_ref))
 			{
-				buffer = pdf_load_raw_stream(ctx, src, src_num, 0);
+				buffer = pdf_load_raw_stream_number(ctx, src, src_num);
 				pdf_update_stream(ctx, dst, ref, buffer, 1);
 			}
 		}

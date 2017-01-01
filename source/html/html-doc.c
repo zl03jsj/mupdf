@@ -12,7 +12,7 @@ struct html_document_s
 	fz_html_font_set *set;
 	float page_w, page_h, em;
 	float page_margin[4];
-	fz_html *box;
+	fz_html *html;
 };
 
 struct html_page_s
@@ -23,20 +23,38 @@ struct html_page_s
 };
 
 static void
-htdoc_close_document(fz_context *ctx, fz_document *doc_)
+htdoc_drop_document(fz_context *ctx, fz_document *doc_)
 {
 	html_document *doc = (html_document*)doc_;
 	fz_drop_archive(ctx, doc->zip);
-	fz_drop_html(ctx, doc->box);
+	fz_drop_html(ctx, doc->html);
 	fz_drop_html_font_set(ctx, doc->set);
-	fz_free(ctx, doc);
+}
+
+static int
+htdoc_resolve_link(fz_context *ctx, fz_document *doc_, const char *dest, float *xp, float *yp)
+{
+	html_document *doc = (html_document*)doc_;
+	const char *s = strchr(dest, '#');
+	if (s && s[1] != 0)
+	{
+		float y = fz_find_html_target(ctx, doc->html, s+1);
+		if (y >= 0)
+		{
+			int page = y / doc->page_h;
+			if (yp) *yp = y - page * doc->page_h;
+			return page;
+		}
+	}
+
+	return -1;
 }
 
 static int
 htdoc_count_pages(fz_context *ctx, fz_document *doc_)
 {
 	html_document *doc = (html_document*)doc_;
-	int count = ceilf(doc->box->h / doc->page_h);
+	int count = ceilf(doc->html->root->h / doc->page_h);
 	return count;
 }
 
@@ -45,23 +63,23 @@ htdoc_layout(fz_context *ctx, fz_document *doc_, float w, float h, float em)
 {
 	html_document *doc = (html_document*)doc_;
 
-	if (doc->box)
+	if (doc->html && doc->html->root)
 	{
-		doc->page_margin[T] = fz_from_css_number(doc->box->style.margin[T], em, em);
-		doc->page_margin[B] = fz_from_css_number(doc->box->style.margin[B], em, em);
-		doc->page_margin[L] = fz_from_css_number(doc->box->style.margin[L], em, em);
-		doc->page_margin[R] = fz_from_css_number(doc->box->style.margin[R], em, em);
+		doc->page_margin[T] = fz_from_css_number(doc->html->root->style.margin[T], em, em);
+		doc->page_margin[B] = fz_from_css_number(doc->html->root->style.margin[B], em, em);
+		doc->page_margin[L] = fz_from_css_number(doc->html->root->style.margin[L], em, em);
+		doc->page_margin[R] = fz_from_css_number(doc->html->root->style.margin[R], em, em);
 	}
 
 	doc->page_w = w - doc->page_margin[L] - doc->page_margin[R];
 	doc->page_h = h - doc->page_margin[T] - doc->page_margin[B];
 	doc->em = em;
 
-	fz_layout_html(ctx, doc->box, doc->page_w, doc->page_h, doc->em);
+	fz_layout_html(ctx, doc->html, doc->page_w, doc->page_h, doc->em);
 }
 
 static void
-htdoc_drop_page_imp(fz_context *ctx, fz_page *page_)
+htdoc_drop_page(fz_context *ctx, fz_page *page_)
 {
 }
 
@@ -87,7 +105,28 @@ htdoc_run_page(fz_context *ctx, fz_page *page_, fz_device *dev, const fz_matrix 
 
 	fz_pre_translate(&local_ctm, doc->page_margin[L], doc->page_margin[T]);
 
-	fz_draw_html(ctx, dev, &local_ctm, doc->box, n * doc->page_h, (n+1) * doc->page_h);
+	fz_draw_html(ctx, dev, &local_ctm, doc->html, n * doc->page_h, (n+1) * doc->page_h);
+}
+
+static fz_link *
+htdoc_load_links(fz_context *ctx, fz_page *page_)
+{
+	html_page *page = (html_page*)page_;
+	html_document *doc = page->doc;
+	fz_link *head, *link;
+
+	head = fz_load_html_links(ctx, doc->html, page->number, doc->page_h, "");
+	for (link = head; link; link = link->next)
+	{
+		link->doc = doc;
+
+		/* Adjust for page margins */
+		link->rect.x0 += doc->page_margin[L];
+		link->rect.x1 += doc->page_margin[L];
+		link->rect.y0 += doc->page_margin[T];
+		link->rect.y1 += doc->page_margin[T];
+	}
+	return head;
 }
 
 static fz_page *
@@ -97,7 +136,8 @@ htdoc_load_page(fz_context *ctx, fz_document *doc_, int number)
 	html_page *page = fz_new_page(ctx, sizeof *page);
 	page->super.bound_page = htdoc_bound_page;
 	page->super.run_page_contents = htdoc_run_page;
-	page->super.drop_page_imp = htdoc_drop_page_imp;
+	page->super.load_links = htdoc_load_links;
+	page->super.drop_page = htdoc_drop_page;
 	page->doc = doc;
 	page->number = number;
 	return (fz_page*)page;
@@ -107,7 +147,7 @@ int
 htdoc_lookup_metadata(fz_context *ctx, fz_document *doc_, const char *key, char *buf, int size)
 {
 	if (!strcmp(key, "format"))
-		return fz_strlcpy(buf, "XHTML", size);
+		return (int)fz_strlcpy(buf, "XHTML", size);
 	return -1;
 }
 
@@ -119,18 +159,28 @@ htdoc_open_document_with_stream(fz_context *ctx, fz_stream *file)
 
 	doc = fz_new_document(ctx, html_document);
 
-	doc->super.close = htdoc_close_document;
+	doc->super.drop_document = htdoc_drop_document;
 	doc->super.layout = htdoc_layout;
+	doc->super.resolve_link = htdoc_resolve_link;
 	doc->super.count_pages = htdoc_count_pages;
 	doc->super.load_page = htdoc_load_page;
+	doc->super.lookup_metadata = htdoc_lookup_metadata;
+	doc->super.is_reflowable = 1;
 
 	doc->zip = fz_open_directory(ctx, ".");
 	doc->set = fz_new_html_font_set(ctx);
 
 	buf = fz_read_all(ctx, file, 0);
-	fz_write_buffer_byte(ctx, buf, 0);
-	doc->box = fz_parse_html(ctx, doc->set, doc->zip, ".", buf, fz_user_css(ctx));
-	fz_drop_buffer(ctx, buf);
+
+	fz_try(ctx)
+	{
+		fz_write_buffer_byte(ctx, buf, 0);
+		doc->html = fz_parse_html(ctx, doc->set, doc->zip, ".", buf, fz_user_css(ctx));
+	}
+	fz_always(ctx)
+		fz_drop_buffer(ctx, buf);
+	fz_catch(ctx)
+		fz_rethrow(ctx);
 
 	return (fz_document*)doc;
 }
@@ -145,19 +195,28 @@ htdoc_open_document(fz_context *ctx, const char *filename)
 	fz_dirname(dirname, filename, sizeof dirname);
 
 	doc = fz_new_document(ctx, html_document);
-	doc->super.close = htdoc_close_document;
+	doc->super.drop_document = htdoc_drop_document;
 	doc->super.layout = htdoc_layout;
+	doc->super.resolve_link = htdoc_resolve_link;
 	doc->super.count_pages = htdoc_count_pages;
 	doc->super.load_page = htdoc_load_page;
 	doc->super.lookup_metadata = htdoc_lookup_metadata;
+	doc->super.is_reflowable = 1;
 
 	doc->zip = fz_open_directory(ctx, dirname);
 	doc->set = fz_new_html_font_set(ctx);
 
 	buf = fz_read_file(ctx, filename);
-	fz_write_buffer_byte(ctx, buf, 0);
-	doc->box = fz_parse_html(ctx, doc->set, doc->zip, ".", buf, fz_user_css(ctx));
-	fz_drop_buffer(ctx, buf);
+
+	fz_try(ctx)
+	{
+		fz_write_buffer_byte(ctx, buf, 0);
+		doc->html = fz_parse_html(ctx, doc->set, doc->zip, ".", buf, fz_user_css(ctx));
+	}
+	fz_always(ctx)
+		fz_drop_buffer(ctx, buf);
+	fz_catch(ctx)
+		fz_rethrow(ctx);
 
 	return (fz_document*)doc;
 }

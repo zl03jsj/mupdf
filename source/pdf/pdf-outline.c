@@ -24,12 +24,19 @@ pdf_load_outline_imp(fz_context *ctx, pdf_document *doc, pdf_obj *dict)
 
 			obj = pdf_dict_get(ctx, dict, PDF_NAME_Title);
 			if (obj)
-				node->title = pdf_to_utf8(ctx, doc, obj);
+				node->title = pdf_to_utf8(ctx, obj);
 
 			if ((obj = pdf_dict_get(ctx, dict, PDF_NAME_Dest)) != NULL)
-				node->dest = pdf_parse_link_dest(ctx, doc, FZ_LINK_GOTO, obj);
+				node->uri = pdf_parse_link_dest(ctx, doc, obj);
 			else if ((obj = pdf_dict_get(ctx, dict, PDF_NAME_A)) != NULL)
-				node->dest = pdf_parse_action(ctx, doc, obj);
+				node->uri = pdf_parse_link_action(ctx, doc, obj);
+			else
+				node->uri = NULL;
+
+			if (node->uri)
+				node->page = pdf_resolve_link(ctx, doc, node->uri, NULL, NULL);
+			else
+				node->page = -1;
 
 			obj = pdf_dict_get(ctx, dict, PDF_NAME_First);
 			if (obj)

@@ -15,7 +15,7 @@ typedef struct fz_output_s fz_output;
 struct fz_output_s
 {
 	void *opaque;
-	void (*write)(fz_context *, void *opaque, const void *, int n);
+	void (*write)(fz_context *, void *opaque, const void *, size_t n);
 	void (*seek)(fz_context *, void *opaque, fz_off_t off, int whence);
 	fz_off_t (*tell)(fz_context *, void *opaque);
 	void (*close)(fz_context *, void *opaque);
@@ -71,7 +71,7 @@ void fz_drop_output(fz_context *, fz_output *);
 	fz_write: Write data to output.
 */
 
-static inline void fz_write(fz_context *ctx, fz_output *out, const void *data, int size)
+static inline void fz_write(fz_context *ctx, fz_output *out, const void *data, size_t size)
 {
 	if (out)
 		out->write(ctx, out->opaque, data, size);
@@ -141,8 +141,8 @@ static inline void fz_write_rune(fz_context *ctx, fz_output *out, int rune)
 	%z{d,u,x} indicates that the value is a size_t.
 	%Z{d,u,x} indicates that the value is a fz_off_t.
 */
-int fz_vsnprintf(char *buffer, int space, const char *fmt, va_list args);
-int fz_snprintf(char *buffer, int space, const char *fmt, ...);
+size_t fz_vsnprintf(char *buffer, size_t space, const char *fmt, va_list args);
+size_t fz_snprintf(char *buffer, size_t space, const char *fmt, ...);
 
 /*
 	fz_tempfilename: Get a temporary filename based upon 'base'.
@@ -160,8 +160,37 @@ char *fz_tempfilename(fz_context *ctx, const char *base, const char *hint);
 */
 void fz_save_buffer(fz_context *ctx, fz_buffer *buf, const char *filename);
 
-void fz_new_output_context(fz_context *ctx);
-void fz_drop_output_context(fz_context *ctx);
-fz_output_context *fz_keep_output_context(fz_context *ctx);
+/*
+	fz_band_writer
+*/
+typedef struct fz_band_writer_s fz_band_writer;
+
+typedef void (fz_write_header_fn)(fz_context *ctx, fz_band_writer *writer);
+typedef void (fz_write_band_fn)(fz_context *ctx, fz_band_writer *writer, int stride, int band_start, int band_height, const unsigned char *samples);
+typedef void (fz_write_trailer_fn)(fz_context *ctx, fz_band_writer *writer);
+typedef void (fz_drop_band_writer_fn)(fz_context *ctx, fz_band_writer *writer);
+
+struct fz_band_writer_s
+{
+	fz_drop_band_writer_fn *drop;
+	fz_write_header_fn *header;
+	fz_write_band_fn *band;
+	fz_write_trailer_fn *trailer;
+	fz_output *out;
+	int w;
+	int h;
+	int n;
+	int alpha;
+	int xres;
+	int yres;
+	int pagenum;
+};
+
+fz_band_writer *fz_new_band_writer_of_size(fz_context *ctx, size_t size, fz_output *out);
+#define fz_new_band_writer(C,M,O) ((M *)Memento_label(fz_new_band_writer_of_size(ctx, sizeof(M), O), #M))
+void fz_write_header(fz_context *ctx, fz_band_writer *writer, int w, int h, int n, int alpha, int xres, int yres, int pagenum);
+void fz_write_band(fz_context *ctx, fz_band_writer *writer, int stride, int band_start, int band_height, const unsigned char *samples);
+void fz_write_trailer(fz_context *ctx, fz_band_writer *writer);
+void fz_drop_band_writer(fz_context *ctx, fz_band_writer *writer);
 
 #endif

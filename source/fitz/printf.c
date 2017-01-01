@@ -5,8 +5,8 @@ static const char *fz_hex_digits = "0123456789abcdef";
 struct fmtbuf
 {
 	char *p;
-	int s;
-	int n;
+	size_t s;
+	size_t n;
 };
 
 static void fmtputc(struct fmtbuf *out, int c)
@@ -151,8 +151,8 @@ static void fmtquote(struct fmtbuf *out, const char *s, int sq, int eq)
 	fmtputc(out, eq);
 }
 
-int
-fz_vsnprintf(char *buffer, int space, const char *fmt, va_list args)
+size_t
+fz_vsnprintf(char *buffer, size_t space, const char *fmt, va_list args)
 {
 	struct fmtbuf out;
 	fz_matrix *m;
@@ -162,7 +162,7 @@ fz_vsnprintf(char *buffer, int space, const char *fmt, va_list args)
 	int64_t i64;
 	double f;
 	char *s;
-	int length;
+	size_t length;
 
 	out.p = buffer;
 	out.s = space;
@@ -192,11 +192,16 @@ fz_vsnprintf(char *buffer, int space, const char *fmt, va_list args)
 				if (c == 'l')
 					length = 64;
 				else
+				{
+					length = sizeof(long) * 8;
 					fmt--;
+				}
 				break;
 			case 'z':
 				if (sizeof(size_t) >= 8)
 					length = 64;
+				else
+					length = 32;
 				break;
 			case 'Z':
 				if (sizeof(fz_off_t) >= 8)
@@ -260,6 +265,12 @@ fz_vsnprintf(char *buffer, int space, const char *fmt, va_list args)
 				f = va_arg(args, double);
 				fmtfloat(&out, f);
 				break;
+			case 'p':
+				length = 8 * sizeof(void *);
+				z = 2 * sizeof(void *);
+				fmtputc(&out, '0');
+				fmtputc(&out, 'x');
+				/* fallthrough */
 			case 'x':
 				if (length == 64)
 				{
@@ -327,10 +338,10 @@ fz_vsnprintf(char *buffer, int space, const char *fmt, va_list args)
 	return out.n - 1;
 }
 
-int
-fz_snprintf(char *buffer, int space, const char *fmt, ...)
+size_t
+fz_snprintf(char *buffer, size_t space, const char *fmt, ...)
 {
-	int n;
+	size_t n;
 	va_list ap;
 	va_start(ap, fmt);
 	n = fz_vsnprintf(buffer, space, fmt, ap);

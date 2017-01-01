@@ -64,7 +64,7 @@ fz_jpg_mem_term(struct jpeg_decompress_struct *cinfo)
 static void error_exit(j_common_ptr cinfo)
 {
 	char msg[JMSG_LENGTH_MAX];
-	fz_context *ctx = (fz_context *)cinfo->client_data;
+	fz_context *ctx = JZ_CTX_FROM_CINFO(cinfo);
 
 	cinfo->err->format_message(cinfo, msg);
 	fz_throw(ctx, FZ_ERROR_GENERIC, "jpeg error: %s", msg);
@@ -215,7 +215,7 @@ static int extract_app13_resolution(jpeg_saved_marker_ptr marker, int *xres, int
 }
 
 fz_pixmap *
-fz_load_jpeg(fz_context *ctx, unsigned char *rbuf, int rlen)
+fz_load_jpeg(fz_context *ctx, unsigned char *rbuf, size_t rlen)
 {
 	struct jpeg_decompress_struct cinfo;
 	struct jpeg_error_mgr err;
@@ -329,7 +329,7 @@ fz_load_jpeg(fz_context *ctx, unsigned char *rbuf, int rlen)
 }
 
 void
-fz_load_jpeg_info(fz_context *ctx, unsigned char *rbuf, int rlen, int *xp, int *yp, int *xresp, int *yresp, fz_colorspace **cspacep)
+fz_load_jpeg_info(fz_context *ctx, unsigned char *rbuf, size_t rlen, int *xp, int *yp, int *xresp, int *yresp, fz_colorspace **cspacep)
 {
 	struct jpeg_decompress_struct cinfo;
 	struct jpeg_error_mgr err;

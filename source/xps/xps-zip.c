@@ -1,9 +1,10 @@
-#include "mupdf/xps.h"
+#include "mupdf/fitz.h"
+#include "xps-imp.h"
 
 static void xps_init_document(fz_context *ctx, xps_document *doc);
 
 xps_part *
-xps_new_part(fz_context *ctx, xps_document *doc, char *name, unsigned char *data, int size)
+xps_new_part(fz_context *ctx, xps_document *doc, char *name, unsigned char *data, size_t size)
 {
 	xps_part *part;
 
@@ -43,7 +44,7 @@ xps_read_part(fz_context *ctx, xps_document *doc, char *partname)
 	fz_buffer *buf, *tmp;
 	char path[2048];
 	unsigned char *data;
-	int size;
+	size_t size;
 	int count;
 	char *name;
 	int seen_last;
@@ -94,10 +95,9 @@ xps_read_part(fz_context *ctx, xps_document *doc, char *partname)
 	fz_write_buffer_byte(ctx, buf, 0); /* zero-terminate */
 
 	/* take over the data */
-	data = buf->data;
 	/* size doesn't include the added zero-terminator */
-	size = buf->len - 1;
-	fz_free(ctx, buf);
+	size = fz_buffer_extract(ctx, buf, &data) - 1;
+	fz_drop_buffer(ctx, buf);
 
 	return xps_new_part(ctx, doc, partname, data, size);
 }
@@ -134,7 +134,7 @@ xps_open_document_with_directory(fz_context *ctx, const char *directory)
 	}
 	fz_catch(ctx)
 	{
-		xps_close_document(ctx, doc);
+		fz_drop_document(ctx, &doc->super);
 		fz_rethrow(ctx);
 	}
 
@@ -151,12 +151,12 @@ xps_open_document_with_stream(fz_context *ctx, fz_stream *file)
 
 	fz_try(ctx)
 	{
-		doc->zip = fz_open_archive_with_stream(ctx, file);
+		doc->zip = fz_open_zip_archive_with_stream(ctx, file);
 		xps_read_page_list(ctx, doc);
 	}
 	fz_catch(ctx)
 	{
-		xps_close_document(ctx, doc);
+		fz_drop_document(ctx, &doc->super);
 		fz_rethrow(ctx);
 	}
 
@@ -193,13 +193,10 @@ xps_open_document(fz_context *ctx, const char *filename)
 	return doc;
 }
 
-void
-xps_close_document(fz_context *ctx, xps_document *doc)
+static void
+xps_drop_document(fz_context *ctx, xps_document *doc)
 {
 	xps_font_cache *font, *next;
-
-	if (!doc)
-		return;
 
 	if (doc->zip)
 		fz_drop_archive(ctx, doc->zip);
@@ -217,14 +214,13 @@ xps_close_document(fz_context *ctx, xps_document *doc)
 	xps_drop_page_list(ctx, doc);
 
 	fz_free(ctx, doc->start_part);
-	fz_free(ctx, doc);
 }
 
 static int
 xps_lookup_metadata(fz_context *ctx, xps_document *doc, const char *key, char *buf, int size)
 {
 	if (!strcmp(key, "format"))
-		return fz_strlcpy(buf, "XPS", size);
+		return (int)fz_strlcpy(buf, "XPS", size);
 	return -1;
 }
 
@@ -232,8 +228,9 @@ static void
 xps_init_document(fz_context *ctx, xps_document *doc)
 {
 	doc->super.refs = 1;
-	doc->super.close = (fz_document_close_fn *)xps_close_document;
+	doc->super.drop_document = (fz_document_drop_fn *)xps_drop_document;
 	doc->super.load_outline = (fz_document_load_outline_fn *)xps_load_outline;
+	doc->super.resolve_link = (fz_document_resolve_link_fn *)xps_lookup_link_target;
 	doc->super.count_pages = (fz_document_count_pages_fn *)xps_count_pages;
 	doc->super.load_page = (fz_document_load_page_fn *)xps_load_page;
 	doc->super.lookup_metadata = (fz_document_lookup_metadata_fn *)xps_lookup_metadata;

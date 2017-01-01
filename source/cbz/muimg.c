@@ -18,10 +18,9 @@ struct img_document_s
 };
 
 static void
-img_close_document(fz_context *ctx, img_document *doc)
+img_drop_document(fz_context *ctx, img_document *doc)
 {
 	fz_drop_image(ctx, doc->image);
-	fz_free(ctx, doc);
 }
 
 static int
@@ -57,7 +56,7 @@ img_run_page(fz_context *ctx, img_page *page, fz_device *dev, const fz_matrix *c
 }
 
 static void
-img_drop_page_imp(fz_context *ctx, img_page *page)
+img_drop_page(fz_context *ctx, img_page *page)
 {
 	fz_drop_image(ctx, page->image);
 }
@@ -74,7 +73,7 @@ img_load_page(fz_context *ctx, img_document *doc, int number)
 
 	page->super.bound_page = (fz_page_bound_page_fn *)img_bound_page;
 	page->super.run_page_contents = (fz_page_run_page_contents_fn *)img_run_page;
-	page->super.drop_page_imp = (fz_page_drop_page_imp_fn *)img_drop_page_imp;
+	page->super.drop_page = (fz_page_drop_page_fn *)img_drop_page;
 
 	page->image = fz_keep_image(ctx, doc->image);
 
@@ -85,7 +84,7 @@ static int
 img_lookup_metadata(fz_context *ctx, img_document *doc, const char *key, char *buf, int size)
 {
 	if (!strcmp(key, "format"))
-		return fz_strlcpy(buf, "Image", size);
+		return (int)fz_strlcpy(buf, "Image", size);
 	return -1;
 }
 
@@ -94,7 +93,7 @@ img_new_document(fz_context *ctx, fz_image *image)
 {
 	img_document *doc = fz_new_document(ctx, img_document);
 
-	doc->super.close = (fz_document_close_fn *)img_close_document;
+	doc->super.drop_document = (fz_document_drop_fn *)img_drop_document;
 	doc->super.count_pages = (fz_document_count_pages_fn *)img_count_pages;
 	doc->super.load_page = (fz_document_load_page_fn *)img_load_page;
 	doc->super.lookup_metadata = (fz_document_lookup_metadata_fn *)img_lookup_metadata;
@@ -131,24 +130,6 @@ img_open_document_with_stream(fz_context *ctx, fz_stream *stm)
 	return doc;
 }
 
-static img_document *
-img_open_document(fz_context *ctx, const char *filename)
-{
-	fz_stream *stm;
-	img_document *doc;
-
-	stm = fz_open_file(ctx, filename);
-
-	fz_try(ctx)
-		doc = img_open_document_with_stream(ctx, stm);
-	fz_always(ctx)
-		fz_drop_stream(ctx, stm);
-	fz_catch(ctx)
-		fz_rethrow(ctx);
-
-	return doc;
-}
-
 static int
 img_recognize(fz_context *doc, const char *magic)
 {
@@ -159,7 +140,13 @@ img_recognize(fz_context *doc, const char *magic)
 		if (!fz_strcasecmp(ext, ".png") || !fz_strcasecmp(ext, ".jpg") ||
 			!fz_strcasecmp(ext, ".jpeg") || !fz_strcasecmp(ext, ".jfif") ||
 			!fz_strcasecmp(ext, ".jfif-tbnl") || !fz_strcasecmp(ext, ".jpe") ||
-			!fz_strcasecmp(ext, ".gif") || !fz_strcasecmp(ext, ".bmp"))
+			!fz_strcasecmp(ext, ".gif") || !fz_strcasecmp(ext, ".bmp") ||
+			!fz_strcasecmp(ext, ".jpx") || !fz_strcasecmp(ext, ".jp2") ||
+			!fz_strcasecmp(ext, ".j2k") || !fz_strcasecmp(ext, ".wdp") ||
+			!fz_strcasecmp(ext, ".hdp") || !fz_strcasecmp(ext, ".jxr") ||
+			!fz_strcasecmp(ext, ".pbm") || !fz_strcasecmp(ext, ".pgm") ||
+			!fz_strcasecmp(ext, ".ppm") || !fz_strcasecmp(ext, ".pam") ||
+			!fz_strcasecmp(ext, ".pnm"))
 			return 100;
 	}
 	if (!strcmp(magic, "png") || !strcmp(magic, "image/png") ||
@@ -167,7 +154,17 @@ img_recognize(fz_context *doc, const char *magic)
 		!strcmp(magic, "jpeg") || !strcmp(magic, "image/pjpeg") ||
 		!strcmp(magic, "jpe") || !strcmp(magic, "jfif") ||
 		!strcmp(magic, "gif") || !strcmp(magic, "image/gif") ||
-		!strcmp(magic, "bmp") || !strcmp(magic, "image/bmp"))
+		!strcmp(magic, "bmp") || !strcmp(magic, "image/bmp") ||
+		!strcmp(magic, "jpx") || !strcmp(magic, "image/jpx") ||
+		!strcmp(magic, "jp2") || !strcmp(magic, "image/jp2") ||
+		!strcmp(magic, "j2k") || !strcmp(magic, "wdp") ||
+		!strcmp(magic, "hdp") || !strcmp(magic, "image/vnd.ms-photo") ||
+		!strcmp(magic, "jxr") || !strcmp(magic, "image/jxr") ||
+		!strcmp(magic, "pbm") || !strcmp(magic, "image/x-portable-bitmap") ||
+		!strcmp(magic, "pgm") || !strcmp(magic, "image/x-portable-greymap") ||
+		!strcmp(magic, "ppm") || !strcmp(magic, "image/x-portable-pixmap") ||
+		!strcmp(magic, "pam") || !strcmp(magic, "image/x-portable-arbitrarymap") ||
+		!strcmp(magic, "pnm"))
 		return 100;
 
 	return 0;
@@ -176,6 +173,6 @@ img_recognize(fz_context *doc, const char *magic)
 fz_document_handler img_document_handler =
 {
 	(fz_document_recognize_fn *)&img_recognize,
-	(fz_document_open_fn *)&img_open_document,
+	(fz_document_open_fn *)NULL,
 	(fz_document_open_with_stream_fn *)&img_open_document_with_stream
 };

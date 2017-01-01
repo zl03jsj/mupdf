@@ -39,47 +39,100 @@ static void writepixmap(fz_context *ctx, fz_pixmap *pix, char *file, int rgb)
 	if (rgb && pix->colorspace && pix->colorspace != fz_device_rgb(ctx))
 	{
 		fz_irect bbox;
-		converted = fz_new_pixmap_with_bbox(ctx, fz_device_rgb(ctx), fz_pixmap_bbox(ctx, pix, &bbox), 1);
+		converted = fz_new_pixmap_with_bbox(ctx, fz_device_rgb(ctx), fz_pixmap_bbox(ctx, pix, &bbox), pix->alpha);
 		fz_convert_pixmap(ctx, converted, pix);
 		pix = converted;
 	}
 
-	if (pix->n <= 4)
+	if (pix->n - pix->alpha <= 3)
 	{
 		snprintf(buf, sizeof(buf), "%s.png", file);
 		printf("extracting image %s\n", buf);
-		fz_save_pixmap_as_png(ctx, pix, buf, 0);
+		fz_save_pixmap_as_png(ctx, pix, buf);
 	}
 	else
 	{
 		snprintf(buf, sizeof(buf), "%s.pam", file);
 		printf("extracting image %s\n", buf);
-		fz_save_pixmap_as_pam(ctx, pix, buf, 0);
+		fz_save_pixmap_as_pam(ctx, pix, buf);
 	}
 
 	fz_drop_pixmap(ctx, converted);
 }
 
+static void
+writejpeg(fz_context *ctx, const unsigned char *data, size_t len, const char *file)
+{
+	char buf[1024];
+	fz_output *out = NULL;
+
+	fz_var(out);
+
+	snprintf(buf, sizeof(buf), "%s.jpg", file);
+
+	fz_try(ctx)
+	{
+		out = fz_new_output_with_path(ctx, buf, 0);
+		fz_write(ctx, out, data, len);
+	}
+	fz_always(ctx)
+	{
+		fz_drop_output(ctx, out);
+	}
+	fz_catch(ctx)
+		fz_rethrow(ctx);
+}
+
 static void saveimage(int num)
 {
-	fz_image *image;
-	fz_pixmap *pix;
+	fz_image *image = NULL;
+	fz_pixmap *pix = NULL;
 	pdf_obj *ref;
 	char buf[32];
+	fz_compressed_buffer *cbuf;
+	int type;
 
 	ref = pdf_new_indirect(ctx, doc, num, 0);
 
-	/* TODO: detect DCTD and save as jpeg */
+	fz_var(image);
+	fz_var(pix);
 
-	image = pdf_load_image(ctx, doc, ref);
-	pix = fz_get_pixmap_from_image(ctx, image, NULL, NULL, 0, 0);
-	fz_drop_image(ctx, image);
+	fz_try(ctx)
+	{
+		image = pdf_load_image(ctx, doc, ref);
+		cbuf = fz_compressed_image_buffer(ctx, image);
+		snprintf(buf, sizeof(buf), "img-%04d", num);
+		type = cbuf == NULL ? FZ_IMAGE_UNKNOWN : cbuf->params.type;
+		if (image->use_colorkey)
+			type = FZ_IMAGE_UNKNOWN;
+		if (image->use_decode)
+			type = FZ_IMAGE_UNKNOWN;
+		if (image->mask)
+			type = FZ_IMAGE_UNKNOWN;
+		switch (type)
+		{
+		case FZ_IMAGE_JPEG:
+		{
+			unsigned char *data;
+			size_t len = fz_buffer_storage(ctx, cbuf->buffer, &data);
+			snprintf(buf, sizeof(buf), "img-%04d", num);
+			writejpeg(ctx, data, len, buf);
+			break;
+		}
+		default:
+			pix = fz_get_pixmap_from_image(ctx, image, NULL, NULL, 0, 0);
+			writepixmap(ctx, pix, buf, dorgb);
+		}
+	}
+	fz_always(ctx)
+	{
+		fz_drop_image(ctx, image);
+		fz_drop_pixmap(ctx, pix);
+		pdf_drop_obj(ctx, ref);
+	}
+	fz_catch(ctx)
+		fz_rethrow(ctx);
 
-	snprintf(buf, sizeof(buf), "img-%04d", num);
-	writepixmap(ctx, pix, buf, dorgb);
-
-	fz_drop_pixmap(ctx, pix);
-	pdf_drop_obj(ctx, ref);
 }
 
 static void savefont(pdf_obj *dict, int num)
@@ -91,7 +144,7 @@ static void savefont(pdf_obj *dict, int num)
 	char *ext = "";
 	fz_output *out;
 	char *fontname = "font";
-	int len;
+	size_t len;
 	unsigned char *data;
 
 	obj = pdf_dict_get(ctx, dict, PDF_NAME_FontName);
@@ -137,7 +190,7 @@ static void savefont(pdf_obj *dict, int num)
 		return;
 	}
 
-	buf = pdf_load_stream(ctx, doc, pdf_to_num(ctx, stream), pdf_to_gen(ctx, stream));
+	buf = pdf_load_stream(ctx, stream);
 	len = fz_buffer_storage(ctx, buf, &data);
 	fz_try(ctx)
 	{
@@ -166,7 +219,7 @@ static void showobject(int num)
 
 	fz_try(ctx)
 	{
-		obj = pdf_load_object(ctx, doc, num, 0);
+		obj = pdf_load_object(ctx, doc, num);
 
 		if (isimage(obj))
 			saveimage(num);

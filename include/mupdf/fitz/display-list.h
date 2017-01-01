@@ -17,7 +17,7 @@
 	structure in multi-threading where one thread parses the page
 	and another renders pages.
 
-	Create a displaylist with fz_new_display_list, hand it over to
+	Create a display list with fz_new_display_list, hand it over to
 	fz_new_list_device to have it populated, and later replay the
 	list (once or many times) by calling fz_run_display_list. When
 	the list is no longer needed drop it with fz_drop_display_list.
@@ -29,14 +29,16 @@ typedef struct fz_display_list_s fz_display_list;
 
 	A display list contains drawing commands (text, images, etc.).
 	Use fz_new_list_device for populating the list.
+
+	mediabox: Bounds of the page (in points) represented by the display list.
 */
-fz_display_list *fz_new_display_list(fz_context *ctx);
+fz_display_list *fz_new_display_list(fz_context *ctx, const fz_rect *mediabox);
 
 /*
 	fz_new_list_device: Create a rendering device for a display list.
 
 	When the device is rendering a page it will populate the
-	display list with drawing commsnds (text, images, etc.). The
+	display list with drawing commands (text, images, etc.). The
 	display list can later be reused to render a page many times
 	without having to re-interpret the page from the document file
 	for each rendering. Once the device is no longer needed, free
@@ -89,7 +91,7 @@ fz_display_list *fz_keep_display_list(fz_context *ctx, fz_display_list *list);
 void fz_drop_display_list(fz_context *ctx, fz_display_list *list);
 
 /*
-	fz_bound_display_list: Return the bounding box of the pages recorded in a display list.
+	fz_bound_display_list: Return the bounding box of the page recorded in a display list.
 */
 fz_rect *fz_bound_display_list(fz_context *ctx, fz_display_list *list, fz_rect *bounds);
 
@@ -104,5 +106,14 @@ fz_rect *fz_bound_display_list(fz_context *ctx, fz_display_list *list, fz_rect *
 	list: The display list.
 */
 fz_image *fz_new_image_from_display_list(fz_context *ctx, float w, float h, fz_display_list *list);
+
+/*
+	Check for a display list being empty
+
+	list: The list to check.
+
+	Returns true if empty, false otherwise.
+*/
+int fz_display_list_is_empty(fz_context *ctx, const fz_display_list *list);
 
 #endif

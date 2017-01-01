@@ -1,7 +1,7 @@
 #include "mupdf/pdf.h" // TODO: move this file to pdf module
 
-#define HAVE_OPENSSL
-#ifdef HAVE_OPENSSL
+#define HAVE_LIBCRYPTO
+#ifdef HAVE_LIBCRYPTO
 
 #include "openssl/err.h"
 #include "openssl/bio.h"
@@ -422,8 +422,7 @@ struct pdf_signer_s
 
 void pdf_drop_designated_name(fz_context *ctx, pdf_designated_name *dn)
 {
-	if (dn)
-		fz_free(ctx, dn);
+	fz_free(ctx, dn);
 }
 
 static void add_from_bags(X509 **pX509, EVP_PKEY **pPkey, STACK_OF(PKCS12_SAFEBAG) *bags, const char *pw);
@@ -572,21 +571,16 @@ pdf_signer *pdf_read_pfx(fz_context *ctx, const char *pfile, const char *pw)
 
 pdf_signer *pdf_keep_signer(fz_context *ctx, pdf_signer *signer)
 {
-	if (signer)
-		signer->refs++;
-	return signer;
+	return fz_keep_imp(ctx, signer, &signer->refs);
 }
 
 void pdf_drop_signer(fz_context *ctx, pdf_signer *signer)
 {
-	if (signer)
+	if (fz_drop_imp(ctx, signer, &signer->refs))
 	{
-		if (--signer->refs == 0)
-		{
-			X509_free(signer->x509);
-			EVP_PKEY_free(signer->pkey);
-			fz_free(ctx, signer);
-		}
+		X509_free(signer->x509);
+		EVP_PKEY_free(signer->pkey);
+		fz_free(ctx, signer);
 	}
 }
 
@@ -822,7 +816,7 @@ void pdf_sign_signature(fz_context *ctx, pdf_document *doc, pdf_widget *widget, 
 			if (dn->c)
 				fz_buffer_printf(ctx, fzbuf, ", c=%s", dn->c);
 
-			(void)fz_buffer_storage(ctx, fzbuf, (unsigned char **) &dn_str);
+			dn_str = (char*)fz_string_from_buffer(ctx, fzbuf);
 			pdf_set_signature_appearance(ctx, doc, (pdf_annot *)widget, dn->cn, dn_str, NULL);
 		}
 	}
@@ -844,8 +838,7 @@ int pdf_signatures_supported(fz_context *ctx)
 	return 1;
 }
 
-
-
+#if 0
 BIO *Z_file_segment_BIO(fz_context *ctx, const char *filename, pdf_obj *byterange)
 {
 	BIO *bdata = NULL;
@@ -886,6 +879,7 @@ BIO *Z_file_segment_BIO(fz_context *ctx, const char *filename, pdf_obj *byterang
     }
     return bsegs;
 }
+#endif
 
 static void z_openssl_dosign_adobe_like(fz_context *ctx, z_device *device, pdf_document *doc, pdf_annot *annot, z_pdf_sign_appearance *app)
 {
@@ -941,11 +935,13 @@ static void z_openssl_dosign_adobe_like(fz_context *ctx, z_device *device, pdf_d
 
 static void z_openssl_dosign(fz_context *ctx, z_device *device, pdf_document* doc, pdf_annot *annot, z_pdf_sign_appearance *app)
 {
+    fz_rect rect;
 	fz_try(ctx)
 	{
-        fz_rect rect = annot->rect;
         pdf_obj *wobj = annot->obj;
 		pdf_signature_set_value(ctx, doc, wobj, device);
+
+        pdf_annot_rect(ctx, annot, &rect);
 		/* Create an appearance stream only if the signature is intended to be visible */
 		if ( !fz_is_empty_rect(&rect) && app)
 		{
@@ -1053,6 +1049,8 @@ fz_buffer *z_openssl_pdf_get_digest(fz_context *ctx, pdf_document *doc, z_device
 	{
 		unsigned char *p7_ptr;
 		int p7_len;
+        unsigned char *digestdata = NULL;
+        size_t size = 0;
 
         if( !fz_file_exists(ctx, filename) ){
             z_fz_stream_save(ctx, doc->file, filename);
@@ -1081,7 +1079,8 @@ fz_buffer *z_openssl_pdf_get_digest(fz_context *ctx, pdf_document *doc, z_device
 		if (bp7in == NULL)
 			fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to write to digest");
 
-        BIO_write(bp7in, digest_buffer->data, digest_buffer->len);
+        size = fz_buffer_extract(ctx, digest_buffer, &digestdata);
+        BIO_write(bp7in, digestdata, size);
 
 		if (!PKCS7_dataFinal(p7, bp7in))
 			fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to write to digest");
@@ -1274,7 +1273,7 @@ void z_openssl_pdf_write_digest(fz_context *ctx, z_openssl_device *dev, pdf_docu
     }
 }
 
-#else /* HAVE_OPENSSL */
+#else /* HAVE_LIBCRYPTO */
 
 int pdf_check_signature(fz_context *ctx, pdf_document *doc, pdf_widget *widget, char *file, char *ebuf, int ebufsize)
 {
@@ -1304,4 +1303,4 @@ int pdf_signatures_supported(fz_context *ctx)
 	return 0;
 }
 
-#endif /* HAVE_OPENSSL */
+#endif /* HAVE_LIBCRYPTO */

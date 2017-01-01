@@ -116,7 +116,7 @@ pdf_obj *pdf_lookup_field(fz_context *ctx, pdf_obj *form, char *name)
 	{
 		namep = dot + 1;
 		dot = strchr(namep, '.');
-		len = dot ? dot - namep : strlen(namep);
+		len = dot ? dot - namep : (int)strlen(namep);
 		dict = find_field(ctx, form, namep, len);
 		if (dot)
 			form = pdf_dict_get(ctx, dict, PDF_NAME_Kids);
@@ -125,9 +125,9 @@ pdf_obj *pdf_lookup_field(fz_context *ctx, pdf_obj *form, char *name)
 	return dict;
 }
 
-static void reset_field(fz_context *ctx, pdf_document *doc, pdf_obj *field)
+static void reset_form_field(fz_context *ctx, pdf_document *doc, pdf_obj *field)
 {
-	/* Set V to DV whereever DV is present, and delete V where DV is not.
+	/* Set V to DV wherever DV is present, and delete V where DV is not.
 	 * FIXME: we assume for now that V has not been set unequal
 	 * to DV higher in the hierarchy than "field".
 	 *
@@ -192,7 +192,7 @@ void pdf_field_reset(fz_context *ctx, pdf_document *doc, pdf_obj *field)
 {
 	pdf_obj *kids = pdf_dict_get(ctx, field, PDF_NAME_Kids);
 
-	reset_field(ctx, doc, field);
+	reset_form_field(ctx, doc, field);
 
 	if (kids)
 	{
@@ -317,7 +317,7 @@ static void reset_form(fz_context *ctx, pdf_document *doc, pdf_obj *fields, int 
 		int i, n = pdf_array_len(ctx, sfields);
 
 		for (i = 0; i < n; i++)
-			reset_field(ctx, doc, pdf_array_get(ctx, sfields, i));
+			reset_form_field(ctx, doc, pdf_array_get(ctx, sfields, i));
 	}
 	fz_always(ctx)
 	{
@@ -340,7 +340,7 @@ static void execute_action(fz_context *ctx, pdf_document *doc, pdf_obj *obj, pdf
 			pdf_obj *js = pdf_dict_get(ctx, a, PDF_NAME_JS);
 			if (js)
 			{
-				char *code = pdf_to_utf8(ctx, doc, js);
+				char *code = pdf_load_stream_or_string_as_utf8(ctx, js);
 				fz_try(ctx)
 				{
 					pdf_js_execute(doc->js, code);
@@ -583,22 +583,31 @@ int pdf_pass_event(fz_context *ctx, pdf_document *doc, pdf_page *page, pdf_ui_ev
 	pdf_hotspot *hp = &doc->hotspot;
 	fz_point *pt = &(ui_event->event.pointer.pt);
 	int changed = 0;
+	fz_rect bbox;
 
 	if (page == NULL)
 		return 0;
 
 	for (annot = page->annots; annot; annot = annot->next)
 	{
-		if (pt->x >= annot->pagerect.x0 && pt->x <= annot->pagerect.x1)
-			if (pt->y >= annot->pagerect.y0 && pt->y <= annot->pagerect.y1)
+		pdf_bound_annot(ctx, annot, &bbox);
+		if (pt->x >= bbox.x0 && pt->x <= bbox.x1)
+			if (pt->y >= bbox.y0 && pt->y <= bbox.y1)
 				break;
 	}
 
+	/* Skip hidden annotations. */
 	if (annot)
 	{
 		int f = pdf_to_int(ctx, pdf_dict_get(ctx, annot->obj, PDF_NAME_F));
+		if (f & (PDF_ANNOT_IS_HIDDEN|PDF_ANNOT_IS_NO_VIEW))
+			annot = NULL;
+	}
 
-		if (f & (F_Hidden|F_NoView))
+	/* Skip Link annotations. */
+	if (annot)
+	{
+		if (pdf_name_eq(ctx, pdf_dict_get(ctx, annot->obj, PDF_NAME_Subtype), PDF_NAME_Link))
 			annot = NULL;
 	}
 
@@ -624,10 +633,9 @@ int pdf_pass_event(fz_context *ctx, pdf_document *doc, pdf_page *page, pdf_ui_ev
 					doc->focus_obj = pdf_keep_obj(ctx, annot->obj);
 
 					hp->num = pdf_to_num(ctx, annot->obj);
-					hp->gen = pdf_to_gen(ctx, annot->obj);
 					hp->state = HOTSPOT_POINTER_DOWN;
 					changed = 1;
-					/* Exectute the down and focus actions */
+					/* Execute the down and focus actions */
 					execute_additional_action(ctx, doc, annot->obj, "AA/Fo");
 					execute_additional_action(ctx, doc, annot->obj, "AA/D");
 				}
@@ -638,12 +646,11 @@ int pdf_pass_event(fz_context *ctx, pdf_document *doc, pdf_page *page, pdf_ui_ev
 					changed = 1;
 
 				hp->num = 0;
-				hp->gen = 0;
 				hp->state = 0;
 
 				if (annot)
 				{
-					switch (annot->widget_type)
+					switch (pdf_widget_type(ctx, (pdf_widget*)annot))
 					{
 					case PDF_WIDGET_TYPE_RADIOBUTTON:
 					case PDF_WIDGET_TYPE_CHECKBOX:
@@ -667,24 +674,15 @@ int pdf_pass_event(fz_context *ctx, pdf_document *doc, pdf_page *page, pdf_ui_ev
 	return changed;
 }
 
-void pdf_update_page(fz_context *ctx, pdf_document *doc, pdf_page *page)
+void pdf_update_page(fz_context *ctx, pdf_page *page)
 {
 	pdf_annot *annot;
 
 	/* Reset changed_annots to empty */
-	page->changed_annots = NULL;
+	for (annot = page->annots; annot; annot = annot->next)
+		annot->changed = 0;
 
-	/*
-		Free all annots in tmp_annots, since these were
-		referenced only from changed_annots.
-	*/
-	if (page->tmp_annots)
-	{
-		pdf_drop_annots(ctx, page->tmp_annots);
-		page->tmp_annots = NULL;
-	}
-
-	/* Add all changed annots to the list */
+	/* Flag all changed annots */
 	for (annot = page->annots; annot; annot = annot->next)
 	{
 		pdf_xobject *ap = pdf_keep_xobject(ctx, annot->ap);
@@ -692,51 +690,15 @@ void pdf_update_page(fz_context *ctx, pdf_document *doc, pdf_page *page)
 
 		fz_try(ctx)
 		{
-			pdf_update_annot(ctx, doc, annot);
-
+			pdf_update_annot(ctx, annot);
 			if ((ap != annot->ap || ap_iteration != annot->ap_iteration))
-			{
-				annot->next_changed = page->changed_annots;
-				page->changed_annots = annot;
-			}
+				annot->changed = 1;
 		}
 		fz_always(ctx)
-		{
 			pdf_drop_xobject(ctx, ap);
-		}
 		fz_catch(ctx)
-		{
 			fz_rethrow(ctx);
-		}
 	}
-
-	/*
-		Add all deleted annots to the list, since these also
-		warrant a screen update
-	*/
-	for (annot = page->deleted_annots; annot; annot = annot->next)
-	{
-		annot->next_changed = page->changed_annots;
-		page->changed_annots = annot;
-	}
-
-	/*
-		Move deleted_annots to tmp_annots to keep them separate
-		from any future deleted ones. They cannot yet be freed
-		since they are linked into changed_annots
-	*/
-	page->tmp_annots = page->deleted_annots;
-	page->deleted_annots = NULL;
-}
-
-pdf_annot *pdf_poll_changed_annot(fz_context *ctx, pdf_document *idoc, pdf_page *page)
-{
-	pdf_annot *annot = page->changed_annots;
-
-	if (annot)
-		page->changed_annots = annot->next_changed;
-
-	return annot;
 }
 
 pdf_widget *pdf_focused_widget(fz_context *ctx, pdf_document *doc)
@@ -748,7 +710,7 @@ pdf_widget *pdf_first_widget(fz_context *ctx, pdf_document *doc, pdf_page *page)
 {
 	pdf_annot *annot = page->annots;
 
-	while (annot && annot->widget_type == PDF_WIDGET_TYPE_NOT_WIDGET)
+	while (annot && pdf_annot_type(ctx, annot) != PDF_ANNOT_WIDGET)
 		annot = annot->next;
 
 	return (pdf_widget *)annot;
@@ -761,7 +723,7 @@ pdf_widget *pdf_next_widget(fz_context *ctx, pdf_widget *previous)
 	if (annot)
 		annot = annot->next;
 
-	while (annot && annot->widget_type == PDF_WIDGET_TYPE_NOT_WIDGET)
+	while (annot && pdf_annot_type(ctx, annot) != PDF_ANNOT_WIDGET)
 		annot = annot->next;
 
 	return (pdf_widget *)annot;
@@ -771,13 +733,12 @@ pdf_widget *pdf_create_widget(fz_context *ctx, pdf_document *doc, pdf_page *page
 {
 	pdf_obj *form = NULL;
 	int old_sigflags = pdf_to_int(ctx, pdf_dict_getp(ctx, pdf_trailer(ctx, doc), "Root/AcroForm/SigFlags"));
-	pdf_annot *annot = pdf_create_annot(ctx, doc, page, FZ_ANNOT_WIDGET);
+	pdf_annot *annot = pdf_create_annot(ctx, page, PDF_ANNOT_WIDGET);
 
 	fz_try(ctx)
 	{
 		pdf_set_field_type(ctx, doc, annot->obj, type);
 		pdf_dict_put_drop(ctx, annot->obj, PDF_NAME_T, pdf_new_string(ctx, doc, fieldname, strlen(fieldname)));
-		annot->widget_type = type;
 
 		if (type == PDF_WIDGET_TYPE_SIGNATURE)
 		{
@@ -800,7 +761,7 @@ pdf_widget *pdf_create_widget(fz_context *ctx, pdf_document *doc, pdf_page *page
 	}
 	fz_catch(ctx)
 	{
-		pdf_delete_annot(ctx, doc, page, annot);
+		pdf_delete_annot(ctx, page, annot);
 
 		/* An empty Fields array may have been created, but that is harmless */
 
@@ -813,10 +774,12 @@ pdf_widget *pdf_create_widget(fz_context *ctx, pdf_document *doc, pdf_page *page
 	return (pdf_widget *)annot;
 }
 
-int pdf_widget_get_type(fz_context *ctx, pdf_widget *widget)
+int pdf_widget_type(fz_context *ctx, pdf_widget *widget)
 {
 	pdf_annot *annot = (pdf_annot *)widget;
-	return annot->widget_type;
+	if (pdf_annot_type(ctx, annot) == PDF_ANNOT_WIDGET)
+		return pdf_field_type(ctx, pdf_get_bound_document(ctx, annot->obj), annot->obj);
+	return PDF_WIDGET_TYPE_NOT_WIDGET;
 }
 
 static int set_text_field_value(fz_context *ctx, pdf_document *doc, pdf_obj *field, const char *text)
@@ -999,18 +962,18 @@ int pdf_field_display(fz_context *ctx, pdf_document *doc, pdf_obj *field)
 
 	f = pdf_to_int(ctx, pdf_dict_get(ctx, field, PDF_NAME_F));
 
-	if (f & F_Hidden)
+	if (f & PDF_ANNOT_IS_HIDDEN)
 	{
 		res = Display_Hidden;
 	}
-	else if (f & F_Print)
+	else if (f & PDF_ANNOT_IS_PRINT)
 	{
-		if (f & F_NoView)
+		if (f & PDF_ANNOT_IS_NO_VIEW)
 			res = Display_NoView;
 	}
 	else
 	{
-		if (f & F_NoView)
+		if (f & PDF_ANNOT_IS_NO_VIEW)
 			res = Display_Hidden;
 		else
 			res = Display_NoPrint;
@@ -1028,7 +991,7 @@ static char *get_field_name(fz_context *ctx, pdf_document *doc, pdf_obj *field, 
 	char *res = NULL;
 	pdf_obj *parent = pdf_dict_get(ctx, field, PDF_NAME_Parent);
 	char *lname = pdf_to_str_buf(ctx, pdf_dict_get(ctx, field, PDF_NAME_T));
-	int llen = strlen(lname);
+	int llen = (int)strlen(lname);
 
 	/*
 	 * If we found a name at this point in the field hierarchy
@@ -1069,20 +1032,20 @@ void pdf_field_set_display(fz_context *ctx, pdf_document *doc, pdf_obj *field, i
 
 	if (!kids)
 	{
-		int mask = (F_Hidden|F_Print|F_NoView);
+		int mask = (PDF_ANNOT_IS_HIDDEN|PDF_ANNOT_IS_PRINT|PDF_ANNOT_IS_NO_VIEW);
 		int f = pdf_to_int(ctx, pdf_dict_get(ctx, field, PDF_NAME_F)) & ~mask;
 		pdf_obj *fo = NULL;
 
 		switch (d)
 		{
 		case Display_Visible:
-			f |= F_Print;
+			f |= PDF_ANNOT_IS_PRINT;
 			break;
 		case Display_Hidden:
-			f |= F_Hidden;
+			f |= PDF_ANNOT_IS_HIDDEN;
 			break;
 		case Display_NoView:
-			f |= (F_Print|F_NoView);
+			f |= (PDF_ANNOT_IS_PRINT|PDF_ANNOT_IS_NO_VIEW);
 			break;
 		case Display_NoPrint:
 			break;
@@ -1127,7 +1090,8 @@ void pdf_field_set_text_color(fz_context *ctx, pdf_document *doc, pdf_obj *field
 	fz_buffer *fzbuf = NULL;
 	char *da = pdf_to_str_buf(ctx, pdf_get_inheritable(ctx, doc, field, PDF_NAME_DA));
 	unsigned char *buf;
-	int len;
+	int ilen;
+	size_t len;
 	pdf_obj *daobj = NULL;
 
 	memset(&di, 0, sizeof(di));
@@ -1142,8 +1106,8 @@ void pdf_field_set_text_color(fz_context *ctx, pdf_document *doc, pdf_obj *field
 		pdf_parse_da(ctx, da, &di);
 		di.col_size = pdf_array_len(ctx, col);
 
-		len = fz_mini(di.col_size, nelem(di.col));
-		for (i = 0; i < len; i++)
+		ilen = fz_mini(di.col_size, (int)nelem(di.col));
+		for (i = 0; i < ilen; i++)
 			di.col[i] = pdf_to_real(ctx, pdf_array_get(ctx, col, i));
 
 		fzbuf = fz_new_buffer(ctx, 0);
@@ -1167,13 +1131,7 @@ void pdf_field_set_text_color(fz_context *ctx, pdf_document *doc, pdf_obj *field
 
 fz_rect *pdf_bound_widget(fz_context *ctx, pdf_widget *widget, fz_rect *rect)
 {
-	pdf_annot *annot = (pdf_annot *)widget;
-
-	if (rect == NULL)
-		return NULL;
-	*rect = annot->pagerect;
-
-	return rect;
+	return pdf_bound_annot(ctx, (pdf_annot*)widget, rect);
 }
 
 char *pdf_text_widget_text(fz_context *ctx, pdf_document *doc, pdf_widget *tw)

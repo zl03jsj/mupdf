@@ -4,8 +4,8 @@ typedef struct fz_mesh_processor_s fz_mesh_processor;
 
 struct fz_mesh_processor_s {
 	fz_shade *shade;
-	fz_mesh_prepare_fn *prepare;
-	fz_mesh_process_fn *process;
+	fz_shade_prepare_fn *prepare;
+	fz_shade_process_fn *process;
 	void *process_arg;
 	int ncomp;
 };
@@ -70,7 +70,7 @@ fz_prepare_vertex(fz_context *ctx, fz_mesh_processor *painter, fz_vertex *v, con
 }
 
 static void
-fz_process_mesh_type1(fz_context *ctx, fz_shade *shade, const fz_matrix *ctm, fz_mesh_processor *painter)
+fz_process_shade_type1(fz_context *ctx, fz_shade *shade, const fz_matrix *ctm, fz_mesh_processor *painter)
 {
 	float *p = shade->u.f.fn_vals;
 	int xdivs = shade->u.f.xdivs;
@@ -84,7 +84,7 @@ fz_process_mesh_type1(fz_context *ctx, fz_shade *shade, const fz_matrix *ctm, fz
 	fz_vertex vs[2][2];
 	fz_vertex *v = vs[0];
 	fz_vertex *vn = vs[1];
-	int n = shade->colorspace->n;
+	int n = fz_colorspace_n(ctx, shade->colorspace);
 	fz_matrix local_ctm;
 
 	fz_concat(&local_ctm, &shade->u.f.matrix, ctm);
@@ -127,7 +127,7 @@ fz_point_on_circle(fz_point p, float r, float theta)
 }
 
 static void
-fz_process_mesh_type2(fz_context *ctx, fz_shade *shade, const fz_matrix *ctm, fz_mesh_processor *painter)
+fz_process_shade_type2(fz_context *ctx, fz_shade *shade, const fz_matrix *ctm, fz_mesh_processor *painter)
 {
 	fz_point p0, p1, dir;
 	fz_vertex v0, v1, v2, v3;
@@ -240,7 +240,7 @@ fz_paint_annulus(fz_context *ctx, const fz_matrix *ctm,
 }
 
 static void
-fz_process_mesh_type3(fz_context *ctx, fz_shade *shade, const fz_matrix *ctm, fz_mesh_processor *painter)
+fz_process_shade_type3(fz_context *ctx, fz_shade *shade, const fz_matrix *ctm, fz_mesh_processor *painter)
 {
 	fz_point p0, p1;
 	float r0, r1;
@@ -302,7 +302,7 @@ static inline float read_sample(fz_context *ctx, fz_stream *stream, int bits, fl
 }
 
 static void
-fz_process_mesh_type4(fz_context *ctx, fz_shade *shade, const fz_matrix *ctm, fz_mesh_processor *painter)
+fz_process_shade_type4(fz_context *ctx, fz_shade *shade, const fz_matrix *ctm, fz_mesh_processor *painter)
 {
 	fz_stream *stream = fz_open_compressed_buffer(ctx, shade->buffer);
 	fz_vertex v[4];
@@ -381,7 +381,7 @@ fz_process_mesh_type4(fz_context *ctx, fz_shade *shade, const fz_matrix *ctm, fz
 }
 
 static void
-fz_process_mesh_type5(fz_context *ctx, fz_shade *shade, const fz_matrix *ctm, fz_mesh_processor *painter)
+fz_process_shade_type5(fz_context *ctx, fz_shade *shade, const fz_matrix *ctm, fz_mesh_processor *painter)
 {
 	fz_stream *stream = fz_open_compressed_buffer(ctx, shade->buffer);
 	fz_vertex *buf = NULL;
@@ -696,7 +696,7 @@ make_tensor_patch(tensor_patch *p, int type, fz_point *pt)
 #define SUBDIV 3 /* how many levels to subdivide patches */
 
 static void
-fz_process_mesh_type6(fz_context *ctx, fz_shade *shade, const fz_matrix *ctm, fz_mesh_processor *painter)
+fz_process_shade_type6(fz_context *ctx, fz_shade *shade, const fz_matrix *ctm, fz_mesh_processor *painter)
 {
 	fz_stream *stream = fz_open_compressed_buffer(ctx, shade->buffer);
 	float color_storage[2][4][FZ_MAX_COLORS];
@@ -809,7 +809,7 @@ fz_process_mesh_type6(fz_context *ctx, fz_shade *shade, const fz_matrix *ctm, fz
 }
 
 static void
-fz_process_mesh_type7(fz_context *ctx, fz_shade *shade, const fz_matrix *ctm, fz_mesh_processor *painter)
+fz_process_shade_type7(fz_context *ctx, fz_shade *shade, const fz_matrix *ctm, fz_mesh_processor *painter)
 {
 	fz_stream *stream = fz_open_compressed_buffer(ctx, shade->buffer);
 	int bpflag = shade->u.m.bpflag;
@@ -922,8 +922,8 @@ fz_process_mesh_type7(fz_context *ctx, fz_shade *shade, const fz_matrix *ctm, fz
 }
 
 void
-fz_process_mesh(fz_context *ctx, fz_shade *shade, const fz_matrix *ctm,
-		fz_mesh_prepare_fn *prepare, fz_mesh_process_fn *process, void *process_arg)
+fz_process_shade(fz_context *ctx, fz_shade *shade, const fz_matrix *ctm,
+		fz_shade_prepare_fn *prepare, fz_shade_process_fn *process, void *process_arg)
 {
 	fz_mesh_processor painter;
 
@@ -931,22 +931,22 @@ fz_process_mesh(fz_context *ctx, fz_shade *shade, const fz_matrix *ctm,
 	painter.prepare = prepare;
 	painter.process = process;
 	painter.process_arg = process_arg;
-	painter.ncomp = (shade->use_function > 0 ? 1 : shade->colorspace->n);
+	painter.ncomp = (shade->use_function > 0 ? 1 : fz_colorspace_n(ctx, shade->colorspace));
 
 	if (shade->type == FZ_FUNCTION_BASED)
-		fz_process_mesh_type1(ctx, shade, ctm, &painter);
+		fz_process_shade_type1(ctx, shade, ctm, &painter);
 	else if (shade->type == FZ_LINEAR)
-		fz_process_mesh_type2(ctx, shade, ctm, &painter);
+		fz_process_shade_type2(ctx, shade, ctm, &painter);
 	else if (shade->type == FZ_RADIAL)
-		fz_process_mesh_type3(ctx, shade, ctm, &painter);
+		fz_process_shade_type3(ctx, shade, ctm, &painter);
 	else if (shade->type == FZ_MESH_TYPE4)
-		fz_process_mesh_type4(ctx, shade, ctm, &painter);
+		fz_process_shade_type4(ctx, shade, ctm, &painter);
 	else if (shade->type == FZ_MESH_TYPE5)
-		fz_process_mesh_type5(ctx, shade, ctm, &painter);
+		fz_process_shade_type5(ctx, shade, ctm, &painter);
 	else if (shade->type == FZ_MESH_TYPE6)
-		fz_process_mesh_type6(ctx, shade, ctm, &painter);
+		fz_process_shade_type6(ctx, shade, ctm, &painter);
 	else if (shade->type == FZ_MESH_TYPE7)
-		fz_process_mesh_type7(ctx, shade, ctm, &painter);
+		fz_process_shade_type7(ctx, shade, ctm, &painter);
 	else
 		fz_throw(ctx, FZ_ERROR_GENERIC, "Unexpected mesh type %d\n", shade->type);
 }
@@ -1056,8 +1056,7 @@ fz_drop_shade_imp(fz_context *ctx, fz_storable *shade_)
 {
 	fz_shade *shade = (fz_shade *)shade_;
 
-	if (shade->colorspace)
-		fz_drop_colorspace(ctx, shade->colorspace);
+	fz_drop_colorspace(ctx, shade->colorspace);
 	if (shade->type == FZ_FUNCTION_BASED)
 		fz_free(ctx, shade->u.f.fn_vals);
 	fz_drop_compressed_buffer(ctx, shade->buffer);
@@ -1105,7 +1104,7 @@ fz_print_shade(fz_context *ctx, fz_output *out, fz_shade *shade)
 		shade->bbox.x0, shade->bbox.y0,
 		shade->bbox.x1, shade->bbox.y1);
 
-	fz_printf(ctx, out, "\tcolorspace %s\n", shade->colorspace->name);
+	fz_printf(ctx, out, "\tcolorspace %s\n", fz_colorspace_name(ctx, shade->colorspace));
 
 	fz_printf(ctx, out, "\tmatrix [%g %g %g %g %g %g]\n",
 			shade->matrix.a, shade->matrix.b, shade->matrix.c,
@@ -1113,8 +1112,9 @@ fz_print_shade(fz_context *ctx, fz_output *out, fz_shade *shade)
 
 	if (shade->use_background)
 	{
+		int n = fz_colorspace_n(ctx, shade->colorspace);
 		fz_printf(ctx, out, "\tbackground [");
-		for (i = 0; i < shade->colorspace->n; i++)
+		for (i = 0; i < n; i++)
 			fz_printf(ctx, out, "%s%g", i == 0 ? "" : " ", shade->background[i]);
 		fz_printf(ctx, out, "]\n");
 	}

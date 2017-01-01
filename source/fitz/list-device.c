@@ -257,12 +257,7 @@ fz_append_display_node(
 		rect_off = size;
 		size += SIZE_IN_NODES(sizeof(fz_rect));
 	}
-	if (color && !colorspace)
-	{
-		/* SoftMasks can omit a colorspace, but we know what they mean */
-		colorspace = fz_device_gray(ctx);
-	}
-	if (colorspace)
+	if (color || colorspace)
 	{
 		if (colorspace != writer->colorspace)
 		{
@@ -307,7 +302,7 @@ fz_append_display_node(
 			else
 			{
 				int i;
-				int n = colorspace->n;
+				int n = fz_colorspace_n(ctx, colorspace);
 
 				colorspace_off = size;
 				size += SIZE_IN_NODES(sizeof(fz_colorspace *));
@@ -378,7 +373,7 @@ fz_append_display_node(
 			else
 			{
 				int i;
-				int n = colorspace->n;
+				int n = fz_colorspace_n(ctx, colorspace);
 				for (i=0; i < n; i++)
 					if (color[i] != 0.0f)
 						break;
@@ -394,12 +389,11 @@ fz_append_display_node(
 	}
 	if (color)
 	{
-
 		int i, n;
 		const float *wc = &writer->color[0];
 
 		assert(colorspace != NULL);
-		n = colorspace->n;
+		n = fz_colorspace_n(ctx, colorspace);
 		i = 0;
 		/* Only check colors if the colorspace is unchanged. If the
 		 * colorspace *has* changed and the colors are implicit then
@@ -569,7 +563,8 @@ fz_append_display_node(
 		default:
 		{
 			fz_colorspace **out_colorspace = (fz_colorspace **)(void *)(&node_ptr[colorspace_off]);
-			int i, n = colorspace->n;
+			int i, n;
+			n = fz_colorspace_n(ctx, colorspace);
 			*out_colorspace = fz_keep_colorspace(ctx, colorspace);
 
 			writer->colorspace = fz_keep_colorspace(ctx, colorspace);
@@ -581,9 +576,10 @@ fz_append_display_node(
 	}
 	if (color_off)
 	{
+		int n = fz_colorspace_n(ctx, colorspace);
 		float *out_color = (float *)(void *)(&node_ptr[color_off]);
-		memcpy(writer->color, color, colorspace->n * sizeof(float));
-		memcpy(out_color, color, colorspace->n * sizeof(float));
+		memcpy(writer->color, color, n * sizeof(float));
+		memcpy(out_color, color, n * sizeof(float));
 	}
 	if (node.alpha)
 	{
@@ -1199,7 +1195,7 @@ fz_list_render_flags(fz_context *ctx, fz_device *dev, int set, int clear)
 }
 
 static void
-drop_writer(fz_context *ctx, fz_device *dev)
+fz_list_drop_device(fz_context *ctx, fz_device *dev)
 {
 	fz_list_device *writer = (fz_list_device *)dev;
 
@@ -1243,7 +1239,7 @@ fz_new_list_device(fz_context *ctx, fz_display_list *list)
 
 	dev->super.render_flags = fz_list_render_flags;
 
-	dev->super.close = drop_writer;
+	dev->super.drop_device = fz_list_drop_device;
 
 	dev->list = list;
 	dev->path = NULL;
@@ -1265,9 +1261,8 @@ fz_drop_display_list_imp(fz_context *ctx, fz_storable *list_)
 	fz_display_node *node = list->list;
 	fz_display_node *node_end = list->list + list->len;
 	int cs_n = 1;
+	fz_colorspace *cs;
 
-	if (list == NULL)
-		return;
 	while (node != node_end)
 	{
 		fz_display_node n = *node;
@@ -1296,8 +1291,9 @@ fz_drop_display_list_imp(fz_context *ctx, fz_storable *list_)
 			cs_n = 4;
 			break;
 		case CS_OTHER_0:
-			cs_n = (*(fz_colorspace **)node)->n;
-			fz_drop_colorspace(ctx, *(fz_colorspace **)node);
+			cs = *(fz_colorspace **)node;
+			cs_n = fz_colorspace_n(ctx, cs);
+			fz_drop_colorspace(ctx, cs);
 			node += SIZE_IN_NODES(sizeof(fz_colorspace *));
 			break;
 		}
@@ -1352,12 +1348,12 @@ fz_drop_display_list_imp(fz_context *ctx, fz_storable *list_)
 }
 
 fz_display_list *
-fz_new_display_list(fz_context *ctx)
+fz_new_display_list(fz_context *ctx, const fz_rect *mediabox)
 {
 	fz_display_list *list = fz_malloc_struct(ctx, fz_display_list);
 	FZ_INIT_STORABLE(list, 1, fz_drop_display_list_imp);
 	list->list = NULL;
-	list->mediabox = fz_empty_rect;
+	list->mediabox = mediabox ? *mediabox : fz_empty_rect;
 	list->max = 0;
 	list->len = 0;
 	return list;
@@ -1372,7 +1368,9 @@ fz_keep_display_list(fz_context *ctx, fz_display_list *list)
 void
 fz_drop_display_list(fz_context *ctx, fz_display_list *list)
 {
+	fz_defer_reap_start(ctx);
 	fz_drop_storable(ctx, &list->storable);
+	fz_defer_reap_end(ctx);
 }
 
 fz_rect *
@@ -1380,6 +1378,11 @@ fz_bound_display_list(fz_context *ctx, fz_display_list *list, fz_rect *bounds)
 {
 	*bounds = list->mediabox;
 	return bounds;
+}
+
+int fz_display_list_is_empty(fz_context *ctx, const fz_display_list *list)
+{
+	return !list || list->len == 0;
 }
 
 void
@@ -1442,7 +1445,7 @@ fz_run_display_list(fz_context *ctx, fz_display_list *list, fz_device *dev, cons
 		}
 		if (n.cs)
 		{
-			int i;
+			int i, en;
 
 			fz_drop_colorspace(ctx, colorspace);
 			switch (n.cs)
@@ -1485,15 +1488,17 @@ fz_run_display_list(fz_context *ctx, fz_display_list *list, fz_device *dev, cons
 			case CS_OTHER_0:
 				colorspace = fz_keep_colorspace(ctx, *(fz_colorspace **)(node));
 				node += SIZE_IN_NODES(sizeof(fz_colorspace *));
-				for (i = 0; i < colorspace->n; i++)
+				en = fz_colorspace_n(ctx, colorspace);
+				for (i = 0; i < en; i++)
 					color[i] = 0.0f;
 				break;
 			}
 		}
 		if (n.color)
 		{
-			memcpy(color, (float *)node, colorspace->n * sizeof(float));
-			node += SIZE_IN_NODES(colorspace->n * sizeof(float));
+			int nc = fz_colorspace_n(ctx, colorspace);
+			memcpy(color, (float *)node, nc * sizeof(float));
+			node += SIZE_IN_NODES(nc * sizeof(float));
 		}
 		if (n.alpha)
 		{

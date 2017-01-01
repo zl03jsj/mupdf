@@ -1,5 +1,6 @@
 #include "mupdf/fitz.h"
 #include "draw-imp.h"
+#include "glyph-cache-imp.h"
 
 #define MAX_GLYPH_SIZE 256
 #define MAX_CACHE_SIZE (1024*1024)
@@ -33,10 +34,10 @@ struct fz_glyph_cache_entry_s
 struct fz_glyph_cache_s
 {
 	int refs;
-	int total;
+	size_t total;
 #ifndef NDEBUG
 	int num_evictions;
-	int evicted;
+	ptrdiff_t evicted;
 #endif
 	fz_glyph_cache_entry *entry[GLYPH_HASH_LEN];
 	fz_glyph_cache_entry *lru_head;
@@ -107,7 +108,7 @@ fz_purge_glyph_cache(fz_context *ctx)
 void
 fz_drop_glyph_cache_context(fz_context *ctx)
 {
-	if (!ctx->glyph_cache)
+	if (!ctx || !ctx->glyph_cache)
 		return;
 
 	fz_lock(ctx, FZ_LOCK_GLYPHCACHE);
@@ -175,7 +176,7 @@ fz_subpixel_adjust(fz_context *ctx, fz_matrix *ctm, fz_matrix *subpix_ctm, unsig
 fz_glyph *
 fz_render_stroked_glyph(fz_context *ctx, fz_font *font, int gid, fz_matrix *trm, const fz_matrix *ctm, const fz_stroke_state *stroke, const fz_irect *scissor)
 {
-	if (font->ft_face)
+	if (fz_font_ft_face(ctx, font))
 	{
 		fz_matrix subpix_trm;
 		unsigned char qe, qf;
@@ -191,7 +192,7 @@ fz_render_stroked_glyph(fz_context *ctx, fz_font *font, int gid, fz_matrix *trm,
 fz_pixmap *
 fz_render_stroked_glyph_pixmap(fz_context *ctx, fz_font *font, int gid, fz_matrix *trm, const fz_matrix *ctm, const fz_stroke_state *stroke, const fz_irect *scissor)
 {
-	if (font->ft_face)
+	if (fz_font_ft_face(ctx, font))
 	{
 		fz_matrix subpix_trm;
 		unsigned char qe, qf;
@@ -252,6 +253,7 @@ fz_render_glyph(fz_context *ctx, fz_font *font, int gid, fz_matrix *ctm, fz_colo
 	int do_cache, locked, caching;
 	fz_glyph_cache_entry *entry;
 	unsigned hash;
+	int is_ft_font = !!fz_font_ft_face(ctx, font);
 
 	fz_var(locked);
 	fz_var(caching);
@@ -266,7 +268,7 @@ fz_render_glyph(fz_context *ctx, fz_font *font, int gid, fz_matrix *ctm, fz_colo
 	}
 	else
 	{
-		if (font->ft_face)
+		if (is_ft_font)
 			return NULL;
 		subpix_scissor.x0 = scissor->x0 - floorf(ctm->e);
 		subpix_scissor.y0 = scissor->y0 - floorf(ctm->f);
@@ -286,8 +288,8 @@ fz_render_glyph(fz_context *ctx, fz_font *font, int gid, fz_matrix *ctm, fz_colo
 	key.d = subpix_ctm.d * 65536;
 	key.aa = fz_text_aa_level(ctx);
 
-	fz_lock(ctx, FZ_LOCK_GLYPHCACHE);
 	hash = do_hash((unsigned char *)&key, sizeof(key)) % GLYPH_HASH_LEN;
+	fz_lock(ctx, FZ_LOCK_GLYPHCACHE);
 	entry = cache->entry[hash];
 	while (entry)
 	{
@@ -307,11 +309,11 @@ fz_render_glyph(fz_context *ctx, fz_font *font, int gid, fz_matrix *ctm, fz_colo
 
 	fz_try(ctx)
 	{
-		if (font->ft_face)
+		if (is_ft_font)
 		{
 			val = fz_render_ft_glyph(ctx, font, gid, &subpix_ctm, key.aa);
 		}
-		else if (font->t3procs)
+		else if (fz_font_t3_procs(ctx, font))
 		{
 			/* We drop the glyphcache here, and execute the t3
 			 * glyph code. The danger here is that some other
@@ -339,7 +341,7 @@ fz_render_glyph(fz_context *ctx, fz_font *font, int gid, fz_matrix *ctm, fz_colo
 				/* If we throw an exception whilst caching,
 				 * just ignore the exception and carry on. */
 				caching = 1;
-				if (!font->ft_face)
+				if (!is_ft_font)
 				{
 					/* We had to unlock. Someone else might
 					 * have rendered in the meantime */
@@ -413,6 +415,7 @@ fz_render_glyph_pixmap(fz_context *ctx, fz_font *font, int gid, fz_matrix *ctm, 
 	unsigned char qe, qf;
 	fz_matrix subpix_ctm;
 	float size = fz_subpixel_adjust(ctx, ctm, &subpix_ctm, &qe, &qf);
+	int is_ft_font = !!fz_font_ft_face(ctx, font);
 
 	if (size <= MAX_GLYPH_SIZE)
 	{
@@ -420,17 +423,17 @@ fz_render_glyph_pixmap(fz_context *ctx, fz_font *font, int gid, fz_matrix *ctm, 
 	}
 	else
 	{
-		if (font->ft_face)
+		if (is_ft_font)
 			return NULL;
 	}
 
 	fz_try(ctx)
 	{
-		if (font->ft_face)
+		if (is_ft_font)
 		{
 			val = fz_render_ft_glyph_pixmap(ctx, font, gid, &subpix_ctm, fz_text_aa_level(ctx));
 		}
-		else if (font->t3procs)
+		else if (fz_font_t3_procs(ctx, font))
 		{
 			val = fz_render_t3_glyph_pixmap(ctx, font, gid, &subpix_ctm, NULL, scissor);
 		}
@@ -453,8 +456,8 @@ fz_dump_glyph_cache_stats(fz_context *ctx)
 {
 	fz_glyph_cache *cache = ctx->glyph_cache;
 
-	fprintf(stderr, "Glyph Cache Size: %d\n", cache->total);
+	fprintf(stderr, "Glyph Cache Size: " FMT_zu "\n", cache->total);
 #ifndef NDEBUG
-	fprintf(stderr, "Glyph Cache Evictions: %d (%d bytes)\n", cache->num_evictions, cache->evicted);
+	fprintf(stderr, "Glyph Cache Evictions: %d (" FMT_zu " bytes)\n", cache->num_evictions, cache->evicted);
 #endif
 }

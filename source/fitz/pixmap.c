@@ -17,8 +17,7 @@ fz_drop_pixmap_imp(fz_context *ctx, fz_storable *pix_)
 {
 	fz_pixmap *pix = (fz_pixmap *)pix_;
 
-	if (pix->colorspace)
-		fz_drop_colorspace(ctx, pix->colorspace);
+	fz_drop_colorspace(ctx, pix->colorspace);
 	if (pix->free_samples)
 		fz_free(ctx, pix->samples);
 	fz_free(ctx, pix);
@@ -33,7 +32,7 @@ fz_new_pixmap_with_data(fz_context *ctx, fz_colorspace *colorspace, int w, int h
 	if (w < 0 || h < 0)
 		fz_throw(ctx, FZ_ERROR_GENERIC, "Illegal dimensions for pixmap %d %d", w, h);
 
-	n = alpha + (colorspace ? colorspace->n : 0);
+	n = alpha + fz_colorspace_n(ctx, colorspace);
 	if (stride < n*w && stride > -n*w)
 		fz_throw(ctx, FZ_ERROR_GENERIC, "Illegal stride for pixmap (n=%d w=%d, stride=%d)", n, w, stride);
 	if (samples == NULL && stride < n*w)
@@ -77,8 +76,7 @@ fz_new_pixmap_with_data(fz_context *ctx, fz_colorspace *colorspace, int w, int h
 		}
 		fz_catch(ctx)
 		{
-			if (colorspace)
-				fz_drop_colorspace(ctx, colorspace);
+			fz_drop_colorspace(ctx, colorspace);
 			fz_free(ctx, pix);
 			fz_rethrow(ctx);
 		}
@@ -91,7 +89,7 @@ fz_new_pixmap_with_data(fz_context *ctx, fz_colorspace *colorspace, int w, int h
 fz_pixmap *
 fz_new_pixmap(fz_context *ctx, fz_colorspace *colorspace, int w, int h, int alpha)
 {
-	int stride = ((colorspace ? colorspace->n : 0) + alpha) * w;
+	int stride = (fz_colorspace_n(ctx, colorspace) + alpha) * w;
 	return fz_new_pixmap_with_data(ctx, colorspace, w, h, alpha, stride, NULL);
 }
 
@@ -109,7 +107,7 @@ fz_pixmap *
 fz_new_pixmap_with_bbox_and_data(fz_context *ctx, fz_colorspace *colorspace, const fz_irect *r, int alpha, unsigned char *samples)
 {
 	int w = r->x1 - r->x0;
-	int stride = ((colorspace ? colorspace->n : 0) + alpha) * w;
+	int stride = (fz_colorspace_n(ctx, colorspace) + alpha) * w;
 	fz_pixmap *pixmap = fz_new_pixmap_with_data(ctx, colorspace, w, r->y1 - r->y0, alpha, stride, samples);
 	pixmap->x = r->x0;
 	pixmap->y = r->y0;
@@ -259,6 +257,9 @@ clear_cmyk_bitmap(unsigned char *samples, int w, int h, int stride, int value, i
 	uint32_t *s = (uint32_t *)(void *)samples;
 	uint8_t *t;
 
+	if (w < 0 || h < 0)
+		return;
+
 	if (alpha)
 	{
 		int c = w;
@@ -335,17 +336,18 @@ clear_cmyk_bitmap(unsigned char *samples, int w, int h, int stride, int value, i
 		stride -= w*4;
 		if ((stride & 3) == 0)
 		{
+			size_t W = w;
 			if (stride == 0)
 			{
-				w *= h;
+				W *= h;
 				h = 1;
 			}
-			w *= 4;
+			W *= 4;
 			if (value == 0)
 			{
 				while (h--)
 				{
-					memset(s, 0, w);
+					memset(s, 0, W);
 					s += (stride>>2);
 				}
 			}
@@ -364,8 +366,8 @@ clear_cmyk_bitmap(unsigned char *samples, int w, int h, int stride, int value, i
 					const uint32_t a0 = d.word;
 					while (h--)
 					{
-						int ww = w;
-						while (ww--)
+						size_t WW = W >> 2;
+						while (WW--)
 						{
 							*s++ = a0;
 						}
@@ -431,15 +433,18 @@ fz_clear_pixmap_with_value(fz_context *ctx, fz_pixmap *pix, int value)
 	int w, h, n, stride, len;
 	int alpha = pix->alpha;
 
+	w = pix->w;
+	h = pix->h;
+	if (w < 0 || h < 0)
+		return;
+
 	/* CMYK needs special handling (and potentially any other subtractive colorspaces) */
-	if (pix->colorspace && pix->colorspace->n == 4)
+	if (fz_colorspace_n(ctx, pix->colorspace) == 4)
 	{
-		clear_cmyk_bitmap(pix->samples, pix->w, pix->h, pix->stride, 255-value, pix->alpha);
+		clear_cmyk_bitmap(pix->samples, w, h, pix->stride, 255-value, pix->alpha);
 		return;
 	}
 
-	w = pix->w;
-	h = pix->h;
 	n = pix->n;
 	stride = pix->stride;
 	len = w * n;
@@ -604,7 +609,7 @@ fz_clear_pixmap_rect_with_value(fz_context *ctx, fz_pixmap *dest, int value, con
 	destp = dest->samples + (unsigned int)(destspan * (local_b.y0 - dest->y) + dest->n * (local_b.x0 - dest->x));
 
 	/* CMYK needs special handling (and potentially any other subtractive colorspaces) */
-	if (dest->colorspace && dest->colorspace->n == 4)
+	if (fz_colorspace_n(ctx, dest->colorspace) == 4)
 	{
 		value = 255 - value;
 		do
@@ -658,6 +663,9 @@ fz_premultiply_pixmap(fz_context *ctx, fz_pixmap *pix)
 	int k, x, y;
 	int stride = pix->stride - pix->w * pix->n;
 
+	if (!pix->alpha)
+		return;
+
 	for (y = 0; y < pix->h; y++)
 	{
 		for (x = 0; x < pix->w; x++)
@@ -679,6 +687,9 @@ fz_unmultiply_pixmap(fz_context *ctx, fz_pixmap *pix)
 	int k, x, y;
 	int stride = pix->stride - pix->w * pix->n;
 
+	if (!pix->alpha)
+		return;
+
 	for (y = 0; y < pix->h; y++)
 	{
 		for (x = 0; x < pix->w; x++)
@@ -694,7 +705,7 @@ fz_unmultiply_pixmap(fz_context *ctx, fz_pixmap *pix)
 }
 
 fz_pixmap *
-fz_alpha_from_gray(fz_context *ctx, fz_pixmap *gray, int luminosity)
+fz_alpha_from_gray(fz_context *ctx, fz_pixmap *gray)
 {
 	fz_pixmap *alpha;
 	unsigned char *sp, *dp;
@@ -705,19 +716,15 @@ fz_alpha_from_gray(fz_context *ctx, fz_pixmap *gray, int luminosity)
 
 	alpha = fz_new_pixmap_with_bbox(ctx, NULL, fz_pixmap_bbox(ctx, gray, &bbox), 1);
 	dp = alpha->samples;
-	dstride = alpha->stride - alpha->w;
+	dstride = alpha->stride;
 	sp = gray->samples;
-	sstride = gray->stride - gray->w;
+	sstride = gray->stride;
 
 	h = gray->h;
+	w = gray->w;
 	while (h--)
 	{
-		w = gray->w;
-		while (w--)
-		{
-			*dp++ = sp[0];
-			sp++;
-		}
+		memcpy(dp, sp, w);
 		sp += sstride;
 		dp += dstride;
 	}
@@ -781,16 +788,18 @@ fz_invert_pixmap(fz_context *ctx, fz_pixmap *pix)
 {
 	unsigned char *s = pix->samples;
 	int k, x, y;
+	int n1 = pix->n - pix->alpha;
+	int n = pix->n;
 
 	for (y = 0; y < pix->h; y++)
 	{
 		for (x = 0; x < pix->w; x++)
 		{
-			for (k = 0; k < pix->n - 1; k++)
+			for (k = 0; k < n1; k++)
 				s[k] = 255 - s[k];
-			s += pix->n;
+			s += n;
 		}
-		s += pix->stride - pix->w * pix->n;
+		s += pix->stride - pix->w * n;
 	}
 }
 
@@ -838,587 +847,7 @@ fz_gamma_pixmap(fz_context *ctx, fz_pixmap *pix, float gamma)
 	}
 }
 
-/*
- * Write pixmap to PNM file (without alpha channel)
- */
-
-void
-fz_write_pnm_header(fz_context *ctx, fz_output *out, int w, int h, int n)
-{
-	if (n < 1 || n > 4)
-		fz_throw(ctx, FZ_ERROR_GENERIC, "pixmap must be grayscale or rgb to write as pnm");
-
-	if (n == 1 || n == 2)
-		fz_printf(ctx, out, "P5\n");
-	if (n == 3 || n == 4)
-		fz_printf(ctx, out, "P6\n");
-	fz_printf(ctx, out, "%d %d\n", w, h);
-	fz_printf(ctx, out, "255\n");
-}
-
-void
-fz_write_pnm_band(fz_context *ctx, fz_output *out, int w, int h, int n, int stride, int band, int bandheight, unsigned char *p)
-{
-	char buffer[2*3*4*5*6]; /* Buffer must be a multiple of 2 and 3 at least. */
-	int len;
-	int start = band * bandheight;
-	int end = start + bandheight;
-
-	if (!out)
-		return;
-
-	if (end > h)
-		end = h;
-	end -= start;
-
-	/* Tests show that writing single bytes out at a time
-	 * is appallingly slow. We get a huge improvement
-	 * by collating stuff into buffers first. */
-
-	while (end--)
-	{
-		len = w;
-		while (len)
-		{
-			int num_written = len;
-
-			switch (n)
-			{
-			case 1:
-				/* No collation required */
-				fz_write(ctx, out, p, num_written);
-				p += num_written;
-				break;
-			case 2:
-			{
-				char *o = buffer;
-				int count;
-
-				if (num_written > sizeof(buffer))
-					num_written = sizeof(buffer);
-
-				for (count = num_written; count; count--)
-				{
-					*o++ = *p;
-					p += 2;
-				}
-				fz_write(ctx, out, buffer, num_written);
-				break;
-			}
-			case 3:
-			case 4:
-			{
-				char *o = buffer;
-				int count;
-
-				if (num_written > sizeof(buffer)/3)
-					num_written = sizeof(buffer)/3;
-
-				for (count = num_written; count; count--)
-				{
-					*o++ = p[0];
-					*o++ = p[1];
-					*o++ = p[2];
-					p += n;
-				}
-				fz_write(ctx, out, buffer, num_written * 3);
-				break;
-			}
-			}
-			len -= num_written;
-		}
-		p += stride - w*n;
-	}
-}
-
-void
-fz_write_pixmap_as_pnm(fz_context *ctx, fz_output *out, fz_pixmap *pixmap)
-{
-	fz_write_pnm_header(ctx, out, pixmap->w, pixmap->h, pixmap->n);
-	fz_write_pnm_band(ctx, out, pixmap->w, pixmap->h, pixmap->n, pixmap->stride, 0, pixmap->h, pixmap->samples);
-}
-
-void
-fz_save_pixmap_as_pnm(fz_context *ctx, fz_pixmap *pixmap, char *filename)
-{
-	fz_output *out = fz_new_output_with_path(ctx, filename, 0);
-	fz_write_pnm_header(ctx, out, pixmap->w, pixmap->h, pixmap->n);
-	fz_write_pnm_band(ctx, out, pixmap->w, pixmap->h, pixmap->n, pixmap->stride, 0, pixmap->h, pixmap->samples);
-	fz_drop_output(ctx, out);
-}
-
-/*
- * Write pixmap to PAM file (with or without alpha channel)
- */
-
-void
-fz_write_pam_header(fz_context *ctx, fz_output *out, int w, int h, int n, int savealpha)
-{
-	int sn = n;
-	int dn = n;
-	if (!savealpha && dn > 1)
-		dn--;
-
-	fz_printf(ctx, out, "P7\n");
-	fz_printf(ctx, out, "WIDTH %d\n", w);
-	fz_printf(ctx, out, "HEIGHT %d\n", h);
-	fz_printf(ctx, out, "DEPTH %d\n", dn);
-	fz_printf(ctx, out, "MAXVAL 255\n");
-	if (dn == 1) fz_printf(ctx, out, "TUPLTYPE GRAYSCALE\n");
-	else if (dn == 2 && sn == 2) fz_printf(ctx, out, "TUPLTYPE GRAYSCALE_ALPHA\n");
-	else if (dn == 3 && sn == 4) fz_printf(ctx, out, "TUPLTYPE RGB\n");
-	else if (dn == 4 && sn == 4) fz_printf(ctx, out, "TUPLTYPE RGB_ALPHA\n");
-	else if (dn == 4 && sn == 5) fz_printf(ctx, out, "TUPLTYPE CMYK\n");
-	else if (dn == 5 && sn == 5) fz_printf(ctx, out, "TUPLTYPE CMYK_ALPHA\n");
-	fz_printf(ctx, out, "ENDHDR\n");
-}
-
-void
-fz_write_pam_band(fz_context *ctx, fz_output *out, int w, int h, int n, int stride, int band, int bandheight, unsigned char *sp, int savealpha)
-{
-	int y, x;
-	int start = band * bandheight;
-	int end = start + bandheight;
-	int sn = n;
-	int dn = n;
-	if (!savealpha && dn > 1)
-		dn--;
-
-	if (!out)
-		return;
-
-	if (end > h)
-		end = h;
-	end -= start;
-
-	for (y = 0; y < end; y++)
-	{
-		x = w;
-		while (x--)
-		{
-			fz_write(ctx, out, sp, dn);
-			sp += sn;
-		}
-		sp += stride - w*n;
-	}
-}
-
-void
-fz_write_pixmap_as_pam(fz_context *ctx, fz_output *out, fz_pixmap *pixmap, int savealpha)
-{
-	fz_write_pam_header(ctx, out, pixmap->w, pixmap->h, pixmap->n, savealpha);
-	fz_write_pam_band(ctx, out, pixmap->w, pixmap->h, pixmap->n, pixmap->stride, 0, pixmap->h, pixmap->samples, savealpha);
-}
-
-void
-fz_save_pixmap_as_pam(fz_context *ctx, fz_pixmap *pixmap, char *filename, int savealpha)
-{
-	fz_output *out = fz_new_output_with_path(ctx, filename, 0);
-	fz_try(ctx)
-	{
-		fz_write_pam_header(ctx, out, pixmap->w, pixmap->h, pixmap->n, savealpha);
-		fz_write_pam_band(ctx, out, pixmap->w, pixmap->h, pixmap->n, pixmap->stride, 0, pixmap->h, pixmap->samples, savealpha);
-	}
-	fz_always(ctx)
-		fz_drop_output(ctx, out);
-	fz_catch(ctx)
-		fz_rethrow(ctx);
-}
-
-/*
- * Write pixmap to PNG file (with or without alpha channel)
- */
-
-#include <zlib.h>
-
-static inline void big32(unsigned char *buf, unsigned int v)
-{
-	buf[0] = (v >> 24) & 0xff;
-	buf[1] = (v >> 16) & 0xff;
-	buf[2] = (v >> 8) & 0xff;
-	buf[3] = (v) & 0xff;
-}
-
-static void putchunk(fz_context *ctx, fz_output *out, char *tag, unsigned char *data, int size)
-{
-	unsigned int sum;
-	fz_write_int32_be(ctx, out, size);
-	fz_write(ctx, out, tag, 4);
-	fz_write(ctx, out, data, size);
-	sum = crc32(0, NULL, 0);
-	sum = crc32(sum, (unsigned char*)tag, 4);
-	sum = crc32(sum, data, size);
-	fz_write_int32_be(ctx, out, sum);
-}
-
-void
-fz_save_pixmap_as_png(fz_context *ctx, fz_pixmap *pixmap, const char *filename, int savealpha)
-{
-	fz_output *out = fz_new_output_with_path(ctx, filename, 0);
-	fz_png_output_context *poc = NULL;
-
-	fz_var(poc);
-
-	fz_try(ctx)
-	{
-		poc = fz_write_png_header(ctx, out, pixmap->w, pixmap->h, pixmap->n, pixmap->alpha, savealpha);
-		fz_write_png_band(ctx, out, poc, pixmap->stride, 0, pixmap->h, pixmap->samples);
-	}
-	fz_always(ctx)
-	{
-		fz_write_png_trailer(ctx, out, poc);
-		fz_drop_output(ctx, out);
-	}
-	fz_catch(ctx)
-	{
-		fz_rethrow(ctx);
-	}
-}
-
-void
-fz_write_pixmap_as_png(fz_context *ctx, fz_output *out, const fz_pixmap *pixmap, int savealpha)
-{
-	fz_png_output_context *poc;
-
-	if (!out)
-		return;
-
-	poc = fz_write_png_header(ctx, out, pixmap->w, pixmap->h, pixmap->n, pixmap->alpha, savealpha);
-
-	fz_try(ctx)
-	{
-		fz_write_png_band(ctx, out, poc, pixmap->stride, 0, pixmap->h, pixmap->samples);
-	}
-	fz_always(ctx)
-	{
-		fz_write_png_trailer(ctx, out, poc);
-	}
-	fz_catch(ctx)
-	{
-		fz_rethrow(ctx);
-	}
-}
-
-struct fz_png_output_context_s
-{
-	unsigned char *udata;
-	unsigned char *cdata;
-	uLong usize, csize;
-	z_stream stream;
-	int w;
-	int h;
-	int n;
-	int alpha;
-	int savealpha;
-};
-
-fz_png_output_context *
-fz_write_png_header(fz_context *ctx, fz_output *out, int w, int h, int n, int alpha, int savealpha)
-{
-	static const unsigned char pngsig[8] = { 137, 80, 78, 71, 13, 10, 26, 10 };
-	unsigned char head[13];
-	int color;
-	fz_png_output_context *poc;
-
-	if (!out)
-		return NULL;
-
-	/* Treat alpha only as greyscale */
-	if (n == 1 && alpha)
-		alpha = 0;
-
-	switch (n - alpha)
-	{
-	case 1: color = (alpha ? 4 : 0); break; /* 0 = Greyscale, 4 = Greyscale + Alpha */
-	case 3: color = (alpha ? 6 : 2); break; /* 2 = RGB, 6 = RGBA */
-	default:
-		fz_throw(ctx, FZ_ERROR_GENERIC, "pixmap must be grayscale or rgb to write as png");
-	}
-
-	/* If we have no alpha, save no alpha */
-	if (!alpha)
-		savealpha = 0;
-
-	poc = fz_malloc_struct(ctx, fz_png_output_context);
-	poc->w = w;
-	poc->h = h;
-	poc->n = n;
-	poc->alpha = alpha;
-	poc->savealpha = savealpha;
-
-	big32(head+0, w);
-	big32(head+4, h);
-	head[8] = 8; /* depth */
-	head[9] = color;
-	head[10] = 0; /* compression */
-	head[11] = 0; /* filter */
-	head[12] = 0; /* interlace */
-
-	fz_write(ctx, out, pngsig, 8);
-	putchunk(ctx, out, "IHDR", head, 13);
-
-	return poc;
-}
-
-void
-fz_write_png_band(fz_context *ctx, fz_output *out, fz_png_output_context *poc, int stride, int band, int bandheight, unsigned char *sp)
-{
-	unsigned char *dp;
-	int y, x, k, sn, dn, err, finalband;
-	int w, h, n, alpha, savealpha;
-
-	if (!out || !sp || !poc)
-		return;
-
-	w = poc->w;
-	h = poc->h;
-	n = poc->n;
-	alpha = poc->alpha;
-	savealpha = poc->savealpha;
-
-	band *= bandheight;
-	finalband = (band+bandheight >= h);
-	if (finalband)
-		bandheight = h - band;
-
-	sn = n;
-	dn = n - alpha + savealpha;
-
-	if (poc->udata == NULL)
-	{
-		poc->usize = (w * dn + 1) * bandheight;
-		/* Sadly the bound returned by compressBound is just for a
-		 * single usize chunk; if you compress a sequence of them
-		 * the buffering can result in you suddenly getting a block
-		 * larger than compressBound outputted in one go, even if you
-		 * take all the data out each time. */
-		poc->csize = compressBound(poc->usize);
-		fz_try(ctx)
-		{
-			poc->udata = fz_malloc(ctx, poc->usize);
-			poc->cdata = fz_malloc(ctx, poc->csize);
-		}
-		fz_catch(ctx)
-		{
-			fz_free(ctx, poc->udata);
-			poc->udata = NULL;
-			poc->cdata = NULL;
-			fz_rethrow(ctx);
-		}
-		err = deflateInit(&poc->stream, Z_DEFAULT_COMPRESSION);
-		if (err != Z_OK)
-			fz_throw(ctx, FZ_ERROR_GENERIC, "compression error %d", err);
-	}
-
-	dp = poc->udata;
-	stride -= w*sn;
-	for (y = 0; y < bandheight; y++)
-	{
-		*dp++ = 1; /* sub prediction filter */
-		for (x = 0; x < w; x++)
-		{
-			for (k = 0; k < dn; k++)
-			{
-				if (x == 0)
-					dp[k] = sp[k];
-				else
-					dp[k] = sp[k] - sp[k-sn];
-			}
-			sp += sn;
-			dp += dn;
-		}
-		sp += stride;
-	}
-
-	poc->stream.next_in = (Bytef*)poc->udata;
-	poc->stream.avail_in = (uInt)(dp - poc->udata);
-	do
-	{
-		poc->stream.next_out = poc->cdata;
-		poc->stream.avail_out = (uInt)poc->csize;
-
-		if (!finalband)
-		{
-			err = deflate(&poc->stream, Z_NO_FLUSH);
-			if (err != Z_OK)
-				fz_throw(ctx, FZ_ERROR_GENERIC, "compression error %d", err);
-		}
-		else
-		{
-			err = deflate(&poc->stream, Z_FINISH);
-			if (err != Z_STREAM_END)
-				fz_throw(ctx, FZ_ERROR_GENERIC, "compression error %d", err);
-		}
-
-		if (poc->stream.next_out != poc->cdata)
-			putchunk(ctx, out, "IDAT", poc->cdata, poc->stream.next_out - poc->cdata);
-	}
-	while (poc->stream.avail_out == 0);
-}
-
-void
-fz_write_png_trailer(fz_context *ctx, fz_output *out, fz_png_output_context *poc)
-{
-	unsigned char block[1];
-	int err;
-
-	if (!out || !poc)
-		return;
-
-	err = deflateEnd(&poc->stream);
-	if (err != Z_OK)
-		fz_throw(ctx, FZ_ERROR_GENERIC, "compression error %d", err);
-
-	fz_free(ctx, poc->cdata);
-	fz_free(ctx, poc->udata);
-	fz_free(ctx, poc);
-
-	putchunk(ctx, out, "IEND", block, 0);
-}
-
-/* We use an auxiliary function to do pixmap_as_png, as it can enable us to
- * drop pix early in the case where we have to convert, potentially saving
- * us having to have 2 copies of the pixmap and a buffer open at once. */
-static fz_buffer *
-png_from_pixmap(fz_context *ctx, fz_pixmap *pix, int drop)
-{
-	fz_buffer *buf = NULL;
-	fz_output *out;
-	fz_pixmap *pix2 = NULL;
-
-	fz_var(buf);
-	fz_var(out);
-	fz_var(pix2);
-
-	if (pix->w == 0 || pix->h == 0)
-		return NULL;
-
-	fz_try(ctx)
-	{
-		if (pix->colorspace && pix->colorspace != fz_device_gray(ctx) && pix->colorspace != fz_device_rgb(ctx))
-		{
-			pix2 = fz_new_pixmap(ctx, fz_device_rgb(ctx), pix->w, pix->h, 1);
-			fz_convert_pixmap(ctx, pix2, pix);
-			if (drop)
-				fz_drop_pixmap(ctx, pix);
-			pix = pix2;
-		}
-		buf = fz_new_buffer(ctx, 1024);
-		out = fz_new_output_with_buffer(ctx, buf);
-		fz_write_pixmap_as_png(ctx, out, pix, 1);
-	}
-	fz_always(ctx)
-	{
-		fz_drop_pixmap(ctx, drop ? pix : pix2);
-		fz_drop_output(ctx, out);
-	}
-	fz_catch(ctx)
-	{
-		fz_drop_buffer(ctx, buf);
-		fz_rethrow(ctx);
-	}
-	return buf;
-}
-
-fz_buffer *
-fz_new_buffer_from_image_as_png(fz_context *ctx, fz_image *image)
-{
-	return png_from_pixmap(ctx, fz_get_pixmap_from_image(ctx, image, NULL, NULL, NULL, NULL), 1);
-}
-
-fz_buffer *
-fz_new_buffer_from_pixmap_as_png(fz_context *ctx, fz_pixmap *pix)
-{
-	return png_from_pixmap(ctx, pix, 0);
-}
-
-/*
- * Write pixmap to TGA file (with or without alpha channel)
- */
-
-static inline void tga_put_pixel(fz_context *ctx, fz_output *out, unsigned char *data, int n, int is_bgr)
-{
-	if (n >= 3 && !is_bgr)
-	{
-		fz_putc(ctx, out, data[2]);
-		fz_putc(ctx, out, data[1]);
-		fz_putc(ctx, out, data[0]);
-		if (n == 4)
-			fz_putc(ctx, out, data[3]);
-		return;
-	}
-	if (n == 2)
-	{
-		fz_putc(ctx, out, data[0]);
-		fz_putc(ctx, out, data[0]);
-	}
-	fz_write(ctx, out, data, n);
-}
-
-void
-fz_save_pixmap_as_tga(fz_context *ctx, fz_pixmap *pixmap, const char *filename, int savealpha)
-{
-	fz_output *out = fz_new_output_with_path(ctx, filename, 0);
-	fz_try(ctx)
-		fz_write_pixmap_as_tga(ctx, out, pixmap, savealpha);
-	fz_always(ctx)
-		fz_drop_output(ctx, out);
-	fz_catch(ctx)
-		fz_rethrow(ctx);
-}
-
-void
-fz_write_pixmap_as_tga(fz_context *ctx, fz_output *out, fz_pixmap *pixmap, int savealpha)
-{
-	unsigned char head[18];
-	int n = pixmap->n;
-	int d = savealpha || n == 1 ? n : n - 1;
-	int is_bgr = pixmap->colorspace == fz_device_bgr(ctx);
-	int k;
-
-	if (pixmap->colorspace && pixmap->colorspace != fz_device_gray(ctx) &&
-		pixmap->colorspace != fz_device_rgb(ctx) && pixmap->colorspace != fz_device_bgr(ctx))
-	{
-		fz_throw(ctx, FZ_ERROR_GENERIC, "pixmap must be grayscale or rgb to write as tga");
-	}
-
-	memset(head, 0, sizeof(head));
-	head[2] = n == 4 ? 10 : 11;
-	head[12] = pixmap->w & 0xFF; head[13] = (pixmap->w >> 8) & 0xFF;
-	head[14] = pixmap->h & 0xFF; head[15] = (pixmap->h >> 8) & 0xFF;
-	head[16] = d * 8;
-	head[17] = savealpha && n > 1 ? 8 : 0;
-	if (savealpha && d == 2)
-		head[16] = 32;
-
-	fz_write(ctx, out, head, sizeof(head));
-	for (k = 1; k <= pixmap->h; k++)
-	{
-		int i, j;
-		unsigned char *line = pixmap->samples + pixmap->w * n * (pixmap->h - k);
-		for (i = 0, j = 1; i < pixmap->w; i += j, j = 1)
-		{
-			for (; i + j < pixmap->w && j < 128 && !memcmp(line + i * n, line + (i + j) * n, d); j++);
-			if (j > 1)
-			{
-				fz_putc(ctx, out, j - 1 + 128);
-				tga_put_pixel(ctx, out, line + i * n, d, is_bgr);
-			}
-			else
-			{
-				for (; i + j < pixmap->w && j <= 128 && memcmp(line + (i + j - 1) * n, line + (i + j) * n, d) != 0; j++);
-				if (i + j < pixmap->w || j > 128)
-					j--;
-				fz_putc(ctx, out, j - 1);
-				for (; j > 0; j--, i++)
-					tga_put_pixel(ctx, out, line + i * n, d, is_bgr);
-			}
-		}
-	}
-	fz_write(ctx, out, "\0\0\0\0\0\0\0\0TRUEVISION-XFILE.\0", 26);
-}
-
-unsigned int
+size_t
 fz_pixmap_size(fz_context *ctx, fz_pixmap * pix)
 {
 	if (pix == NULL)
@@ -1796,10 +1225,10 @@ fz_subsample_pixmap(fz_context *ctx, fz_pixmap *tile, int factor)
 }
 
 void
-fz_pixmap_set_resolution(fz_pixmap *pix, int res)
+fz_set_pixmap_resolution(fz_context *ctx, fz_pixmap *pix, int xres, int yres)
 {
-	pix->xres = res;
-	pix->yres = res;
+	pix->xres = xres;
+	pix->yres = yres;
 }
 
 void
@@ -1832,7 +1261,7 @@ int fz_valgrind_pixmap(const fz_pixmap *pix)
 	const unsigned char *p = pix->samples;
 
 	if (pix == NULL)
-		return;
+		return 0;
 
 	total = 0;
 	ww = pix->w;

@@ -28,6 +28,25 @@ typedef struct fz_stext_sheet_s fz_stext_sheet;
 typedef struct fz_stext_page_s fz_stext_page;
 
 /*
+	FZ_STEXT_PRESERVE_LIGATURES: If this option is activated ligatures
+	are passed through to the application in their original form. If
+	this option is deactivated ligatures are expanded into their
+	constituent parts, e.g. the ligature ffi is expanded into three
+	separate characters f, f and i.
+
+	FZ_STEXT_PRESERVE_WHITESPACE: If this option is actived whitespace
+	is passed through to the application in its original form. If this
+	option is deactivated any type of horizontal whitespace (including
+	horizontal tabs) will be replaced with space characters of variable
+	width.
+*/
+enum
+{
+	FZ_STEXT_PRESERVE_LIGATURES = 1,
+	FZ_STEXT_PRESERVE_WHITESPACE = 2,
+};
+
+/*
 	fz_stext_sheet: A text sheet contains a list of distinct text styles
 	used on a page (or a series of pages).
 */
@@ -182,6 +201,8 @@ struct fz_char_and_box_s
 	fz_rect bbox;
 };
 
+extern const char *fz_stext_options_usage;
+
 fz_char_and_box *fz_stext_char_at(fz_context *ctx, fz_char_and_box *cab, fz_stext_page *page, int idx);
 
 /*
@@ -215,8 +236,10 @@ void fz_drop_stext_sheet(fz_context *ctx, fz_stext_sheet *sheet);
 
 	The text page is filled out by the text device to contain the blocks,
 	lines and spans of text on the page.
+
+	mediabox: optional mediabox information.
 */
-fz_stext_page *fz_new_stext_page(fz_context *ctx);
+fz_stext_page *fz_new_stext_page(fz_context *ctx, const fz_rect *mediabox);
 void fz_drop_stext_page(fz_context *ctx, fz_stext_page *page);
 
 void fz_analyze_text(fz_context *ctx, fz_stext_sheet *sheet, fz_stext_page *page);
@@ -265,6 +288,20 @@ int fz_highlight_selection(fz_context *ctx, fz_stext_page *page, fz_rect rect, f
 char *fz_copy_selection(fz_context *ctx, fz_stext_page *page, fz_rect rect);
 
 /*
+	struct fz_stext_options: Options for creating a pixmap and draw device.
+*/
+typedef struct fz_stext_options_s fz_stext_options;
+
+struct fz_stext_options_s
+{
+	int flags;
+};
+/*
+	fz_parse_stext_options: Parse stext device options from a comma separated key-value string.
+*/
+fz_stext_options *fz_parse_stext_options(fz_context *ctx, fz_stext_options *opts, const char *string);
+
+/*
 	fz_new_stext_device: Create a device to extract the text on a page.
 
 	Gather and sort the text on a page into spans of uniform style,
@@ -278,9 +315,11 @@ char *fz_copy_selection(fz_context *ctx, fz_stext_page *page, fz_rect rect);
 
 	page: The text page to which content should be added. This will
 	usually be a newly created (empty) text page, but it can be one
-	containing data already (for example when merging multiple pages, or
-	watermarking).
+	containing data already (for example when merging multiple pages,
+	or watermarking).
+
+	options: Options to configure the stext device.
 */
-fz_device *fz_new_stext_device(fz_context *ctx, fz_stext_sheet *sheet, fz_stext_page *page);
+fz_device *fz_new_stext_device(fz_context *ctx, fz_stext_sheet *sheet, fz_stext_page *page, const fz_stext_options *options);
 
 #endif

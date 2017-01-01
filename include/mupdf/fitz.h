@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 #include "mupdf/fitz/version.h"
+#include "mupdf/fitz/config.h"
 #include "mupdf/fitz/system.h"
 #include "mupdf/fitz/context.h"
 
@@ -26,7 +27,7 @@ extern "C" {
 #include "mupdf/fitz/compressed-buffer.h"
 #include "mupdf/fitz/filter.h"
 #include "mupdf/fitz/output.h"
-#include "mupdf/fitz/unzip.h"
+#include "mupdf/fitz/archive.h"
 
 /* Resources */
 #include "mupdf/fitz/store.h"

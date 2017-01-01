@@ -19,20 +19,24 @@ LOCAL_C_INCLUDES := \
 	$(MUPDF_ROOT)/source/pdf \
 	$(MUPDF_ROOT)/platform/java
 LOCAL_CFLAGS := -DHAVE_ANDROID
-LOCAL_MODULE    := mupdf_java
-LOCAL_SRC_FILES := mupdf.c
+LOCAL_MODULE := mupdf_java32
+
+LOCAL_SRC_FILES := \
+	mupdf.c \
+	$(MUPDF_ROOT)/../platform/java/mupdf_native.c
+
 LOCAL_STATIC_LIBRARIES := mupdfcore mupdfthirdparty
 ifdef NDK_PROFILER
 LOCAL_CFLAGS += -pg -DNDK_PROFILER
 LOCAL_STATIC_LIBRARIES += andprof
 endif
-ifdef SUPPORT_GPROOF
-LOCAL_CFLAGS += -DSUPPORT_GPROOF
+ifdef FZ_ENABLE_GPRF
+LOCAL_CFLAGS += -DFZ_ENABLE_GPRF
 endif
 
-LOCAL_LDLIBS    := -lm -llog -ljnigraphics
-ifdef SSL_BUILD
-LOCAL_LDLIBS	+= -L$(MUPDF_ROOT)/thirdparty/openssl/android -lcrypto -lssl
+LOCAL_LDLIBS := -lm -llog -ljnigraphics
+ifdef CRYPTO_BUILD
+LOCAL_LDLIBS += -L$(MUPDF_ROOT)/thirdparty/openssl/android -lcrypto
 endif
 
 include $(BUILD_SHARED_LIBRARY)

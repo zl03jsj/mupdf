@@ -6,7 +6,7 @@ struct fz_item_s
 {
 	void *key;
 	fz_storable *val;
-	unsigned int size;
+	size_t size;
 	fz_item *next;
 	fz_item *prev;
 	fz_store *store;
@@ -27,12 +27,16 @@ struct fz_store_s
 	fz_hash_table *hash;
 
 	/* We keep track of the size of the store, and keep it below max. */
-	unsigned int max;
-	unsigned int size;
+	size_t max;
+	size_t size;
+
+	/* Protected by the reap lock */
+	int defer_reap_count;
+	int needs_reaping;
 };
 
 void
-fz_new_store_context(fz_context *ctx, unsigned int max)
+fz_new_store_context(fz_context *ctx, size_t max)
 {
 	fz_store *store;
 	store = fz_malloc_struct(ctx, fz_store);
@@ -50,6 +54,8 @@ fz_new_store_context(fz_context *ctx, unsigned int max)
 	store->tail = NULL;
 	store->size = 0;
 	store->max = max;
+	store->defer_reap_count = 0;
+	store->needs_reaping = 0;
 	ctx->store = store;
 }
 
@@ -60,8 +66,6 @@ fz_keep_storable(fz_context *ctx, const fz_storable *sc)
 	 * sanely throughout the code. */
 	fz_storable *s = (fz_storable *)sc;
 
-	if (s && s->refs > 0)
-		(void)Memento_takeRef(s);
 	return fz_keep_imp(ctx, s, &s->refs);
 }
 
@@ -79,10 +83,184 @@ fz_drop_storable(fz_context *ctx, const fz_storable *sc)
 		this method. So we can simply drop the storable object
 		itself without any operations on the fz_store.
 	 */
-	if (s && s->refs > 0)
-		(void)Memento_dropRef(s);
 	if (fz_drop_imp(ctx, s, &s->refs))
 		s->drop(ctx, s);
+}
+
+void *fz_keep_key_storable(fz_context *ctx, const fz_key_storable *sc)
+{
+	return fz_keep_storable(ctx, &sc->storable);
+}
+
+/*
+	Entered with FZ_LOCK_ALLOC and FZ_LOCK_REAP held.
+	Drops FZ_LOCK_ALLOC.
+*/
+static void
+do_reap(fz_context *ctx)
+{
+	fz_store *store = ctx->store;
+	fz_item *item, *prev, *remove;
+
+	if (store == NULL)
+	{
+		fz_unlock(ctx, FZ_LOCK_ALLOC);
+		return;
+	}
+
+	fz_assert_lock_held(ctx, FZ_LOCK_ALLOC);
+	fz_assert_lock_held(ctx, FZ_LOCK_REAP);
+
+	ctx->store->needs_reaping = 0;
+
+	/* Reap the items */
+	remove = NULL;
+	for (item = store->tail; item; item = prev)
+	{
+		prev = item->prev;
+
+		if (item->type->needs_reap == NULL || item->type->needs_reap(ctx, item->key) == 0)
+			continue;
+
+		/* We have to drop it */
+		store->size -= item->size;
+
+		/* Unlink from the linked list */
+		if (item->next)
+			item->next->prev = item->prev;
+		else
+			store->tail = item->prev;
+		if (item->prev)
+			item->prev->next = item->next;
+		else
+			store->head = item->next;
+
+		/* Remove from the hash table */
+		if (item->type->make_hash_key)
+		{
+			fz_store_hash hash = { NULL };
+			hash.drop = item->val->drop;
+			if (item->type->make_hash_key(ctx, &hash, item->key))
+				fz_hash_remove(ctx, store->hash, &hash);
+		}
+
+		/* Store whether to drop this value or not in 'prev' */
+		item->prev = (item->val->refs > 0 && --item->val->refs == 0) ? item : NULL;
+
+		/* Store it in our removal chain - just singly linked */
+		item->next = remove;
+		remove = item;
+	}
+	fz_unlock(ctx, FZ_LOCK_ALLOC);
+
+	/* Now drop the remove chain */
+	for (item = remove; item != NULL; item = remove)
+	{
+		remove = item->next;
+
+		/* Drop a reference to the value (freeing if required) */
+		if (item->prev)
+			item->val->drop(ctx, item->val);
+
+		/* Always drops the key and drop the item */
+		item->type->drop_key(ctx, item->key);
+		fz_free(ctx, item);
+	}
+
+}
+
+void fz_drop_key_storable(fz_context *ctx, const fz_key_storable *sc)
+{
+	/* Explicitly drop const to allow us to use const
+	 * sanely throughout the code. */
+	fz_key_storable *s = (fz_key_storable *)sc;
+	int drop;
+	int unlock = 1;
+
+	if (s == NULL)
+		return;
+
+	if (s->storable.refs > 0)
+		(void)Memento_dropRef(s);
+	fz_lock(ctx, FZ_LOCK_ALLOC);
+	if (s->storable.refs > 0)
+	{
+		drop = --s->storable.refs == 0;
+		if (!drop && s->storable.refs == s->store_key_refs)
+		{
+			fz_lock(ctx, FZ_LOCK_REAP);
+			if (ctx->store->defer_reap_count > 0)
+				ctx->store->needs_reaping = 1;
+			else
+			{
+				do_reap(ctx);
+				unlock = 0;
+			}
+			fz_unlock(ctx, FZ_LOCK_REAP);
+		}
+	}
+	else
+		drop = 0;
+	if (unlock)
+		fz_unlock(ctx, FZ_LOCK_ALLOC);
+	/*
+		If we are dropping the last reference to an object, then
+		it cannot possibly be in the store (as the store always
+		keeps a ref to everything in it, and doesn't drop via
+		this method. So we can simply drop the storable object
+		itself without any operations on the fz_store.
+	 */
+	if (drop)
+		s->storable.drop(ctx, &s->storable);
+}
+
+void *fz_keep_key_storable_key(fz_context *ctx, const fz_key_storable *sc)
+{
+	/* Explicitly drop const to allow us to use const
+	 * sanely throughout the code. */
+	fz_key_storable *s = (fz_key_storable *)sc;
+
+	if (s == NULL)
+		return NULL;
+
+	if (s->storable.refs > 0)
+		(void)Memento_takeRef(s);
+	fz_lock(ctx, FZ_LOCK_ALLOC);
+	if (s->storable.refs > 0)
+	{
+		++s->storable.refs;
+		++s->store_key_refs;
+	}
+	fz_unlock(ctx, FZ_LOCK_ALLOC);
+	return s;
+}
+
+void fz_drop_key_storable_key(fz_context *ctx, const fz_key_storable *sc)
+{
+	/* Explicitly drop const to allow us to use const
+	 * sanely throughout the code. */
+	fz_key_storable *s = (fz_key_storable *)sc;
+	int drop;
+
+	if (s == NULL)
+		return;
+
+	if (s->storable.refs > 0)
+		(void)Memento_dropRef(s);
+	fz_lock(ctx, FZ_LOCK_ALLOC);
+	assert(s->store_key_refs > 0 && s->storable.refs >= s->store_key_refs);
+	drop = --s->storable.refs == 0;
+	--s->store_key_refs;
+	fz_unlock(ctx, FZ_LOCK_ALLOC);
+	/*
+		If we are dropping the last reference to an object, then
+		it cannot possibly be in the store (as the store always
+		keeps a ref to everything in it, and doesn't drop via
+		this method. So we can simply drop the storable object
+		itself without any operations on the fz_store.
+	 */
+	if (drop)
+		s->storable.drop(ctx, &s->storable);
 }
 
 static void
@@ -101,8 +279,10 @@ evict(fz_context *ctx, fz_item *item)
 		item->prev->next = item->next;
 	else
 		store->head = item->next;
+
 	/* Drop a reference to the value (freeing if required) */
 	drop = (item->val->refs > 0 && --item->val->refs == 0);
+
 	/* Remove from the hash table */
 	if (item->type->make_hash_key)
 	{
@@ -114,17 +294,18 @@ evict(fz_context *ctx, fz_item *item)
 	fz_unlock(ctx, FZ_LOCK_ALLOC);
 	if (drop)
 		item->val->drop(ctx, item->val);
+
 	/* Always drops the key and drop the item */
 	item->type->drop_key(ctx, item->key);
 	fz_free(ctx, item);
 	fz_lock(ctx, FZ_LOCK_ALLOC);
 }
 
-static int
-ensure_space(fz_context *ctx, unsigned int tofree)
+static size_t
+ensure_space(fz_context *ctx, size_t tofree)
 {
 	fz_item *item, *prev;
-	unsigned int count;
+	size_t count;
 	fz_store *store = ctx->store;
 
 	fz_assert_lock_held(ctx, FZ_LOCK_ALLOC);
@@ -208,10 +389,10 @@ touch(fz_store *store, fz_item *item)
 }
 
 void *
-fz_store_item(fz_context *ctx, void *key, void *val_, unsigned int itemsize, fz_store_type *type)
+fz_store_item(fz_context *ctx, void *key, void *val_, size_t itemsize, fz_store_type *type)
 {
 	fz_item *item = NULL;
-	unsigned int size;
+	size_t size;
 	fz_storable *val = (fz_storable *)val_;
 	fz_store *store = ctx->store;
 	fz_store_hash hash = { NULL };
@@ -297,8 +478,25 @@ fz_store_item(fz_context *ctx, void *key, void *val_, unsigned int itemsize, fz_
 		size = store->size + itemsize;
 		while (size > store->max)
 		{
+			size_t saved;
+			int relock = 0;
+
+			/* First, do any outstanding reaping, even if defer_reap_count > 0 */
+			fz_lock(ctx, FZ_LOCK_REAP);
+			if (store->needs_reaping)
+			{
+				do_reap(ctx); /* Drops alloc lock */
+				relock = 1;
+			}
+			fz_unlock(ctx, FZ_LOCK_REAP);
+			if (relock)
+				fz_lock(ctx, FZ_LOCK_ALLOC);
+			size = store->size + itemsize;
+			if (size <= store->max)
+				break;
+
 			/* ensure_space may drop, then retake the lock */
-			int saved = ensure_space(ctx, size - store->max);
+			saved = ensure_space(ctx, size - store->max);
 			size -= saved;
 			if (saved == 0)
 			{
@@ -457,28 +655,21 @@ fz_keep_store_context(fz_context *ctx)
 {
 	if (ctx == NULL || ctx->store == NULL)
 		return NULL;
-	fz_lock(ctx, FZ_LOCK_ALLOC);
-	ctx->store->refs++;
-	fz_unlock(ctx, FZ_LOCK_ALLOC);
-	return ctx->store;
+	return fz_keep_imp(ctx, ctx->store, &ctx->store->refs);
 }
 
 void
 fz_drop_store_context(fz_context *ctx)
 {
-	int refs;
-	if (ctx == NULL || ctx->store == NULL)
+	if (!ctx)
 		return;
-	fz_lock(ctx, FZ_LOCK_ALLOC);
-	refs = --ctx->store->refs;
-	fz_unlock(ctx, FZ_LOCK_ALLOC);
-	if (refs != 0)
-		return;
-
-	fz_empty_store(ctx);
-	fz_drop_hash(ctx, ctx->store->hash);
-	fz_free(ctx, ctx->store);
-	ctx->store = NULL;
+	if (fz_drop_imp(ctx, ctx->store, &ctx->store->refs))
+	{
+		fz_empty_store(ctx);
+		fz_drop_hash(ctx, ctx->store->hash);
+		fz_free(ctx, ctx->store);
+		ctx->store = NULL;
+	}
 }
 
 static void
@@ -510,7 +701,7 @@ fz_print_store_locked(fz_context *ctx, fz_output *out)
 			next->val->refs--;
 	}
 	fz_printf(ctx, out, "-- resource store hash contents --\n");
-	fz_print_hash_details(ctx, out, store->hash, print_item);
+	fz_print_hash_details(ctx, out, store->hash, print_item, 1);
 	fz_printf(ctx, out, "-- end --\n");
 }
 
@@ -525,10 +716,10 @@ fz_print_store(fz_context *ctx, fz_output *out)
 /* This is now an n^2 algorithm - not ideal, but it'll only be bad if we are
  * actually managing to scavenge lots of blocks back. */
 static int
-scavenge(fz_context *ctx, unsigned int tofree)
+scavenge(fz_context *ctx, size_t tofree)
 {
 	fz_store *store = ctx->store;
-	unsigned int count = 0;
+	size_t count = 0;
 	fz_item *item, *prev;
 
 	/* Free the items */
@@ -553,25 +744,23 @@ scavenge(fz_context *ctx, unsigned int tofree)
 	return count != 0;
 }
 
-int fz_store_scavenge(fz_context *ctx, unsigned int size, int *phase)
+int fz_store_scavenge(fz_context *ctx, size_t size, int *phase)
 {
 	fz_store *store;
-	unsigned int max;
+	size_t max;
 
-	if (ctx == NULL)
-		return 0;
 	store = ctx->store;
 	if (store == NULL)
 		return 0;
 
 #ifdef DEBUG_SCAVENGING
-	printf("Scavenging: store=%d size=%d phase=%d\n", store->size, size, *phase);
+	printf("Scavenging: store=" FMT_zu " size=" FMT_zu " phase=%d\n", store->size, size, *phase);
 	fz_print_store_locked(ctx, stderr);
 	Memento_stats();
 #endif
 	do
 	{
-		unsigned int tofree;
+		size_t tofree;
 
 		/* Calculate 'max' as the maximum size of the store for this phase */
 		if (*phase >= 16)
@@ -583,8 +772,8 @@ int fz_store_scavenge(fz_context *ctx, unsigned int size, int *phase)
 		(*phase)++;
 
 		/* Slightly baroque calculations to avoid overflow */
-		if (size > UINT_MAX - store->size)
-			tofree = UINT_MAX - max;
+		if (size > SIZE_MAX - store->size)
+			tofree = SIZE_MAX - max;
 		else if (size + store->size > max)
 			continue;
 		else
@@ -593,7 +782,7 @@ int fz_store_scavenge(fz_context *ctx, unsigned int size, int *phase)
 		if (scavenge(ctx, tofree))
 		{
 #ifdef DEBUG_SCAVENGING
-			printf("scavenged: store=%d\n", store->size);
+			printf("scavenged: store=" FMT_zu "\n", store->size);
 			fz_print_store(ctx, stderr);
 			Memento_stats();
 #endif
@@ -615,10 +804,7 @@ fz_shrink_store(fz_context *ctx, unsigned int percent)
 {
 	int success;
 	fz_store *store;
-	unsigned int new_size;
-
-	if (ctx == NULL)
-		return 0;
+	size_t new_size;
 
 	if (percent >= 100)
 		return 1;
@@ -628,19 +814,115 @@ fz_shrink_store(fz_context *ctx, unsigned int percent)
 		return 0;
 
 #ifdef DEBUG_SCAVENGING
-	fprintf(stderr, "fz_shrink_store: %d\n", store->size/(1024*1024));
+	fprintf(stderr, "fz_shrink_store: " FMT_zu "\n", store->size/(1024*1024));
 #endif
 	fz_lock(ctx, FZ_LOCK_ALLOC);
 
-	new_size = (unsigned int)(((uint64_t)store->size * percent) / 100);
+	new_size = (size_t)(((uint64_t)store->size * percent) / 100);
 	if (store->size > new_size)
 		scavenge(ctx, store->size - new_size);
 
 	success = (store->size <= new_size) ? 1 : 0;
 	fz_unlock(ctx, FZ_LOCK_ALLOC);
 #ifdef DEBUG_SCAVENGING
-	fprintf(stderr, "fz_shrink_store after: %d\n", store->size/(1024*1024));
+	fprintf(stderr, "fz_shrink_store after: " FMT_zu "\n", store->size/(1024*1024));
 #endif
 
 	return success;
+}
+
+void fz_filter_store(fz_context *ctx, fz_store_filter_fn *fn, void *arg, fz_store_type *type)
+{
+	fz_store *store;
+	fz_item *item, *prev, *remove;
+
+	store = ctx->store;
+	if (store == NULL)
+		return;
+
+	fz_lock(ctx, FZ_LOCK_ALLOC);
+
+	/* Filter the items */
+	remove = NULL;
+	for (item = store->tail; item; item = prev)
+	{
+		prev = item->prev;
+		if (item->type != type)
+			continue;
+
+		if (fn(ctx, arg, item->key) == 0)
+			continue;
+
+		/* We have to drop it */
+		store->size -= item->size;
+
+		/* Unlink from the linked list */
+		if (item->next)
+			item->next->prev = item->prev;
+		else
+			store->tail = item->prev;
+		if (item->prev)
+			item->prev->next = item->next;
+		else
+			store->head = item->next;
+
+		/* Remove from the hash table */
+		if (item->type->make_hash_key)
+		{
+			fz_store_hash hash = { NULL };
+			hash.drop = item->val->drop;
+			if (item->type->make_hash_key(ctx, &hash, item->key))
+				fz_hash_remove(ctx, store->hash, &hash);
+		}
+
+		/* Store whether to drop this value or not in 'prev' */
+		item->prev = (item->val->refs > 0 && --item->val->refs == 0) ? item : NULL;
+
+		/* Store it in our removal chain - just singly linked */
+		item->next = remove;
+		remove = item;
+	}
+	fz_unlock(ctx, FZ_LOCK_ALLOC);
+
+	/* Now drop the remove chain */
+	for (item = remove; item != NULL; item = remove)
+	{
+		remove = item->next;
+
+		/* Drop a reference to the value (freeing if required) */
+		if (item->prev)
+			item->val->drop(ctx, item->val);
+
+		/* Always drops the key and drop the item */
+		item->type->drop_key(ctx, item->key);
+		fz_free(ctx, item);
+	}
+}
+
+void fz_defer_reap_start(fz_context *ctx)
+{
+	if (ctx->store == NULL)
+		return;
+
+	fz_lock(ctx, FZ_LOCK_REAP);
+	ctx->store->defer_reap_count++;
+	fz_unlock(ctx, FZ_LOCK_REAP);
+}
+
+void fz_defer_reap_end(fz_context *ctx)
+{
+	int reap;
+
+	if (ctx->store == NULL)
+		return;
+
+	fz_lock(ctx, FZ_LOCK_ALLOC);
+	fz_lock(ctx, FZ_LOCK_REAP);
+	--ctx->store->defer_reap_count;
+	reap = ctx->store->defer_reap_count == 0 && ctx->store->needs_reaping;
+	if (reap)
+		do_reap(ctx); /* Drops FZ_LOCK_ALLOC */
+	fz_unlock(ctx, FZ_LOCK_REAP);
+	if (!reap)
+		fz_unlock(ctx, FZ_LOCK_ALLOC);
 }

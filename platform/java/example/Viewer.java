@@ -14,10 +14,14 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.ActionEvent;
+import java.awt.GraphicsEnvironment;
+import java.awt.GraphicsDevice;
+import java.awt.Toolkit;
 
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.JOptionPane;
+import java.lang.reflect.Field;
 
 public class Viewer extends Frame implements WindowListener, ActionListener
 {
@@ -25,19 +29,30 @@ public class Viewer extends Frame implements WindowListener, ActionListener
 	protected Panel toolbar;
 	protected PageCanvas pageCanvas;
 	protected Label pageLabel;
-	protected Button firstButton, prevButton, nextButton, lastButton;
+	protected Button firstButton, prevButton, nextButton, lastButton, zoomInButton, zoomOutButton, fontIncButton, fontDecButton, toggleAnnotsButton;
 	protected int pageCount;
 	protected int pageNumber;
+	protected int layoutWidth;
+	protected int layoutHeight;
+	protected int layoutEm;
+
+	private float retinaScale;
 
 	public Viewer(Document doc_) {
 		super("MuPDF");
+
+		retinaScale = getRetinaScale();
 
 		this.doc = doc_;
 
 		pageCount = doc.countPages();
 		pageNumber = 0;
 
-		setSize(600, 900);
+		layoutWidth = 1200;
+		layoutHeight = 800;
+		layoutEm = 12;
+
+		setSize(layoutWidth, layoutHeight + 100);
 		setTitle("MuPDF: " + doc.getMetaData(Document.META_INFO_TITLE));
 
 		toolbar = new Panel();
@@ -50,12 +65,34 @@ public class Viewer extends Frame implements WindowListener, ActionListener
 		nextButton.addActionListener(this);
 		lastButton = new Button(">|");
 		lastButton.addActionListener(this);
+		zoomInButton = new Button("+");
+		zoomInButton.addActionListener(this);
+		zoomOutButton = new Button("-");
+		zoomOutButton.addActionListener(this);
+
+		toggleAnnotsButton = new Button("toggle annots");
+		toggleAnnotsButton.addActionListener(this);
+
+		if (doc.isReflowable()) {
+			fontIncButton = new Button("FONT");
+			fontIncButton.addActionListener(this);
+			fontDecButton = new Button("font");
+			fontDecButton.addActionListener(this);
+		}
+
 		pageLabel = new Label();
 
 		toolbar.add(firstButton);
 		toolbar.add(prevButton);
 		toolbar.add(nextButton);
 		toolbar.add(lastButton);
+		toolbar.add(zoomInButton);
+		toolbar.add(zoomOutButton);
+		toolbar.add(toggleAnnotsButton);
+		if (doc.isReflowable()) {
+			toolbar.add(fontIncButton);
+			toolbar.add(fontDecButton);
+		}
 		toolbar.add(pageLabel);
 
 		add(toolbar, BorderLayout.NORTH);
@@ -69,7 +106,7 @@ public class Viewer extends Frame implements WindowListener, ActionListener
 		pageLabel.setText("Page " + (pageNumber + 1) + " / " + pageCount);
 		if (pageCanvas != null)
 			remove(pageCanvas);
-		pageCanvas = new PageCanvas(doc.loadPage(pageNumber));
+		pageCanvas = new PageCanvas(doc.loadPage(pageNumber), retinaScale);
 		add(pageCanvas, BorderLayout.CENTER);
 		validate();
 	}
@@ -77,23 +114,48 @@ public class Viewer extends Frame implements WindowListener, ActionListener
 	public void actionPerformed(ActionEvent event) {
 		Object source = event.getSource();
 		int oldPageNumber = pageNumber;
+		int oldLayoutEm = layoutEm;
 
 		if (source == firstButton)
 			pageNumber = 0;
+
 		if (source == lastButton)
 			pageNumber = pageCount - 1;
+
 		if (source == prevButton) {
 			pageNumber = pageNumber - 1;
 			if (pageNumber < 0)
 				pageNumber = 0;
 		}
+
 		if (source == nextButton) {
 			pageNumber = pageNumber + 1;
 			if (pageNumber >= pageCount)
 				pageNumber = pageCount - 1;
 		}
+		if (doc.isReflowable() && source == fontIncButton) {
+			layoutEm = layoutEm + 1;
+		}
+		if (doc.isReflowable() && source == fontDecButton) {
+			layoutEm = layoutEm - 1;
+		}
 
-		if (pageNumber != oldPageNumber)
+		if (source == zoomInButton) {
+			pageCanvas.zoomIn();
+		}
+
+		if (source == zoomOutButton) {
+			pageCanvas.zoomOut();
+		}
+
+		if (layoutEm != oldLayoutEm)
+			doc.layout(layoutWidth, layoutHeight, layoutEm);
+
+		if (source == toggleAnnotsButton) {
+			pageCanvas.toggleAnnots();
+		}
+
+		if (pageNumber != oldPageNumber || layoutEm != oldLayoutEm)
 			stuff();
 	}
 
@@ -116,7 +178,7 @@ public class Viewer extends Frame implements WindowListener, ActionListener
 		{
 			public String getDescription()
 			{
-				return "Supported files (*.pdf, *,xps, *.jpg, *.jpeg, *.png, *.epub, *.cbz, *.cbr)";
+				return "Supported files (*.pdf, *,xps, *.jpg, *.jpeg, *.png, *.epub, *.cbz, *.cbr, *.epub)";
 			}
 
 			public boolean accept(File f)
@@ -140,6 +202,8 @@ public class Viewer extends Frame implements WindowListener, ActionListener
 				if (filename.endsWith(".cbz"))
 					return true;
 				if (filename.endsWith(".cbr"))
+					return true;
+				if (filename.endsWith(".epub"))
 					return true;
 
 				return false;
@@ -200,4 +264,38 @@ public class Viewer extends Frame implements WindowListener, ActionListener
 	{
 		JOptionPane.showMessageDialog(null, infoMessage, "InfoBox: " + titleBar, JOptionPane.INFORMATION_MESSAGE);
 	}
+
+	public float getRetinaScale()
+	{
+		// first try Oracle's VM (we should also test for 1.7.0_40 or higher)
+		final String vendor = System.getProperty("java.vm.vendor");
+		boolean isOracle = vendor != null && vendor.toLowerCase().contains("Oracle".toLowerCase());
+		if (isOracle)
+		{
+			GraphicsEnvironment env = GraphicsEnvironment.getLocalGraphicsEnvironment();
+			final GraphicsDevice device = env.getDefaultScreenDevice();
+			try {
+				Field field = device.getClass().getDeclaredField("scale");
+				if (field != null) {
+					field.setAccessible(true);
+					Object scale = field.get(device);
+					if (scale instanceof Integer && ((Integer)scale).intValue() == 2) {
+						return 2.0f;
+					}
+				}
+			}
+			catch (Exception ignore) {
+			}
+			return 1.0f;
+		}
+
+		// try Apple VM
+		final Float scaleFactor = (Float)Toolkit.getDefaultToolkit().getDesktopProperty("apple.awt.contentScaleFactor");
+		if (scaleFactor != null && scaleFactor.intValue() == 2) {
+			return 2.0f;
+		}
+
+		return 1.0f;
+	}
+
 }

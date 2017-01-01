@@ -1,5 +1,7 @@
 #include "mupdf/pdf.h"
 
+#include "../fitz/colorspace-imp.h"
+
 /* ICCBased */
 
 static fz_colorspace *
@@ -45,47 +47,6 @@ load_icc_based(fz_context *ctx, pdf_document *doc, pdf_obj *dict)
 
 /* Lab */
 
-static inline float fung(float x)
-{
-	if (x >= 6.0f / 29.0f)
-		return x * x * x;
-	return (108.0f / 841.0f) * (x - (4.0f / 29.0f));
-}
-
-static void
-lab_to_rgb(fz_context *ctx, fz_colorspace *cs, const float *lab, float *rgb)
-{
-	/* input is in range (0..100, -128..127, -128..127) not (0..1, 0..1, 0..1) */
-	float lstar, astar, bstar, l, m, n, x, y, z, r, g, b;
-	lstar = lab[0];
-	astar = lab[1];
-	bstar = lab[2];
-	m = (lstar + 16) / 116;
-	l = m + astar / 500;
-	n = m - bstar / 200;
-	x = fung(l);
-	y = fung(m);
-	z = fung(n);
-	r = (3.240449f * x + -1.537136f * y + -0.498531f * z) * 0.830026f;
-	g = (-0.969265f * x + 1.876011f * y + 0.041556f * z) * 1.05452f;
-	b = (0.055643f * x + -0.204026f * y + 1.057229f * z) * 1.1003f;
-	rgb[0] = sqrtf(fz_clamp(r, 0, 1));
-	rgb[1] = sqrtf(fz_clamp(g, 0, 1));
-	rgb[2] = sqrtf(fz_clamp(b, 0, 1));
-}
-
-static void
-rgb_to_lab(fz_context *ctx, fz_colorspace *cs, const float *rgb, float *lab)
-{
-	fz_warn(ctx, "cannot convert into L*a*b colorspace");
-	lab[0] = rgb[0];
-	lab[1] = rgb[1];
-	lab[2] = rgb[2];
-}
-
-static fz_colorspace k_device_lab = { {-1, fz_drop_colorspace_imp}, 0, "Lab", 3, lab_to_rgb, rgb_to_lab };
-static fz_colorspace *fz_device_lab = &k_device_lab;
-
 /* Separation and DeviceN */
 
 struct separation
@@ -100,7 +61,7 @@ separation_to_rgb(fz_context *ctx, fz_colorspace *cs, const float *color, float 
 	struct separation *sep = cs->data;
 	float alt[FZ_MAX_COLORS];
 	fz_eval_function(ctx, sep->tint, color, cs->n, alt, sep->base->n);
-	sep->base->to_rgb(ctx, sep->base, alt, rgb);
+	fz_convert_color(ctx, fz_device_rgb(ctx), rgb, sep->base, alt);
 }
 
 static void
@@ -141,17 +102,14 @@ load_separation(fz_context *ctx, pdf_document *doc, pdf_obj *array)
 	{
 		tint = pdf_load_function(ctx, doc, tintobj, n, base->n);
 		/* RJW: fz_drop_colorspace(ctx, base);
-		 * "cannot load tint function (%d %d R)", pdf_to_num(ctx, tintobj), pdf_to_gen(ctx, tintobj) */
+		 * "cannot load tint function (%d 0 R)", pdf_to_num(ctx, tintobj) */
 
 		sep = fz_malloc_struct(ctx, struct separation);
 		sep->base = base;
 		sep->tint = tint;
 
-		cs = fz_new_colorspace(ctx, n == 1 ? "Separation" : "DeviceN", n);
-		cs->to_rgb = separation_to_rgb;
-		cs->free_data = free_separation;
-		cs->data = sep;
-		cs->size += sizeof(struct separation) + (base ? base->size : 0) + fz_function_size(ctx, tint);
+		cs = fz_new_colorspace(ctx, n == 1 ? "Separation" : "DeviceN", n, separation_to_rgb, NULL, free_separation, sep,
+			sizeof(struct separation) + (base ? base->size : 0) + fz_function_size(ctx, tint));
 	}
 	fz_catch(ctx)
 	{
@@ -167,7 +125,7 @@ load_separation(fz_context *ctx, pdf_document *doc, pdf_obj *array)
 int
 pdf_is_tint_colorspace(fz_context *ctx, fz_colorspace *cs)
 {
-	return cs && cs->to_rgb == separation_to_rgb;
+	return fz_colorspace_is(ctx, cs, separation_to_rgb);
 }
 
 /* Indexed */
@@ -209,8 +167,8 @@ load_indexed(fz_context *ctx, pdf_document *doc, pdf_obj *array)
 
 			fz_try(ctx)
 			{
-				file = pdf_open_stream(ctx, doc, pdf_to_num(ctx, lookupobj), pdf_to_gen(ctx, lookupobj));
-				i = fz_read(ctx, file, lookup, n);
+				file = pdf_open_stream(ctx, lookupobj);
+				i = (int)fz_read(ctx, file, lookup, n);
 				if (i < n)
 					memset(lookup+i, 0, n-i);
 			}
@@ -295,7 +253,7 @@ pdf_load_colorspace_imp(fz_context *ctx, pdf_document *doc, pdf_obj *obj)
 			else if (pdf_name_eq(ctx, name, PDF_NAME_CalCMYK))
 				return fz_device_cmyk(ctx);
 			else if (pdf_name_eq(ctx, name, PDF_NAME_Lab))
-				return fz_device_lab;
+				return fz_device_lab(ctx);
 			else
 			{
 				fz_colorspace *cs;
@@ -344,7 +302,7 @@ pdf_load_colorspace_imp(fz_context *ctx, pdf_document *doc, pdf_obj *obj)
 		}
 	}
 
-	fz_throw(ctx, FZ_ERROR_GENERIC, "syntaxerror: could not parse color space (%d %d R)", pdf_to_num(ctx, obj), pdf_to_gen(ctx, obj));
+	fz_throw(ctx, FZ_ERROR_GENERIC, "syntaxerror: could not parse color space (%d 0 R)", pdf_to_num(ctx, obj));
 }
 
 fz_colorspace *

@@ -30,7 +30,14 @@ int fz_pixmap_width(fz_context *ctx, fz_pixmap *pix);
 */
 int fz_pixmap_height(fz_context *ctx, fz_pixmap *pix);
 
+/*
+	fz_pixmap_x: Return the x value of the pixmap in pixels.
+*/
 int fz_pixmap_x(fz_context *ctx, fz_pixmap *pix);
+
+/*
+	fz_pixmap_y: Return the y value of the pixmap in pixels.
+*/
 int fz_pixmap_y(fz_context *ctx, fz_pixmap *pix);
 
 /*
@@ -167,7 +174,10 @@ unsigned char *fz_pixmap_samples(fz_context *ctx, fz_pixmap *pix);
 */
 int fz_pixmap_stride(fz_context *ctx, fz_pixmap *pix);
 
-void fz_pixmap_set_resolution(fz_pixmap *pix, int res);
+/*
+	fz_pixmap_set_resolution: Set the pixels per inch resolution of the pixmap.
+*/
+void fz_set_pixmap_resolution(fz_context *ctx, fz_pixmap *pix, int xres, int yres);
 
 /*
 	fz_clear_pixmap_with_value: Clears a pixmap with the given value.
@@ -302,7 +312,8 @@ void fz_convert_pixmap(fz_context *ctx, fz_pixmap *dst, fz_pixmap *src);
 struct fz_pixmap_s
 {
 	fz_storable storable;
-	int x, y, w, h, n, stride;
+	int x, y, w, h, n;
+	ptrdiff_t stride;
 	int alpha;
 	int interpolate;
 	int xres, yres;
@@ -315,8 +326,8 @@ void fz_drop_pixmap_imp(fz_context *ctx, fz_storable *pix);
 
 void fz_copy_pixmap_rect(fz_context *ctx, fz_pixmap *dest, fz_pixmap *src, const fz_irect *r);
 void fz_premultiply_pixmap(fz_context *ctx, fz_pixmap *pix);
-fz_pixmap *fz_alpha_from_gray(fz_context *ctx, fz_pixmap *gray, int luminosity);
-unsigned int fz_pixmap_size(fz_context *ctx, fz_pixmap *pix);
+fz_pixmap *fz_alpha_from_gray(fz_context *ctx, fz_pixmap *gray);
+size_t fz_pixmap_size(fz_context *ctx, fz_pixmap *pix);
 
 fz_pixmap *fz_scale_pixmap(fz_context *ctx, fz_pixmap *src, float x, float y, float w, float h, fz_irect *clip);
 
@@ -332,7 +343,7 @@ fz_irect *fz_pixmap_bbox_no_ctx(const fz_pixmap *src, fz_irect *bbox);
 
 void fz_decode_tile(fz_context *ctx, fz_pixmap *pix, const float *decode);
 void fz_decode_indexed_tile(fz_context *ctx, fz_pixmap *pix, const float *decode, int maxval);
-void fz_unpack_tile(fz_context *ctx, fz_pixmap *dst, unsigned char * restrict src, int n, int depth, int stride, int scale);
+void fz_unpack_tile(fz_context *ctx, fz_pixmap *dst, unsigned char * restrict src, int n, int depth, size_t stride, int scale);
 
 /*
 	fz_md5_pixmap: Return the md5 digest for a pixmap

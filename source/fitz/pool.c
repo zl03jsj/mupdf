@@ -1,5 +1,19 @@
 #include "mupdf/fitz.h"
 
+typedef struct fz_pool_node_s fz_pool_node;
+
+struct fz_pool_s
+{
+	fz_pool_node *head, *tail;
+	char *pos, *end;
+};
+
+struct fz_pool_node_s
+{
+	fz_pool_node *next;
+	char mem[64 << 10]; /* 64k blocks */
+};
+
 fz_pool *fz_new_pool(fz_context *ctx)
 {
 	fz_pool *pool = fz_malloc_struct(ctx, fz_pool);
@@ -31,9 +45,22 @@ void *fz_pool_alloc(fz_context *ctx, fz_pool *pool, size_t size)
 	return ptr;
 }
 
+char *fz_pool_strdup(fz_context *ctx, fz_pool *pool, const char *s)
+{
+	size_t n = strlen(s) + 1;
+	char *p = fz_pool_alloc(ctx, pool, n);
+	memcpy(p, s, n);
+	return p;
+}
+
 void fz_drop_pool(fz_context *ctx, fz_pool *pool)
 {
-	fz_pool_node *node = pool->head;
+	fz_pool_node *node;
+
+	if (!pool)
+		return;
+
+	node = pool->head;
 	while (node)
 	{
 		fz_pool_node *next = node->next;

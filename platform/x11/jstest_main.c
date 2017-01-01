@@ -12,7 +12,6 @@
 
 static pdfapp_t gapp;
 static int file_open = 0;
-static char filename[1024] = "";
 static char *scriptname;
 static char *output = "out%03d.png";
 static char *prefix = NULL;
@@ -202,7 +201,7 @@ my_getline(FILE *file)
 		*d++ = (char)c;
 		c = fgetc(file);
 	}
-	while (c >= 32 && space--);
+	while (c >= 32 && --space);
 
 	/* If we ran out of space, skip the rest of the line */
 	if (space == 0)
@@ -350,7 +349,6 @@ main(int argc, char *argv[])
 					char path[1024];
 					if (file_open)
 						pdfapp_close(&gapp);
-					strcpy(filename, line);
 					if (prefix)
 					{
 						sprintf(path, "%s%s", prefix, line);
@@ -374,7 +372,7 @@ main(int argc, char *argv[])
 					if (strstr(text, ".pgm") || strstr(text, ".ppm") || strstr(text, ".pnm"))
 						fz_save_pixmap_as_pnm(ctx, gapp.image, text);
 					else
-						fz_save_pixmap_as_png(ctx, gapp.image, text, 0);
+						fz_save_pixmap_as_png(ctx, gapp.image, text);
 				}
 				else if (match(&line, "RESIZE"))
 				{

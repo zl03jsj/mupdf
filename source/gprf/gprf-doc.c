@@ -1,4 +1,6 @@
-#ifdef SUPPORT_GPROOF
+#include "mupdf/fitz.h"
+
+#if FZ_ENABLE_GPRF
 /* Choose whether to call gs via an exe or via an API */
 #if defined(__ANDROID__) || defined(GSVIEW_WIN)
 #define USE_GS_API
@@ -9,14 +11,37 @@
 #endif
 
 #include "mupdf/fitz.h"
-#if defined(USE_GS_API) && !defined(__ANDROID__)
-#ifdef _MSC_VER
+
+#if defined(USE_GS_API)
+
+/* We are assumed to be using the DLL here */
 #define GSDLLEXPORT
+#ifdef _MSC_VER
 #define GSDLLAPI __stdcall
+#else
+#define GSDLLAPI
+#endif
+
+#ifndef GSDLLCALL
 #define GSDLLCALL
 #endif
+
+/*
+	We can either rely on the official iapi.h from ghostscript
+	(which is not supplied in the MuPDF source), or we can use
+	a potted version of it inline here (which suffices for
+	android, but has not been verified on all platforms).
+*/
+#if HAVE_IAPI_H
 #include "iapi.h"
-#endif
+#else
+/* Avoid having to #include the gs api */
+extern GSDLLEXPORT int GSDLLAPI gsapi_new_instance(void **, void *);
+extern GSDLLEXPORT int GSDLLAPI gsapi_init_with_args(void *, int, char *argv[]);
+extern GSDLLEXPORT void GSDLLAPI gsapi_delete_instance(void *);
+extern GSDLLEXPORT int GSDLLAPI gsapi_set_stdio(void *, int (GSDLLCALL *)(void *, char *, int), int (GSDLLCALL *)(void *, const char *, int), int (GSDLLCALL *)(void *, const char *, int));
+#endif /* HAVE_IAPI_H */
+#endif /* USE_GS_API */
 
 typedef struct gprf_document_s gprf_document;
 typedef struct gprf_chapter_s gprf_chapter;
@@ -66,28 +91,13 @@ fz_new_gprf_file(fz_context *ctx, char *filename)
 static gprf_file *
 fz_keep_gprf_file(fz_context *ctx, gprf_file *file)
 {
-	if (!ctx || !file)
-		return NULL;
-
-	fz_lock(ctx, FZ_LOCK_ALLOC);
-	file->refs++;
-	fz_unlock(ctx, FZ_LOCK_ALLOC);
-
-	return file;
+	return fz_keep_imp(ctx, file, &file->refs);
 }
 
 static void
 fz_drop_gprf_file(fz_context *ctx, gprf_file *file)
 {
-	int i;
-
-	if (!ctx || !file)
-		return;
-
-	fz_lock(ctx, FZ_LOCK_ALLOC);
-	i = --file->refs;
-	fz_unlock(ctx, FZ_LOCK_ALLOC);
-	if (i == 0)
+	if (fz_drop_imp(ctx, file, &file->refs))
 	{
 		unlink(file->filename);
 		fz_free(ctx, file->filename);
@@ -112,7 +122,7 @@ struct gprf_page_s
 
 typedef struct fz_image_gprf_s
 {
-	fz_image base;
+	fz_image super;
 	fz_off_t offset[FZ_MAX_SEPARATIONS+3+1]; /* + RGB + END */
 	gprf_file *file;
 	fz_separations *separations;
@@ -132,7 +142,7 @@ gprf_drop_page_imp(fz_context *ctx, fz_page *page_)
 	gprf_document *doc = page->doc;
 	int i;
 
-	fz_drop_document(ctx, (fz_document *)doc);
+	fz_drop_document(ctx, &doc->super);
 	if (page->tiles)
 	{
 		for (i = 0; i < page->num_tiles; i++)
@@ -319,7 +329,7 @@ gprf_get_pixmap(fz_context *ctx, fz_image *image_, fz_irect *area, int w, int h,
 	/* The file contains RGB + up to FZ_MAX_SEPARATIONS. Hence the
 	 * "3 + FZ_MAX_SEPARATIONS" usage in all the arrays below. */
 	fz_image_gprf *image = (fz_image_gprf *)image_;
-	fz_pixmap *pix = fz_new_pixmap(ctx, image->base.colorspace, image->base.w, image->base.h);
+	fz_pixmap *pix = fz_new_pixmap(ctx, image->super.colorspace, image->super.w, image->super.h, 1);
 	fz_stream *file[3 + FZ_MAX_SEPARATIONS] = { NULL };
 	int read_sep[3 + FZ_MAX_SEPARATIONS] = { 0 };
 	int num_seps, i, j, n;
@@ -327,7 +337,7 @@ gprf_get_pixmap(fz_context *ctx, fz_image *image_, fz_irect *area, int w, int h,
 	unsigned char data[(3 + FZ_MAX_SEPARATIONS) * decode_chunk_size];
 	unsigned char delta[3 + FZ_MAX_SEPARATIONS] = { 0 };
 	unsigned char equiv[3 + FZ_MAX_SEPARATIONS][4];
-	int bytes_per_channel = image->base.w * image->base.h;
+	int bytes_per_channel = image->super.w * image->super.h;
 	unsigned char *out = fz_pixmap_samples(ctx, pix);
 
 	fz_var(file);
@@ -336,8 +346,8 @@ gprf_get_pixmap(fz_context *ctx, fz_image *image_, fz_irect *area, int w, int h,
 	{
 		area->x0 = 0;
 		area->y0 = 0;
-		area->x1 = image->base.w;
-		area->y1 = image->base.h;
+		area->x1 = image->super.w;
+		area->y1 = image->super.h;
 	}
 
 	fz_try(ctx)
@@ -474,26 +484,25 @@ fz_new_gprf_image(fz_context *ctx, gprf_page *page, int imagenum, fz_off_t offse
 			h = GPRF_TILESIZE;
 	}
 
-	FZ_INIT_STORABLE(&image->base, 1, fz_drop_image_gprf_imp);
-	image->base.w = w;
-	image->base.h = h;
-	image->base.n = 4; /* Always RGB + Alpha */
-	image->base.colorspace = fz_keep_colorspace(ctx, fz_device_rgb(ctx));
-	image->base.bpc = 8;
-	image->base.buffer = NULL;
-	image->base.get_pixmap = gprf_get_pixmap;
-	image->base.xres = page->doc->res;
-	image->base.yres = page->doc->res;
-	image->base.tile = NULL;
-	image->base.mask = NULL;
+	FZ_INIT_KEY_STORABLE(&image->super, 1, fz_drop_image_gprf_imp);
+	image->super.w = w;
+	image->super.h = h;
+	image->super.n = 4; /* Always RGB + Alpha */
+	image->super.colorspace = fz_keep_colorspace(ctx, fz_device_rgb(ctx));
+	image->super.bpc = 8;
+	image->super.get_pixmap = gprf_get_pixmap;
+	image->super.xres = page->doc->res;
+	image->super.yres = page->doc->res;
+	image->super.mask = NULL;
 	image->file = fz_keep_gprf_file(ctx, page->file);
 	memcpy(image->offset, offsets, sizeof(fz_off_t) * (3+seps));
 	image->offset[seps+3] = end;
 	image->separations = fz_keep_separations(ctx, page->separations);
 
-	return &image->base;
+	return &image->super;
 }
 
+#ifndef USE_GS_API
 static void
 fz_system(fz_context *ctx, const char *cmd)
 {
@@ -502,20 +511,51 @@ fz_system(fz_context *ctx, const char *cmd)
 	if (ret != 0)
 		fz_throw(ctx, FZ_ERROR_GENERIC, "child process reported error %d", ret);
 }
+#endif
 
-#ifdef GS_API_NULL_STDIO
 static int GSDLLCALL
 gsdll_stdout(void *instance, const char *str, int len)
 {
+#ifndef GS_API_NULL_STDIO
+	int remain = len;
+	char text[32];
+
+	while (remain)
+	{
+		int l = remain;
+		if (l > sizeof(text)-1)
+			l = sizeof(text)-1;
+		memcpy(text, str, l);
+		text[l] = 0;
+		fprintf(stdout, "%s", text);
+		remain -= l;
+		str += l;
+	}
+#endif
 	return len;
 }
 
 static int GSDLLCALL
 gsdll_stderr(void *instance, const char *str, int len)
 {
+#ifndef GS_API_NULL_STDIO
+	int remain = len;
+	char text[32];
+
+	while (remain)
+	{
+		int l = remain;
+		if (l > sizeof(text)-1)
+			l = sizeof(text)-1;
+		memcpy(text, str, l);
+		text[l] = 0;
+		fprintf(stderr, "%s", text);
+		remain -= l;
+		str += l;
+	}
+#endif
 	return len;
 }
-#endif
 
 static void
 generate_page(fz_context *ctx, gprf_page *page)
@@ -523,7 +563,6 @@ generate_page(fz_context *ctx, gprf_page *page)
 	gprf_document *doc = page->doc;
 	char nameroot[32];
 	char *filename;
-	char gs_command[1024];
 	char *disp_profile = NULL;
 	char *print_profile = NULL;
 	int len;
@@ -531,6 +570,17 @@ generate_page(fz_context *ctx, gprf_page *page)
 	/* put the page file in the same directory as the gproof file */
 	sprintf(nameroot, "gprf_%d_", page->number);
 	filename = fz_tempfilename(ctx, nameroot, doc->gprf_filename);
+
+/*
+	When invoking gs via the GS API, we need to give the profile
+	names unquoted. When invoking via system, we need to quote them.
+	Use a #define to keep the code simple.
+*/
+#ifdef USE_GS_API
+#define QUOTE
+#else
+#define QUOTE "\""
+#endif
 
 	/* Set up the icc profiles */
 	if (strlen(doc->display_profile) == 0)
@@ -541,9 +591,9 @@ generate_page(fz_context *ctx, gprf_page *page)
 	}
 	else
 	{
-		len = sizeof("-sPostRenderProfile=\"\""); /* with quotes */
+		len = sizeof("-sPostRenderProfile=" QUOTE QUOTE); /* with quotes */
 		disp_profile = (char*)fz_malloc(ctx, len + strlen(doc->display_profile) + 1);
-		sprintf(disp_profile, "-sPostRenderProfile=\"%s\"", doc->display_profile);
+		sprintf(disp_profile, "-sPostRenderProfile=" QUOTE "%s" QUOTE, doc->display_profile);
 	}
 
 	if (strlen(doc->print_profile) == 0)
@@ -552,11 +602,11 @@ generate_page(fz_context *ctx, gprf_page *page)
 		print_profile = (char*)fz_malloc(ctx, len + 1);
 		sprintf(print_profile, "-sOutputICCProfile=default_cmyk.icc");
 	}
-	else
+	else if (strcmp(doc->print_profile, "<EMBEDDED>") != 0)
 	{
-		len = sizeof("-sOutputICCProfile=\"\""); /* with quotes */
+		len = sizeof("-sOutputICCProfile=" QUOTE QUOTE); /* with quotes */
 		print_profile = (char*)fz_malloc(ctx, len + strlen(doc->print_profile) + 1);
-		sprintf(print_profile, "-sOutputICCProfile=\"%s\"", doc->print_profile);
+		sprintf(print_profile, "-sOutputICCProfile=" QUOTE "%s" QUOTE, doc->print_profile);
 	}
 
 	fz_try(ctx)
@@ -564,38 +614,57 @@ generate_page(fz_context *ctx, gprf_page *page)
 #ifdef USE_GS_API
 		void *instance;
 		int code;
-		char *argv[] = { "gs", "-sDEVICE=gprf", NULL, "-o", NULL, NULL, NULL, NULL, NULL, NULL, NULL};
-		char arg_res[32];
+		char *argv[20];
 		char arg_fp[32];
 		char arg_lp[32];
+		char arg_g[32];
+		int argc = 0;
 
-		sprintf(arg_res, "-r%d", doc->res);
-		argv[2] = arg_res;
-		argv[4] = filename;
+		argv[argc++] = "gs";
+		argv[argc++] = "-sDEVICE=gprf";
+		if (print_profile == NULL)
+			argv[argc++] = "-dUsePDFX3Profile";
+		else
+			argv[argc++] = print_profile;
+		argv[argc++] = disp_profile;
+		argv[argc++] = "-dFitPage";
+		argv[argc++] = "-o";
+		argv[argc++] = filename;
 		sprintf(arg_fp, "-dFirstPage=%d", page->number+1);
-		argv[5] = arg_fp;
+		argv[argc++] = arg_fp;
 		sprintf(arg_lp, "-dLastPage=%d", page->number+1);
-		argv[6] = arg_lp;
-		argv[7] = disp_profile;
-		argv[8] = print_profile;
-		argv[9] = "-I%rom%Resource/Init/";
-		argv[10] = doc->pdf_filename;
+		argv[argc++] = arg_lp;
+		argv[argc++] = "-I%rom%Resource/Init/";
+		sprintf(arg_g, "-g%dx%d", page->width, page->height);
+		argv[argc++] = arg_g;
+		argv[argc++] = doc->pdf_filename;
+		assert(argc <= sizeof(argv)/sizeof(*argv));
 
 		code = gsapi_new_instance(&instance, ctx);
 		if (code < 0)
 			fz_throw(ctx, FZ_ERROR_GENERIC, "GS startup failed: %d", code);
-#ifdef GS_API_NULL_STDIO
 		gsapi_set_stdio(instance, NULL, gsdll_stdout, gsdll_stderr);
+#ifndef NDEBUG
+		{
+			int i;
+			fprintf(stderr, "Invoking GS\n");
+			for (i = 0; i < argc; i++)
+			{
+				fprintf(stderr, "%s\n", argv[i]);
+			}
+		}
 #endif
-		code = gsapi_init_with_args(instance, sizeof(argv)/sizeof(*argv), argv);
+		code = gsapi_init_with_args(instance, argc, argv);
 
 		gsapi_delete_instance(instance);
 		if (code < 0)
 			fz_throw(ctx, FZ_ERROR_GENERIC, "GS run failed: %d", code);
 #else
+		char gs_command[1024];
 		/* Invoke gs to convert to a temp file. */
-		sprintf(gs_command, "gswin32c.exe -sDEVICE=gprf -r%d -o \"%s\" %s %s -I\%rom\%Resource/Init/ -dFirstPage=%d -dLastPage=%d %s",
-			doc->res, filename, disp_profile, print_profile, page->number+1, page->number+1, doc->pdf_filename);
+		sprintf(gs_command, "gswin32c.exe -sDEVICE=gprf %s %s -dFitPage -o \"%s\" -dFirstPage=%d -dLastPage=%d -I%%rom%%Resource/Init/ -g%dx%d \"%s\"",
+			print_profile == NULL ? "-dUsePDFX3Profile" : print_profile, disp_profile,
+			filename, page->number+1, page->number+1, page->width, page->height, doc->pdf_filename);
 		fz_system(ctx, gs_command);
 #endif
 
@@ -802,7 +871,7 @@ gprf_load_page(fz_context *ctx, fz_document *doc_, int number)
 	{
 		page->super.bound_page = gprf_bound_page;
 		page->super.run_page_contents = gprf_run_page;
-		page->super.drop_page_imp = gprf_drop_page_imp;
+		page->super.drop_page = gprf_drop_page_imp;
 		page->super.count_separations = gprf_count_separations;
 		page->super.control_separation = gprf_control_separation;
 		page->super.separation_disabled = gprf_separation_disabled;
@@ -817,7 +886,7 @@ gprf_load_page(fz_context *ctx, fz_document *doc_, int number)
 	}
 	fz_catch(ctx)
 	{
-		fz_drop_page(ctx, (fz_page *)page);
+		fz_drop_page(ctx, &page->super);
 		fz_rethrow(ctx);
 	}
 
@@ -829,22 +898,18 @@ gprf_close_document(fz_context *ctx, fz_document *doc_)
 {
 	gprf_document *doc = (gprf_document*)doc_;
 
-	if (doc == NULL)
-		return;
 	fz_free(ctx, doc->page_dims);
 	fz_free(ctx, doc->pdf_filename);
 	fz_free(ctx, doc->gprf_filename);
 	fz_free(ctx, doc->print_profile);
 	fz_free(ctx, doc->display_profile);
-
-	fz_free(ctx, doc);
 }
 
 static int
 gprf_lookup_metadata(fz_context *ctx, fz_document *doc, const char *key, char *buf, int size)
 {
 	if (!strcmp(key, "format"))
-		return fz_snprintf(buf, size, "GPROOF");
+		return (int)fz_snprintf(buf, size, "GPROOF");
 
 	return -1;
 }
@@ -855,7 +920,7 @@ gprf_open_document_with_stream(fz_context *ctx, fz_stream *file)
 	gprf_document *doc;
 
 	doc = fz_new_document(ctx, gprf_document);
-	doc->super.close = gprf_close_document;
+	doc->super.drop_document = gprf_close_document;
 	doc->super.count_pages = gprf_count_pages;
 	doc->super.load_page = gprf_load_page;
 	doc->super.lookup_metadata = gprf_lookup_metadata;
@@ -895,7 +960,7 @@ gprf_open_document_with_stream(fz_context *ctx, fz_stream *file)
 	}
 	fz_catch(ctx)
 	{
-		gprf_close_document(ctx, (fz_document*)doc);
+		fz_drop_document(ctx, &doc->super);
 		fz_rethrow(ctx);
 	}
 

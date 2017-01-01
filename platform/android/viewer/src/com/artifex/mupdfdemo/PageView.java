@@ -94,7 +94,7 @@ public abstract class PageView extends ViewGroup {
 	private static final float INK_THICKNESS = 10.0f;
 	private static final int BACKGROUND_COLOR = 0xFFFFFFFF;
 	private static final int PROGRESS_DIALOG_DELAY = 200;
-	protected final Context   mContext;
+	protected final Context mContext;
 	protected     int       mPageNumber;
 	private       Point     mParentSize;
 	protected     Point     mSize;   // Size of page at minimum zoom
@@ -127,7 +127,7 @@ public abstract class PageView extends ViewGroup {
 
 	public PageView(Context c, Point parentSize, Bitmap sharedHqBm) {
 		super(c);
-		mContext    = c;
+		mContext = c;
 		mParentSize = parentSize;
 		setBackgroundColor(BACKGROUND_COLOR);
 		mEntireBm = Bitmap.createBitmap(parentSize.x, parentSize.y, Config.ARGB_8888);
@@ -144,12 +144,12 @@ public abstract class PageView extends ViewGroup {
 	private void reinit() {
 		// Cancel pending render task
 		if (mDrawEntire != null) {
-			mDrawEntire.cancelAndWait();
+			mDrawEntire.cancel();
 			mDrawEntire = null;
 		}
 
 		if (mDrawPatch != null) {
-			mDrawPatch.cancelAndWait();
+			mDrawPatch.cancel();
 			mDrawPatch = null;
 		}
 
@@ -201,7 +201,7 @@ public abstract class PageView extends ViewGroup {
 	public void releaseBitmaps() {
 		reinit();
 
-		//  recycle bitmaps before releasing them.
+		// recycle bitmaps before releasing them.
 
 		if (mEntireBm!=null)
 			mEntireBm.recycle();
@@ -229,7 +229,7 @@ public abstract class PageView extends ViewGroup {
 	public void setPage(int page, PointF size) {
 		// Cancel pending render task
 		if (mDrawEntire != null) {
-			mDrawEntire.cancelAndWait();
+			mDrawEntire.cancel();
 			mDrawEntire = null;
 		}
 
@@ -320,16 +320,16 @@ public abstract class PageView extends ViewGroup {
 						paint.setColor(HIGHLIGHT_COLOR);
 						for (RectF rect : mSearchBoxes)
 							canvas.drawRect(rect.left*scale, rect.top*scale,
-									        rect.right*scale, rect.bottom*scale,
-									        paint);
+									rect.right*scale, rect.bottom*scale,
+									paint);
 					}
 
 					if (!mIsBlank && mLinks != null && mHighlightLinks) {
 						paint.setColor(LINK_COLOR);
 						for (LinkInfo link : mLinks)
 							canvas.drawRect(link.rect.left*scale, link.rect.top*scale,
-									        link.rect.right*scale, link.rect.bottom*scale,
-									        paint);
+									link.rect.right*scale, link.rect.bottom*scale,
+									paint);
 					}
 
 					if (mSelectBox != null && mText != null) {
@@ -536,7 +536,7 @@ public abstract class PageView extends ViewGroup {
 
 	@Override
 	protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
-		int w  = right-left;
+		int w = right-left;
 		int h = bottom-top;
 
 		if (mEntire != null) {
@@ -556,7 +556,7 @@ public abstract class PageView extends ViewGroup {
 			if (mPatchViewSize.x != w || mPatchViewSize.y != h) {
 				// Zoomed since patch was created
 				mPatchViewSize = null;
-				mPatchArea     = null;
+				mPatchArea = null;
 				if (mPatch != null) {
 					mPatch.setImageBitmap(null);
 					mPatch.invalidate();
@@ -603,7 +603,7 @@ public abstract class PageView extends ViewGroup {
 
 			// Stop the drawing of previous patch if still going
 			if (mDrawPatch != null) {
-				mDrawPatch.cancelAndWait();
+				mDrawPatch.cancel();
 				mDrawPatch = null;
 			}
 
@@ -630,7 +630,7 @@ public abstract class PageView extends ViewGroup {
 
 				public void onPostExecute(Void result) {
 					mPatchViewSize = patchViewSize;
-					mPatchArea     = patchArea;
+					mPatchArea = patchArea;
 					mPatch.setImageBitmap(mPatchBm);
 					mPatch.invalidate();
 					//requestLayout();
@@ -647,15 +647,14 @@ public abstract class PageView extends ViewGroup {
 	public void update() {
 		// Cancel pending render task
 		if (mDrawEntire != null) {
-			mDrawEntire.cancelAndWait();
+			mDrawEntire.cancel();
 			mDrawEntire = null;
 		}
 
 		if (mDrawPatch != null) {
-			mDrawPatch.cancelAndWait();
+			mDrawPatch.cancel();
 			mDrawPatch = null;
 		}
-
 
 		// Render the page in the background
 		mDrawEntire = new CancellableAsyncTask<Void, Void>(getUpdatePageTask(mEntireBm, mSize.x, mSize.y, 0, 0, mSize.x, mSize.y)) {
@@ -674,7 +673,7 @@ public abstract class PageView extends ViewGroup {
 	public void removeHq() {
 			// Stop the drawing of the patch if still going
 			if (mDrawPatch != null) {
-				mDrawPatch.cancelAndWait();
+				mDrawPatch.cancel();
 				mDrawPatch = null;
 			}
 

@@ -4,9 +4,10 @@
 /*
  * PDF interface to store
  */
-void pdf_store_item(fz_context *ctx, pdf_obj *key, void *val, unsigned int itemsize);
+void pdf_store_item(fz_context *ctx, pdf_obj *key, void *val, size_t itemsize);
 void *pdf_find_item(fz_context *ctx, fz_store_drop_fn *drop, pdf_obj *key);
 void pdf_remove_item(fz_context *ctx, fz_store_drop_fn *drop, pdf_obj *key);
+void pdf_empty_store(fz_context *ctx, pdf_document *doc);
 
 /*
  * Structures used for managing resource locations and avoiding multiple
@@ -16,29 +17,11 @@ void pdf_remove_item(fz_context *ctx, fz_store_drop_fn *drop, pdf_obj *key);
  * the data, enabling rapid lookup.
  */
 
-typedef struct pdf_res_table_s pdf_res_table;
-typedef pdf_obj *(pdf_res_search_fn)(fz_context *ctx, pdf_document *doc, pdf_res_table *list,
-	void *item, unsigned char md5[16]);
-
-struct pdf_res_table_s
-{
-	fz_hash_table *hash;
-	pdf_res_search_fn *search;
-};
-
-struct pdf_resource_tables_s
-{
-	pdf_res_table *image;
-	pdf_res_table *font;
-	pdf_res_table *color;
-	pdf_res_table *pattern;
-	pdf_res_table *shading;
-};
-
-pdf_obj *pdf_find_resource(fz_context *ctx, pdf_document *doc, pdf_res_table *table, void *item, unsigned char md5[16]);
-void pdf_init_resource_tables(fz_context *ctx, pdf_document *doc);
+pdf_obj *pdf_find_font_resource(fz_context *ctx, pdf_document *doc, fz_buffer *item, unsigned char md5[16]);
+pdf_obj *pdf_insert_font_resource(fz_context *ctx, pdf_document *doc, unsigned char md5[16], pdf_obj *obj);
+pdf_obj *pdf_find_image_resource(fz_context *ctx, pdf_document *doc, fz_image *item, unsigned char md5[16]);
+pdf_obj *pdf_insert_image_resource(fz_context *ctx, pdf_document *doc, unsigned char md5[16], pdf_obj *obj);
 void pdf_drop_resource_tables(fz_context *ctx, pdf_document *doc);
-pdf_obj *pdf_insert_resource(fz_context *ctx, pdf_res_table *table, void *key, pdf_obj *obj);
 
 /*
  * Functions, Colorspaces, Shadings and Images
@@ -90,16 +73,7 @@ typedef struct pdf_xobject_s pdf_xobject;
 struct pdf_xobject_s
 {
 	fz_storable storable;
-	fz_matrix matrix;
-	fz_rect bbox;
-	int isolated;
-	int knockout;
-	int transparency;
-	fz_colorspace *colorspace;
-	pdf_document *document;
-	pdf_obj *resources;
-	pdf_obj *contents;
-	pdf_obj *me;
+	pdf_obj *obj;
 	int iteration;
 };
 
@@ -110,5 +84,13 @@ void pdf_drop_xobject(fz_context *ctx, pdf_xobject *xobj);
 void pdf_update_xobject_contents(fz_context *ctx, pdf_document *doc, pdf_xobject *form, fz_buffer *buffer);
 
 void pdf_update_appearance(fz_context *ctx, pdf_document *doc, pdf_annot *annot);
+
+pdf_obj *pdf_xobject_resources(fz_context *ctx, pdf_xobject *xobj);
+fz_rect *pdf_xobject_bbox(fz_context *ctx, pdf_xobject *xobj, fz_rect *bbox);
+fz_matrix *pdf_xobject_matrix(fz_context *ctx, pdf_xobject *xobj, fz_matrix *matrix);
+int pdf_xobject_isolated(fz_context *ctx, pdf_xobject *xobj);
+int pdf_xobject_knockout(fz_context *ctx, pdf_xobject *xobj);
+int pdf_xobject_transparency(fz_context *ctx, pdf_xobject *xobj);
+fz_colorspace *pdf_xobject_colorspace(fz_context *ctx, pdf_xobject *xobj);
 
 #endif

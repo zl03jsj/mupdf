@@ -3,7 +3,7 @@
 /* Extract text into an unsorted span soup. */
 
 #define LINE_DIST 0.9f
-#define SPACE_DIST 0.2f
+#define SPACE_DIST 0.15f
 #define SPACE_MAX_DIST 0.8f
 #define PARAGRAPH_DIST 0.5f
 
@@ -30,7 +30,14 @@ struct fz_stext_device_s
 	span_soup *spans;
 	fz_stext_span *cur_span;
 	int lastchar;
+	int flags;
 };
+
+const char *fz_stext_options_usage =
+	"Structured text output options:\n"
+	"\tpreserve-ligatures: do not expand all ligatures into constituent characters\n"
+	"\tpreserve-whitespace: do not convert all whitespace characters into spaces\n"
+	"\n";
 
 static fz_rect *
 add_point_to_rect(fz_rect *a, const fz_point *p)
@@ -456,10 +463,10 @@ fz_lookup_stext_style(fz_context *ctx, fz_stext_sheet *sheet, fz_text_span *span
 }
 
 fz_stext_page *
-fz_new_stext_page(fz_context *ctx)
+fz_new_stext_page(fz_context *ctx, const fz_rect *mediabox)
 {
 	fz_stext_page *page = fz_malloc(ctx, sizeof(*page));
-	page->mediabox = fz_empty_rect;
+	page->mediabox = *mediabox;
 	page->len = 0;
 	page->cap = 0;
 	page->blocks = NULL;
@@ -577,9 +584,6 @@ fz_add_stext_char_imp(fz_context *ctx, fz_stext_device *dev, fz_stext_style *sty
 	float spacing = 0;
 	float base_offset = 0;
 
-	if (glyph < 0)
-		goto no_glyph;
-
 	if (wmode == 0)
 	{
 		dir.x = 1;
@@ -627,6 +631,14 @@ fz_add_stext_char_imp(fz_context *ctx, fz_stext_device *dev, fz_stext_style *sty
 		q.y = trm->f;
 	}
 
+	if (glyph < 0)
+	{
+		/* Don't reset 'pen' to start of no-glyph characters in cluster */
+		if (dev->cur_span)
+			q = dev->cur_span->max;
+		goto no_glyph;
+	}
+
 	if (dev->cur_span == NULL ||
 		trm->a != dev->cur_span->transform.a || trm->b != dev->cur_span->transform.b ||
 		trm->c != dev->cur_span->transform.c || trm->d != dev->cur_span->transform.d ||
@@ -641,6 +653,11 @@ fz_add_stext_char_imp(fz_context *ctx, fz_stext_device *dev, fz_stext_style *sty
 	}
 	else
 	{
+		delta.x = q.x - dev->cur_span->max.x;
+		delta.y = q.y - dev->cur_span->max.y;
+		if (delta.x < FLT_EPSILON && delta.y < FLT_EPSILON && c == dev->lastchar)
+			return;
+
 		/* Calculate how far we've moved since the end of the current
 		 * span. */
 		delta.x = p.x - dev->cur_span->max.x;
@@ -654,11 +671,10 @@ fz_add_stext_char_imp(fz_context *ctx, fz_stext_device *dev, fz_stext_style *sty
 		base_offset = -ndir.y * delta.x + ndir.x * delta.y;
 
 		spacing /= size * SPACE_DIST;
-		spacing = fabsf(spacing);
 		if (fabsf(base_offset) < size * 0.1)
 		{
 			/* Only a small amount off the baseline - we'll take this */
-			if (spacing < 1.0)
+			if (fabsf(spacing) < 1.0)
 			{
 				/* Motion is in line, and small. */
 			}
@@ -688,70 +704,102 @@ fz_add_stext_char_imp(fz_context *ctx, fz_stext_device *dev, fz_stext_style *sty
 	printf("%c%c append=%d space=%d size=%g spacing=%g base_offset=%g\n", dev->lastchar, c, can_append, add_space, size, spacing, base_offset);
 #endif
 
-	if (can_append == 0)
+	/* Start a new span */
+	if (!can_append)
 	{
-		/* Start a new span */
 		add_span_to_soup(ctx, dev->spans, dev->cur_span);
 		dev->cur_span = NULL;
 		dev->cur_span = fz_new_stext_span(ctx, &p, wmode, trm);
 		dev->cur_span->spacing = 0;
 	}
+
+	/* Add synthetic space */
 	if (add_space)
 	{
-		r.x = - 0.2f;
-		r.y = 0;
-		fz_transform_point(&r, trm);
-		add_char_to_span(ctx, dev->cur_span, ' ', &p, &r, style);
+		/* We know we always have a cur_span here */
+		r = dev->cur_span->max;
+		add_char_to_span(ctx, dev->cur_span, ' ', &r, &p, style);
 	}
+
 no_glyph:
 	add_char_to_span(ctx, dev->cur_span, c, &p, &q, style);
+	dev->lastchar = c;
 }
 
 static void
 fz_add_stext_char(fz_context *ctx, fz_stext_device *dev, fz_stext_style *style, int c, int glyph, fz_matrix *trm, float adv, int wmode)
 {
-	switch (c)
-	{
-	case -1: /* ignore when one unicode character maps to multiple glyphs */
-		break;
-	case 0xFB00: /* ff */
-		fz_add_stext_char_imp(ctx, dev, style, 'f', glyph, trm, adv, wmode);
-		fz_add_stext_char_imp(ctx, dev, style, 'f', -1, trm, 0, wmode);
-		break;
-	case 0xFB01: /* fi */
-		fz_add_stext_char_imp(ctx, dev, style, 'f', glyph, trm, adv, wmode);
-		fz_add_stext_char_imp(ctx, dev, style, 'i', -1, trm, 0, wmode);
-		break;
-	case 0xFB02: /* fl */
-		fz_add_stext_char_imp(ctx, dev, style, 'f', glyph, trm, adv, wmode);
-		fz_add_stext_char_imp(ctx, dev, style, 'l', -1, trm, 0, wmode);
-		break;
-	case 0xFB03: /* ffi */
-		fz_add_stext_char_imp(ctx, dev, style, 'f', glyph, trm, adv, wmode);
-		fz_add_stext_char_imp(ctx, dev, style, 'f', -1, trm, 0, wmode);
-		fz_add_stext_char_imp(ctx, dev, style, 'i', -1, trm, 0, wmode);
-		break;
-	case 0xFB04: /* ffl */
-		fz_add_stext_char_imp(ctx, dev, style, 'f', glyph, trm, adv, wmode);
-		fz_add_stext_char_imp(ctx, dev, style, 'f', -1, trm, 0, wmode);
-		fz_add_stext_char_imp(ctx, dev, style, 'l', -1, trm, 0, wmode);
-		break;
-	case 0xFB05: /* long st */
-	case 0xFB06: /* st */
-		fz_add_stext_char_imp(ctx, dev, style, 's', glyph, trm, adv, wmode);
-		fz_add_stext_char_imp(ctx, dev, style, 't', -1, trm, 0, wmode);
-		break;
-	default:
-		fz_add_stext_char_imp(ctx, dev, style, c, glyph, trm, adv, wmode);
-		break;
-	}
+	/* ignore when one unicode character maps to multiple glyphs */
+	if (c == -1)
+		return;
+
+	if (!(dev->flags & FZ_STEXT_PRESERVE_LIGATURES))
+		switch (c)
+		{
+		case 0xFB00: /* ff */
+			fz_add_stext_char_imp(ctx, dev, style, 'f', glyph, trm, adv, wmode);
+			fz_add_stext_char_imp(ctx, dev, style, 'f', -1, trm, 0, wmode);
+			return;
+		case 0xFB01: /* fi */
+			fz_add_stext_char_imp(ctx, dev, style, 'f', glyph, trm, adv, wmode);
+			fz_add_stext_char_imp(ctx, dev, style, 'i', -1, trm, 0, wmode);
+			return;
+		case 0xFB02: /* fl */
+			fz_add_stext_char_imp(ctx, dev, style, 'f', glyph, trm, adv, wmode);
+			fz_add_stext_char_imp(ctx, dev, style, 'l', -1, trm, 0, wmode);
+			return;
+		case 0xFB03: /* ffi */
+			fz_add_stext_char_imp(ctx, dev, style, 'f', glyph, trm, adv, wmode);
+			fz_add_stext_char_imp(ctx, dev, style, 'f', -1, trm, 0, wmode);
+			fz_add_stext_char_imp(ctx, dev, style, 'i', -1, trm, 0, wmode);
+			return;
+		case 0xFB04: /* ffl */
+			fz_add_stext_char_imp(ctx, dev, style, 'f', glyph, trm, adv, wmode);
+			fz_add_stext_char_imp(ctx, dev, style, 'f', -1, trm, 0, wmode);
+			fz_add_stext_char_imp(ctx, dev, style, 'l', -1, trm, 0, wmode);
+			return;
+		case 0xFB05: /* long st */
+		case 0xFB06: /* st */
+			fz_add_stext_char_imp(ctx, dev, style, 's', glyph, trm, adv, wmode);
+			fz_add_stext_char_imp(ctx, dev, style, 't', -1, trm, 0, wmode);
+			return;
+		}
+
+	if (!(dev->flags & FZ_STEXT_PRESERVE_WHITESPACE))
+		switch (c)
+		{
+		case 0x0009: /* tab */
+		case 0x0020: /* space */
+		case 0x00A0: /* no-break space */
+		case 0x1680: /* ogham space mark */
+		case 0x180E: /* mongolian vowel separator */
+		case 0x2000: /* en quad */
+		case 0x2001: /* em quad */
+		case 0x2002: /* en space */
+		case 0x2003: /* em space */
+		case 0x2004: /* three-per-em space */
+		case 0x2005: /* four-per-em space */
+		case 0x2006: /* six-per-em space */
+		case 0x2007: /* figure space */
+		case 0x2008: /* punctuation space */
+		case 0x2009: /* thin space */
+		case 0x200A: /* hair space */
+		case 0x202F: /* narrow no-break space */
+		case 0x205F: /* medium mathematical space */
+		case 0x3000: /* ideographic space */
+			c = ' ';
+		}
+
+	fz_add_stext_char_imp(ctx, dev, style, c, glyph, trm, adv, wmode);
 }
 
 static void
 fz_stext_extract(fz_context *ctx, fz_stext_device *dev, fz_text_span *span, const fz_matrix *ctm, fz_stext_style *style)
 {
 	fz_font *font = span->font;
-	FT_Face face = font->ft_face;
+	FT_Face face = fz_font_ft_face(ctx, font);
+	fz_buffer **t3procs = fz_font_t3_procs(ctx, font);
+	fz_rect *bbox = fz_font_bbox(ctx, font);
 	fz_matrix tm = span->trm;
 	fz_matrix trm;
 	float adv;
@@ -767,26 +815,26 @@ fz_stext_extract(fz_context *ctx, fz_stext_device *dev, fz_text_span *span, cons
 
 	if (style->wmode == 0)
 	{
-		if (font->ft_face)
+		if (face)
 		{
 			fz_lock(ctx, FZ_LOCK_FREETYPE);
-			err = FT_Set_Char_Size(font->ft_face, 64, 64, 72, 72);
+			err = FT_Set_Char_Size(face, 64, 64, 72, 72);
 			if (err)
 				fz_warn(ctx, "freetype set character size: %s", ft_error_string(err));
 			ascender = (float)face->ascender / face->units_per_EM;
 			descender = (float)face->descender / face->units_per_EM;
 			fz_unlock(ctx, FZ_LOCK_FREETYPE);
 		}
-		else if (font->t3procs && !fz_is_empty_rect(&font->bbox))
+		else if (t3procs && !fz_is_empty_rect(bbox))
 		{
-			ascender = font->bbox.y1;
-			descender = font->bbox.y0;
+			ascender = bbox->y1;
+			descender = bbox->y0;
 		}
 	}
 	else
 	{
-		ascender = font->bbox.x1;
-		descender = font->bbox.x0;
+		ascender = bbox->x1;
+		descender = bbox->x0;
 	}
 	style->ascender = ascender;
 	style->descender = descender;
@@ -809,8 +857,6 @@ fz_stext_extract(fz_context *ctx, fz_stext_device *dev, fz_text_span *span, cons
 			adv = 0;
 
 		fz_add_stext_char(ctx, dev, style, span->items[i].ucs, span->items[i].gid, &trm, adv, span->wmode);
-
-		dev->lastchar = span->items[i].ucs;
 	}
 }
 
@@ -907,7 +953,7 @@ fz_stext_fill_image_mask(fz_context *ctx, fz_device *dev, fz_image *img, const f
 	block->image = fz_keep_image(ctx, img);
 	block->cspace = fz_keep_colorspace(ctx, cspace);
 	if (cspace)
-		memcpy(block->colors, color, sizeof(block->colors[0])*cspace->n);
+		memcpy(block->colors, color, sizeof(block->colors[0])*fz_colorspace_n(ctx, cspace));
 	block->mat = *ctm;
 	block->bbox.x0 = 0;
 	block->bbox.y0 = 0;
@@ -1010,7 +1056,7 @@ fz_bidi_reorder_stext_page(fz_context *ctx, fz_stext_page *page)
 }
 
 static void
-fz_stext_close(fz_context *ctx, fz_device *dev)
+fz_stext_close_device(fz_context *ctx, fz_device *dev)
 {
 	fz_stext_device *tdev = (fz_stext_device*)dev;
 
@@ -1018,8 +1064,6 @@ fz_stext_close(fz_context *ctx, fz_device *dev)
 	tdev->cur_span = NULL;
 
 	strain_soup(ctx, tdev);
-	free_span_soup(ctx, tdev->spans);
-	tdev->spans = NULL;
 
 	/* TODO: smart sorting of blocks in reading order */
 	/* TODO: unicode NFC normalization */
@@ -1027,14 +1071,39 @@ fz_stext_close(fz_context *ctx, fz_device *dev)
 	fz_bidi_reorder_stext_page(ctx, tdev->page);
 }
 
+static void
+fz_stext_drop_device(fz_context *ctx, fz_device *dev)
+{
+	fz_stext_device *tdev = (fz_stext_device*)dev;
+	free_span_soup(ctx, tdev->spans);
+	tdev->spans = NULL;
+}
+
+fz_stext_options *
+fz_parse_stext_options(fz_context *ctx, fz_stext_options *opts, const char *string)
+{
+	const char *val;
+
+	memset(opts, 0, sizeof *opts);
+
+	if (fz_has_option(ctx, string, "preserve-ligatures", &val) && fz_option_eq(val, "yes"))
+		opts->flags |= FZ_STEXT_PRESERVE_LIGATURES;
+	if (fz_has_option(ctx, string, "preserve-whitespace", &val) && fz_option_eq(val, "yes"))
+		opts->flags |= FZ_STEXT_PRESERVE_WHITESPACE;
+
+	return opts;
+}
+
 fz_device *
-fz_new_stext_device(fz_context *ctx, fz_stext_sheet *sheet, fz_stext_page *page)
+fz_new_stext_device(fz_context *ctx, fz_stext_sheet *sheet, fz_stext_page *page, const fz_stext_options *opts)
 {
 	fz_stext_device *dev = fz_new_device(ctx, sizeof *dev);
 
 	dev->super.hints = FZ_IGNORE_IMAGE | FZ_IGNORE_SHADE;
 
-	dev->super.close = fz_stext_close;
+	dev->super.close_device = fz_stext_close_device;
+	dev->super.drop_device = fz_stext_drop_device;
+
 	dev->super.fill_text = fz_stext_fill_text;
 	dev->super.stroke_text = fz_stext_stroke_text;
 	dev->super.clip_text = fz_stext_clip_text;
@@ -1048,6 +1117,8 @@ fz_new_stext_device(fz_context *ctx, fz_stext_sheet *sheet, fz_stext_page *page)
 	dev->spans = NULL;
 	dev->cur_span = NULL;
 	dev->lastchar = ' ';
+	if (opts)
+		dev->flags = opts->flags;
 
 	return (fz_device*)dev;
 }

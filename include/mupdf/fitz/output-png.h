@@ -13,18 +13,18 @@
 /*
 	fz_save_pixmap_as_png: Save a pixmap as a PNG image file.
 */
-void fz_save_pixmap_as_png(fz_context *ctx, fz_pixmap *pixmap, const char *filename, int savealpha);
+void fz_save_pixmap_as_png(fz_context *ctx, fz_pixmap *pixmap, const char *filename);
 
 /*
 	Write a pixmap to an output stream in PNG format.
 */
-void fz_write_pixmap_as_png(fz_context *ctx, fz_output *out, const fz_pixmap *pixmap, int savealpha);
+void fz_write_pixmap_as_png(fz_context *ctx, fz_output *out, const fz_pixmap *pixmap);
 
-typedef struct fz_png_output_context_s fz_png_output_context;
-
-fz_png_output_context *fz_write_png_header(fz_context *ctx, fz_output *out, int w, int h, int n, int alpha, int savealpha);
-void fz_write_png_band(fz_context *ctx, fz_output *out, fz_png_output_context *poc, int stride, int band, int bandheight, unsigned char *samples);
-void fz_write_png_trailer(fz_context *ctx, fz_output *out, fz_png_output_context *poc);
+/*
+	fz_new_png_band_writer: Obtain a fz_band_writer instance
+	for producing PNG output.
+*/
+fz_band_writer *fz_new_png_band_writer(fz_context *ctx, fz_output *out);
 
 /*
 	Create a new buffer containing the image/pixmap in PNG format.

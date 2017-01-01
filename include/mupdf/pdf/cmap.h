@@ -59,7 +59,7 @@ pdf_cmap *pdf_new_cmap(fz_context *ctx);
 pdf_cmap *pdf_keep_cmap(fz_context *ctx, pdf_cmap *cmap);
 void pdf_drop_cmap(fz_context *ctx, pdf_cmap *cmap);
 void pdf_drop_cmap_imp(fz_context *ctx, fz_storable *cmap);
-unsigned int pdf_cmap_size(fz_context *ctx, pdf_cmap *cmap);
+size_t pdf_cmap_size(fz_context *ctx, pdf_cmap *cmap);
 
 int pdf_cmap_wmode(fz_context *ctx, pdf_cmap *cmap);
 void pdf_set_cmap_wmode(fz_context *ctx, pdf_cmap *cmap, int wmode);
@@ -77,8 +77,8 @@ int pdf_decode_cmap(pdf_cmap *cmap, unsigned char *s, unsigned char *e, unsigned
 
 pdf_cmap *pdf_new_identity_cmap(fz_context *ctx, int wmode, int bytes);
 pdf_cmap *pdf_load_cmap(fz_context *ctx, fz_stream *file);
-pdf_cmap *pdf_load_system_cmap(fz_context *ctx, char *name);
-pdf_cmap *pdf_load_builtin_cmap(fz_context *ctx, char *name);
+pdf_cmap *pdf_load_system_cmap(fz_context *ctx, const char *name);
+pdf_cmap *pdf_load_builtin_cmap(fz_context *ctx, const char *name);
 pdf_cmap *pdf_load_embedded_cmap(fz_context *ctx, pdf_document *doc, pdf_obj *ref);
 
 void pdf_print_cmap(fz_context *ctx, fz_output *out, pdf_cmap *cmap);

@@ -1,6 +1,6 @@
 #include "mupdf/pdf.h"
 
-unsigned int
+size_t
 pdf_cmap_size(fz_context *ctx, pdf_cmap *cmap)
 {
 	if (cmap == NULL)
@@ -37,7 +37,7 @@ pdf_load_embedded_cmap(fz_context *ctx, pdf_document *doc, pdf_obj *stmobj)
 
 	fz_try(ctx)
 	{
-		file = pdf_open_stream(ctx, doc, pdf_to_num(ctx, stmobj), pdf_to_gen(ctx, stmobj));
+		file = pdf_open_stream(ctx, stmobj);
 		cmap = pdf_load_cmap(ctx, file);
 
 		obj = pdf_dict_get(ctx, stmobj, PDF_NAME_WMode);
@@ -106,7 +106,7 @@ pdf_new_identity_cmap(fz_context *ctx, int wmode, int bytes)
  * Load predefined CMap from system.
  */
 pdf_cmap *
-pdf_load_system_cmap(fz_context *ctx, char *cmap_name)
+pdf_load_system_cmap(fz_context *ctx, const char *cmap_name)
 {
 	pdf_cmap *usecmap;
 	pdf_cmap *cmap;

@@ -12,7 +12,6 @@ typedef struct pdf_annot_s pdf_annot;
 typedef struct pdf_widget_s pdf_widget;
 typedef struct pdf_hotspot_s pdf_hotspot;
 typedef struct pdf_js_s pdf_js;
-typedef struct pdf_resource_tables_s pdf_resource_tables;
 
 enum
 {
@@ -40,7 +39,6 @@ struct pdf_lexbuf_large_s
 struct pdf_hotspot_s
 {
 	int num;
-	int gen;
 	int state;
 };
 
@@ -97,10 +95,21 @@ pdf_document *pdf_open_document_with_stream(fz_context *ctx, fz_stream *file);
 void pdf_drop_document(fz_context *ctx, pdf_document *doc);
 
 /*
-	pdf_specific: down-cast an fz_document to a pdf_document.
+	pdf_specifics: down-cast an fz_document to a pdf_document.
 	Returns NULL if underlying document is not PDF
 */
 pdf_document *pdf_specifics(fz_context *ctx, fz_document *doc);
+
+/*
+	pdf_document_from_fz_document,
+	pdf_page_from_fz_page,
+	pdf_annot_from_fz_annot:
+		Down-cast generic fitz objects into pdf specific variants.
+		Returns NULL if the objects are not from a PDF document.
+*/
+pdf_document *pdf_document_from_fz_document(fz_context *ctx, fz_document *ptr);
+pdf_page *pdf_page_from_fz_page(fz_context *ctx, fz_page *ptr);
+pdf_annot *pdf_annot_from_fz_annot(fz_context *ctx, fz_annot *ptr);
 
 int pdf_needs_password(fz_context *ctx, pdf_document *doc);
 int pdf_authenticate_password(fz_context *ctx, pdf_document *doc, const char *pw);
@@ -110,21 +119,129 @@ int pdf_lookup_metadata(fz_context *ctx, pdf_document *doc, const char *key, cha
 
 fz_outline *pdf_load_outline(fz_context *ctx, pdf_document *doc);
 
-typedef struct pdf_ocg_entry_s pdf_ocg_entry;
+/*
+	pdf_count_layer_configs: Get the number of layer
+	configurations defined in this document.
 
-struct pdf_ocg_entry_s
-{
-	int num;
-	int gen;
-	int state;
-};
+	doc: The document in question.
+*/
+int pdf_count_layer_configs(fz_context *ctx, pdf_document *doc);
 
-struct pdf_ocg_descriptor_s
+typedef struct
 {
-	int len;
-	pdf_ocg_entry *ocgs;
-	pdf_obj *intent;
-};
+	const char *name;
+	const char *creator;
+} pdf_layer_config;
+
+/*
+	pdf_layer_config_info: Fetch the name (and
+	optionally creator) of the given layer config.
+
+	doc: The document in question.
+
+	config_num: A value in the 0..n-1 range, where n is the
+	value returned from pdf_count_layer_configs.
+
+	info: Pointer to structure to fill in. Pointers within
+	this structure may be set to NULL if no information is
+	available.
+*/
+void pdf_layer_config_info(fz_context *ctx, pdf_document *doc, int config_num, pdf_layer_config *info);
+
+/*
+	pdf_select_layer_config: Set the current configuration.
+	This updates the visibility of the optional content groups
+	within the document.
+
+	doc: The document in question.
+
+	config_num: A value in the 0..n-1 range, where n is the
+	value returned from pdf_count_layer_configs.
+*/
+void pdf_select_layer_config(fz_context *ctx, pdf_document *doc, int config_num);
+
+/*
+	pdf_count_layer_config_ui: Returns the number of entries in the
+	'UI' for this layer configuration.
+
+	doc: The document in question.
+*/
+int pdf_count_layer_config_ui(fz_context *ctx, pdf_document *doc);
+
+/*
+	pdf_select_layer_ui: Select a checkbox/radiobox
+	within the 'UI' for this layer configuration.
+
+	Selecting a UI entry that is a radiobox may disable
+	other UI entries.
+
+	doc: The document in question.
+
+	ui: A value in the 0..m-1 range, where m is the value
+	returned by pdf_count_layer_config_ui.
+*/
+void pdf_select_layer_config_ui(fz_context *ctx, pdf_document *doc, int ui);
+
+/*
+	pdf_deselect_layer_ui: Select a checkbox/radiobox
+	within the 'UI' for this layer configuration.
+
+	doc: The document in question.
+
+	ui: A value in the 0..m-1 range, where m is the value
+	returned by pdf_count_layer_config_ui.
+*/
+void pdf_deselect_layer_config_ui(fz_context *ctx, pdf_document *doc, int ui);
+
+/*
+	pdf_toggle_layer_config_ui: Toggle a checkbox/radiobox
+	within the 'UI' for this layer configuration.
+
+	Toggling a UI entry that is a radiobox may disable
+	other UI entries.
+
+	doc: The document in question.
+
+	ui: A value in the 0..m-1 range, where m is the value
+	returned by pdf_count_layer_config_ui.
+*/
+void pdf_toggle_layer_config_ui(fz_context *ctx, pdf_document *doc, int ui);
+
+typedef enum
+{
+	PDF_LAYER_UI_LABEL = 0,
+	PDF_LAYER_UI_CHECKBOX = 1,
+	PDF_LAYER_UI_RADIOBOX = 2
+} pdf_layer_config_ui_type;
+
+typedef struct
+{
+	const char *text;
+	int depth;
+	pdf_layer_config_ui_type type;
+	int selected;
+	int locked;
+} pdf_layer_config_ui;
+
+/*
+	pdf_layer_config_ui_info: Get the info for a given
+	entry in the layer config ui.
+
+	doc: The document in question.
+
+	ui: A value in the 0..m-1 range, where m is the value
+	returned by pdf_count_layer_config_ui.
+
+	info: Pointer to a structure to fill in with information
+	about the requested ui entry.
+*/
+void pdf_layer_config_ui_info(fz_context *ctx, pdf_document *doc, int ui, pdf_layer_config_ui *info);
+
+/*
+	pdf_set_layer_config_as_default: Write the current layer
+	config back into the document as the default state.
+*/
+void pdf_set_layer_config_as_default(fz_context *ctx, pdf_document *doc);
 
 /*
 	pdf_update_page: update a page for the sake of changes caused by a call
@@ -132,7 +249,7 @@ struct pdf_ocg_descriptor_s
 	are out of date, checks for cases where different appearance streams
 	should be selected because of state changes, and records internally
 	each annotation that has changed appearance. The list of changed annotations
-	is then available via pdf_poll_changed_annot. Note that a call to
+	is then available via querying the annot->changed flag. Note that a call to
 	pdf_pass_event for one page may lead to changes on any other, so an app
 	should call pdf_update_page for every page it currently displays. Also
 	it is important that the pdf_page object is the one used to last render
@@ -140,7 +257,7 @@ struct pdf_ocg_descriptor_s
 	a call to pdf_update_page would not reliably be able to report all changed
 	areas.
 */
-void pdf_update_page(fz_context *ctx, pdf_document *doc, pdf_page *page);
+void pdf_update_page(fz_context *ctx, pdf_page *page);
 
 /*
 	Determine whether changes have been made since the
@@ -258,7 +375,14 @@ struct pdf_document_s
 	int max_type3_fonts;
 	fz_font **type3_fonts;
 
-	pdf_resource_tables *resources;
+	struct {
+		fz_hash_table *images;
+		fz_hash_table *fonts;
+	} resources;
+
+	int orphans_max;
+	int orphans_count;
+	pdf_obj **orphans;
 };
 
 /*
@@ -379,7 +503,7 @@ typedef struct pdf_write_options_s pdf_write_options;
 /*
 	In calls to fz_save_document, the following options structure can be used
 	to control aspects of the writing process. This structure may grow
-	in future, and should be zero-filled to allow forwards compatiblity.
+	in future, and should be zero-filled to allow forwards compatibility.
 */
 struct pdf_write_options_s
 {
@@ -407,11 +531,30 @@ struct pdf_write_options_s
 		z: deflate
 		s: sanitize content streams
 */
-void pdf_parse_write_options(fz_context *ctx, pdf_write_options *opts, const char *args);
+pdf_write_options *pdf_parse_write_options(fz_context *ctx, pdf_write_options *opts, const char *args);
+
+/*
+	pdf_has_unsaved_sigs: Returns true if there are digital signatures waiting to
+	to updated on save.
+*/
+int pdf_has_unsaved_sigs(fz_context *ctx, pdf_document *doc);
+
+/*
+	pdf_write_document: Write out the document to an output stream with all changes finalised.
+
+	This method will throw an error if pdf_has_unsaved_sigs.
+*/
+void pdf_write_document(fz_context *ctx, pdf_document *doc, fz_output *out, pdf_write_options *opts);
 
 /*
 	pdf_save_document: Write out the document to a file with all changes finalised.
 */
 void pdf_save_document(fz_context *ctx, pdf_document *doc, const char *filename, pdf_write_options *opts);
+
+/*
+	pdf_can_be_saved_incrementally: Return true if the document can be saved
+	incrementally. (e.g. it has not been repaired, and it is not encrypted)
+*/
+int pdf_can_be_saved_incrementally(fz_context *ctx, pdf_document *doc);
 
 #endif

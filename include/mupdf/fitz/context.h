@@ -29,8 +29,8 @@ typedef struct fz_context_s fz_context;
 struct fz_alloc_context_s
 {
 	void *user;
-	void *(*malloc)(void *, unsigned int);
-	void *(*realloc)(void *, void *, unsigned int);
+	void *(*malloc)(void *, size_t);
+	void *(*realloc)(void *, void *, size_t);
 	void (*free)(void *, void *);
 };
 
@@ -169,7 +169,7 @@ enum {
 
 	Does not throw exceptions, but may return NULL.
 */
-fz_context *fz_new_context_imp(const fz_alloc_context *alloc, const fz_locks_context *locks, unsigned int max_store, const char *version);
+fz_context *fz_new_context_imp(const fz_alloc_context *alloc, const fz_locks_context *locks, size_t max_store, const char *version);
 
 #define fz_new_context(alloc, locks, max_store) fz_new_context_imp(alloc, locks, max_store, FZ_VERSION)
 
@@ -219,7 +219,7 @@ void fz_set_user_context(fz_context *ctx, void *user);
 void *fz_user_context(fz_context *ctx);
 
 /*
-	In order to tune MuPDFs behaviour, certain functions can
+	In order to tune MuPDF's behaviour, certain functions can
 	(optionally) be provided by callers.
 */
 
@@ -323,6 +323,22 @@ int fz_graphics_aa_level(fz_context *ctx);
 void fz_set_graphics_aa_level(fz_context *ctx, int bits);
 
 /*
+	fz_graphics_min_line_width: Get the minimum line width to be
+	used for stroked lines.
+
+	min_line_width: The minimum line width to use (in pixels).
+*/
+float fz_graphics_min_line_width(fz_context *ctx);
+
+/*
+	fz_set_graphics_min_line_width: Set the minimum line width to be
+	used for stroked lines.
+
+	min_line_width: The minimum line width to use (in pixels).
+*/
+void fz_set_graphics_min_line_width(fz_context *ctx, float min_line_width);
+
+/*
 	fz_user_css: Get the user stylesheet source text.
 */
 const char *fz_user_css(fz_context *ctx);
@@ -361,8 +377,8 @@ struct fz_locks_context_s
 };
 
 enum {
-	FZ_LOCK_ALLOC = 0,
-	FZ_LOCK_FILE, /* Unused now */
+	FZ_LOCK_REAP = 0,
+	FZ_LOCK_ALLOC,
 	FZ_LOCK_FREETYPE,
 	FZ_LOCK_GLYPHCACHE,
 	FZ_LOCK_MAX
@@ -371,7 +387,7 @@ enum {
 /*
 	Memory Allocation and Scavenging:
 
-	All calls to MuPDFs allocator functions pass through to the
+	All calls to MuPDF's allocator functions pass through to the
 	underlying allocators passed in when the initial context is
 	created, after locks are taken (using the supplied locking function)
 	to ensure that only one thread at a time calls through.
@@ -392,7 +408,7 @@ enum {
 	Returns a pointer to the allocated block. May return NULL if size is
 	0. Throws exception on failure to allocate.
 */
-void *fz_malloc(fz_context *ctx, unsigned int size);
+void *fz_malloc(fz_context *ctx, size_t size);
 
 /*
 	fz_calloc: Allocate a zeroed block of memory (with scavenging)
@@ -404,7 +420,7 @@ void *fz_malloc(fz_context *ctx, unsigned int size);
 	Returns a pointer to the allocated block. May return NULL if size
 	and/or count are 0. Throws exception on failure to allocate.
 */
-void *fz_calloc(fz_context *ctx, unsigned int count, unsigned int size);
+void *fz_calloc(fz_context *ctx, size_t count, size_t size);
 
 /*
 	fz_malloc_struct: Allocate storage for a structure (with scavenging),
@@ -432,7 +448,7 @@ void *fz_calloc(fz_context *ctx, unsigned int count, unsigned int size);
 	Returns a pointer to the allocated block. May return NULL if size
 	and/or count are 0. Throws exception on failure to allocate.
 */
-void *fz_malloc_array(fz_context *ctx, unsigned int count, unsigned int size);
+void *fz_malloc_array(fz_context *ctx, size_t count, size_t size);
 
 /*
 	fz_resize_array: Resize a block of memory (with scavenging).
@@ -447,7 +463,7 @@ void *fz_malloc_array(fz_context *ctx, unsigned int count, unsigned int size);
 	and/or count are 0. Throws exception on failure to resize (original
 	block is left unchanged).
 */
-void *fz_resize_array(fz_context *ctx, void *p, unsigned int count, unsigned int size);
+void *fz_resize_array(fz_context *ctx, void *p, size_t count, size_t size);
 
 /*
 	fz_strdup: Duplicate a C string (with scavenging)
@@ -474,7 +490,7 @@ void fz_free(fz_context *ctx, void *p);
 	Returns a pointer to the allocated block. May return NULL if size is
 	0. Returns NULL on failure to allocate.
 */
-void *fz_malloc_no_throw(fz_context *ctx, unsigned int size);
+void *fz_malloc_no_throw(fz_context *ctx, size_t size);
 
 /*
 	fz_calloc_no_throw: Allocate a zeroed block of memory (with scavenging)
@@ -486,7 +502,7 @@ void *fz_malloc_no_throw(fz_context *ctx, unsigned int size);
 	Returns a pointer to the allocated block. May return NULL if size
 	and/or count are 0. Returns NULL on failure to allocate.
 */
-void *fz_calloc_no_throw(fz_context *ctx, unsigned int count, unsigned int size);
+void *fz_calloc_no_throw(fz_context *ctx, size_t count, size_t size);
 
 /*
 	fz_malloc_array_no_throw: Allocate a block of (non zeroed) memory
@@ -500,7 +516,7 @@ void *fz_calloc_no_throw(fz_context *ctx, unsigned int count, unsigned int size)
 	Returns a pointer to the allocated block. May return NULL if size
 	and/or count are 0. Returns NULL on failure to allocate.
 */
-void *fz_malloc_array_no_throw(fz_context *ctx, unsigned int count, unsigned int size);
+void *fz_malloc_array_no_throw(fz_context *ctx, size_t count, size_t size);
 
 /*
 	fz_resize_array_no_throw: Resize a block of memory (with scavenging).
@@ -515,7 +531,7 @@ void *fz_malloc_array_no_throw(fz_context *ctx, unsigned int count, unsigned int
 	and/or count are 0. Returns NULL on failure to resize (original
 	block is left unchanged).
 */
-void *fz_resize_array_no_throw(fz_context *ctx, void *p, unsigned int count, unsigned int size);
+void *fz_resize_array_no_throw(fz_context *ctx, void *p, size_t count, size_t size);
 
 /*
 	fz_strdup_no_throw: Duplicate a C string (with scavenging)
@@ -538,29 +554,6 @@ struct fz_warn_context_s
 	char message[256];
 	int count;
 };
-
-fz_context *fz_clone_context_internal(fz_context *ctx);
-
-void fz_new_aa_context(fz_context *ctx);
-void fz_drop_aa_context(fz_context *ctx);
-void fz_copy_aa_context(fz_context *dst, fz_context *src);
-
-void fz_new_document_handler_context(fz_context *ctx);
-void fz_drop_document_handler_context(fz_context *ctx);
-fz_document_handler_context *fz_keep_document_handler_context(fz_context *ctx);
-
-/* Tuning context implementation details */
-struct fz_tuning_context_s
-{
-	int refs;
-	fz_tune_image_decode_fn *image_decode;
-	void *image_decode_arg;
-	fz_tune_image_scale_fn *image_scale;
-	void *image_scale_arg;
-};
-
-fz_tune_image_decode_fn fz_default_image_decode;
-fz_tune_image_scale_fn fz_default_image_scale;
 
 /* Default allocator */
 extern fz_alloc_context fz_alloc_default;
@@ -607,6 +600,8 @@ fz_keep_imp(fz_context *ctx, void *p, int *refs)
 {
 	if (p)
 	{
+		if (*refs > 0)
+			(void)Memento_takeRef(p);
 		fz_lock(ctx, FZ_LOCK_ALLOC);
 		if (*refs > 0)
 			++*refs;
@@ -620,6 +615,23 @@ fz_keep_imp8(fz_context *ctx, void *p, int8_t *refs)
 {
 	if (p)
 	{
+		if (*refs > 0)
+			(void)Memento_takeRef(p);
+		fz_lock(ctx, FZ_LOCK_ALLOC);
+		if (*refs > 0)
+			++*refs;
+		fz_unlock(ctx, FZ_LOCK_ALLOC);
+	}
+	return p;
+}
+
+static inline void *
+fz_keep_imp16(fz_context *ctx, void *p, int16_t *refs)
+{
+	if (p)
+	{
+		if (*refs > 0)
+			(void)Memento_takeRef(p);
 		fz_lock(ctx, FZ_LOCK_ALLOC);
 		if (*refs > 0)
 			++*refs;
@@ -634,6 +646,8 @@ fz_drop_imp(fz_context *ctx, void *p, int *refs)
 	if (p)
 	{
 		int drop;
+		if (*refs > 0)
+			(void)Memento_dropRef(p);
 		fz_lock(ctx, FZ_LOCK_ALLOC);
 		if (*refs > 0)
 			drop = --*refs == 0;
@@ -651,6 +665,27 @@ fz_drop_imp8(fz_context *ctx, void *p, int8_t *refs)
 	if (p)
 	{
 		int drop;
+		if (*refs > 0)
+			(void)Memento_dropRef(p);
+		fz_lock(ctx, FZ_LOCK_ALLOC);
+		if (*refs > 0)
+			drop = --*refs == 0;
+		else
+			drop = 0;
+		fz_unlock(ctx, FZ_LOCK_ALLOC);
+		return drop;
+	}
+	return 0;
+}
+
+static inline int
+fz_drop_imp16(fz_context *ctx, void *p, int16_t *refs)
+{
+	if (p)
+	{
+		int drop;
+		if (*refs > 0)
+			(void)Memento_dropRef(p);
 		fz_lock(ctx, FZ_LOCK_ALLOC);
 		if (*refs > 0)
 			drop = --*refs == 0;

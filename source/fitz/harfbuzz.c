@@ -27,7 +27,7 @@
  * harfbuzz instances.
  *
  * In order to ensure that allocations throughout mupdf
- * are done consistently, we get harfbuff to call our
+ * are done consistently, we get harfbuzz to call our
  * own hb_malloc/realloc/calloc/free functions that
  * call down to fz_malloc/realloc/calloc/free. These
  * require context variables, so we get our hb_lock
@@ -49,7 +49,6 @@
  * about this.
  */
 
-
 /* Potentially we can write different versions
  * of get_context and set_context for different
  * threading systems.
@@ -65,12 +64,12 @@
 
 static fz_context *hb_secret = NULL;
 
-static void set_context(fz_context *ctx)
+static void set_hb_context(fz_context *ctx)
 {
 	hb_secret = ctx;
 }
 
-static fz_context *get_context()
+static fz_context *get_hb_context()
 {
 	return hb_secret;
 }
@@ -79,46 +78,46 @@ void hb_lock(fz_context *ctx)
 {
 	fz_lock(ctx, FZ_LOCK_FREETYPE);
 
-	set_context(ctx);
+	set_hb_context(ctx);
 }
 
 void hb_unlock(fz_context *ctx)
 {
-	set_context(NULL);
+	set_hb_context(NULL);
 
 	fz_unlock(ctx, FZ_LOCK_FREETYPE);
 }
 
 void *hb_malloc(size_t size)
 {
-	fz_context *ctx = get_context();
+	fz_context *ctx = get_hb_context();
 
 	assert(ctx != NULL);
 
-	return fz_malloc_no_throw(ctx, (unsigned int)size);
+	return fz_malloc_no_throw(ctx, size);
 }
 
 void *hb_calloc(size_t n, size_t size)
 {
-	fz_context *ctx = get_context();
+	fz_context *ctx = get_hb_context();
 
 	assert(ctx != NULL);
 
-	return fz_calloc_no_throw(ctx, (unsigned int)n, (unsigned int)size);
+	return fz_calloc_no_throw(ctx, n, size);
 }
 
 void *hb_realloc(void *ptr, size_t size)
 {
-	fz_context *ctx = get_context();
+	fz_context *ctx = get_hb_context();
 
 	assert(ctx != NULL);
 
-	return fz_resize_array_no_throw(ctx, ptr, (unsigned int)1, (unsigned int)size);
+	return fz_resize_array_no_throw(ctx, ptr, 1, size);
 }
 
 void hb_free(void *ptr)
 {
-	fz_context *ctx = get_context();
+	fz_context *ctx = get_hb_context();
 
 	assert(ctx != NULL);
 

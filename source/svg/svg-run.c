@@ -1,4 +1,5 @@
-#include "mupdf/svg.h"
+#include "mupdf/fitz.h"
+#include "svg-imp.h"
 
 /* default page size */
 #define DEF_WIDTH 12
@@ -51,6 +52,25 @@ static void svg_draw_path(fz_context *ctx, fz_device *dev, svg_document *doc, fz
 		svg_stroke(ctx, dev, doc, path, state);
 }
 
+/*
+	We use the MAGIC number 0.551915 as a bezier subdivision to approximate
+	a quarter circle arc. The reasons for this can be found here:
+	http://mechanicalexpressions.com/explore/geometric-modeling/circle-spline-approximation.pdf
+*/
+static const float MAGIC_CIRCLE = 0.551915f;
+
+static void approx_circle(fz_context *ctx, fz_path *path, float cx, float cy, float rx, float ry)
+{
+	float rxs = rx * MAGIC_CIRCLE;
+	float rys = ry * MAGIC_CIRCLE;
+	fz_moveto(ctx, path, cx, cy+ry);
+	fz_curveto(ctx, path, cx + rxs, cy + ry, cx + rx, cy + rys, cx + rx, cy);
+	fz_curveto(ctx, path, cx + rx, cy - rys, cx + rxs, cy - rys, cx, cy - ry);
+	fz_curveto(ctx, path, cx - rxs, cy - ry, cx - rx, cy - rys, cx - rx, cy);
+	fz_curveto(ctx, path, cx - rx, cy + rys, cx - rxs, cy + rys, cx, cy + ry);
+	fz_closepath(ctx, path);
+}
+
 static void
 svg_run_rect(fz_context *ctx, fz_device *dev, svg_document *doc, fz_xml *node, const svg_state *inherit_state)
 {
@@ -93,13 +113,27 @@ svg_run_rect(fz_context *ctx, fz_device *dev, svg_document *doc, fz_xml *node, c
 	if (w <= 0 || h <= 0)
 		return;
 
-	/* TODO: we need elliptical arcs to draw rounded corners */
-
 	path = fz_new_path(ctx);
-	fz_moveto(ctx, path, x, y);
-	fz_lineto(ctx, path, x + w, y);
-	fz_lineto(ctx, path, x + w, y + h);
-	fz_lineto(ctx, path, x, y + h);
+	if (rx == 0 || ry == 0)
+	{
+		fz_moveto(ctx, path, x, y);
+		fz_lineto(ctx, path, x + w, y);
+		fz_lineto(ctx, path, x + w, y + h);
+		fz_lineto(ctx, path, x, y + h);
+	}
+	else
+	{
+		float rxs = rx * MAGIC_CIRCLE;
+		float rys = rx * MAGIC_CIRCLE;
+		fz_moveto(ctx, path, x + w - rx, y);
+		fz_curveto(ctx, path, x + w - rxs, y, x + w, y + rys, x + w, y + ry);
+		fz_lineto(ctx, path, x + w, y + h - ry);
+		fz_curveto(ctx, path, x + w, y + h - rys, x + w - rxs, y + h, x + w - rx, y + h);
+		fz_lineto(ctx, path, x + rx, y + h);
+		fz_curveto(ctx, path, x + rxs, y + h, x, y + h - rys, x, y + h - rx);
+		fz_lineto(ctx, path, x, y + rx);
+		fz_curveto(ctx, path, x, y + rxs, x + rxs, y, x + rx, y);
+	}
 	fz_closepath(ctx, path);
 
 	svg_draw_path(ctx, dev, doc, path, &local_state);
@@ -131,13 +165,7 @@ svg_run_circle(fz_context *ctx, fz_device *dev, svg_document *doc, fz_xml *node,
 		return;
 
 	path = fz_new_path(ctx);
-	// FIXME!
-	//fz_moveto(ctx, path, cx + r, cy);
-	//fz_arcn(ctx, path, cx, cy, r, 0, 90);
-	//fz_arcn(ctx, path, cx, cy, r, 90, 180);
-	//fz_arcn(ctx, path, cx, cy, r, 180, 270);
-	//fz_arcn(ctx, path, cx, cy, r, 270, 360);
-	//fz_closepath(ctx, path);
+	approx_circle(ctx, path, cx, cy, r, r);
 	svg_draw_path(ctx, dev, doc, path, &local_state);
 	fz_drop_path(ctx, path);
 }
@@ -170,8 +198,7 @@ svg_run_ellipse(fz_context *ctx, fz_device *dev, svg_document *doc, fz_xml *node
 		return;
 
 	path = fz_new_path(ctx);
-	/* TODO: we need elliptic arcs */
-	// TODO: arc...
+	approx_circle(ctx, path, cx, cy, rx, ry);
 	svg_draw_path(ctx, dev, doc, path, &local_state);
 	fz_drop_path(ctx, path);
 }
@@ -617,7 +644,7 @@ svg_parse_viewport(fz_context *ctx, svg_document *doc, fz_xml *node, svg_state *
 	if (h_att) h = svg_parse_length(h_att, state->viewbox_h, state->fontsize);
 
 	/* TODO: new transform */
-	printf("push viewport: %g %g %g %g\n", x, y, w, h);
+	fz_warn(ctx, "push viewport: %g %g %g %g", x, y, w, h);
 
 	state->viewport_w = w;
 	state->viewport_h = h;
@@ -638,7 +665,7 @@ svg_parse_viewbox(fz_context *ctx, svg_document *doc, fz_xml *node, svg_state *s
 		sscanf(viewbox_att, "%g %g %g %g", &min_x, &min_y, &box_w, &box_h);
 
 		/* scale and translate to fit [x y w h] to [0 0 viewport.w viewport.h] */
-		printf("push viewbox: %g %g %g %g\n", min_x, min_y, box_w, box_h);
+		fz_warn(ctx, "push viewbox: %g %g %g %g", min_x, min_y, box_w, box_h);
 	}
 }
 
@@ -687,7 +714,7 @@ svg_parse_common(fz_context *ctx, svg_document *doc, fz_xml *node, svg_state *st
 
 	if (opacity_att)
 	{
-		state->opacity = svg_parse_number(fill_opacity_att, 0, 1, state->opacity);
+		state->opacity = svg_parse_number(opacity_att, 0, 1, state->opacity);
 	}
 
 	if (fill_att)
@@ -925,6 +952,7 @@ svg_parse_document_bounds(fz_context *ctx, svg_document *doc, fz_xml *root)
 	char *version_att;
 	char *w_att;
 	char *h_att;
+	char *viewbox_att;
 	int version;
 
 	if (!fz_xml_is_tag(root, "svg"))
@@ -933,21 +961,33 @@ svg_parse_document_bounds(fz_context *ctx, svg_document *doc, fz_xml *root)
 	version_att = fz_xml_att(root, "version");
 	w_att = fz_xml_att(root, "width");
 	h_att = fz_xml_att(root, "height");
+	viewbox_att = fz_xml_att(root, "viewBox");
 
 	version = 10;
 	if (version_att)
-		version = atof(version_att) * 10;
+		version = fz_atof(version_att) * 10;
 
 	if (version > 12)
 		fz_warn(ctx, "svg document version is newer than we support");
 
-	doc->width = DEF_WIDTH;
-	if (w_att)
-		doc->width = svg_parse_length(w_att, doc->width, DEF_FONTSIZE);
+	/* If no width or height attributes, then guess from the viewbox */
+	if (w_att == NULL && h_att == NULL && viewbox_att != NULL)
+	{
+		float min_x, min_y, box_w, box_h;
+		sscanf(viewbox_att, "%g %g %g %g", &min_x, &min_y, &box_w, &box_h);
+		doc->width = box_w;
+		doc->height = box_h;
+	}
+	else
+	{
+		doc->width = DEF_WIDTH;
+		if (w_att)
+			doc->width = svg_parse_length(w_att, doc->width, DEF_FONTSIZE);
 
-	doc->height = DEF_HEIGHT;
-	if (h_att)
-		doc->height = svg_parse_length(h_att, doc->height, DEF_FONTSIZE);
+		doc->height = DEF_HEIGHT;
+		if (h_att)
+			doc->height = svg_parse_length(h_att, doc->height, DEF_FONTSIZE);
+	}
 }
 
 void

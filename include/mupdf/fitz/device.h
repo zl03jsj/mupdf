@@ -13,7 +13,7 @@
 /*
 	The different format handlers (pdf, xps etc) interpret pages to a
 	device. These devices can then process the stream of calls they
-	recieve in various ways:
+	receive in various ways:
 		The trace device outputs debugging information for the calls.
 		The draw device will render them.
 		The list device stores them in a list to play back later.
@@ -77,32 +77,14 @@ char *fz_blendmode_name(int blendmode);
 
 typedef struct fz_device_container_stack_s fz_device_container_stack;
 
-struct fz_device_container_stack_s
-{
-	fz_rect scissor;
-	int flags;
-	int user;
-};
-
-enum
-{
-	fz_device_container_stack_is_clip_path = 1,
-	fz_device_container_stack_is_clip_stroke_path = 2,
-	fz_device_container_stack_is_clip_text = 4,
-	fz_device_container_stack_is_clip_stroke_text = 8,
-	fz_device_container_stack_is_clip_image_mask = 16,
-	fz_device_container_stack_in_mask = 32,
-	fz_device_container_stack_is_mask = 64,
-	fz_device_container_stack_is_group = 128,
-};
-
 struct fz_device_s
 {
 	int refs;
 	int hints;
 	int flags;
 
-	void (*close)(fz_context *, fz_device *);
+	void (*close_device)(fz_context *, fz_device *);
+	void (*drop_device)(fz_context *, fz_device *);
 
 	void (*fill_path)(fz_context *, fz_device *, const fz_path *, int even_odd, const fz_matrix *, fz_colorspace *, const float *color, float alpha);
 	void (*stroke_path)(fz_context *, fz_device *, const fz_path *, const fz_stroke_state *, const fz_matrix *, fz_colorspace *, const float *color, float alpha);
@@ -168,14 +150,14 @@ void fz_render_flags(fz_context *ctx, fz_device *dev, int set, int clear);
 void *fz_new_device(fz_context *ctx, int size);
 
 /*
-	fz_close_device: Flush any pending output and free internal memory.
-	This is called implicitly on fz_drop_device, so it's only useful for
-	garbage collected language bindings.
+	fz_close_device: Signal the end of input, and flush any buffered output.
+	This is NOT called implicitly on fz_drop_device.
 */
 void fz_close_device(fz_context *ctx, fz_device *dev);
 
 /*
 	fz_drop_device: Free a devices of any type and its resources.
+	Don't forget to call fz_close_device before dropping the device, or you may get incomplete output!
 */
 void fz_drop_device(fz_context *ctx, fz_device *dev);
 
@@ -228,7 +210,7 @@ typedef struct fz_cookie_s fz_cookie;
 	feedback or abort a job that takes a long time to finish. The
 	communication is unsynchronized without locking.
 
-	abort: The appliation should set this field to 0 before
+	abort: The application should set this field to 0 before
 	calling fz_run_page to render a page. At any point when the
 	page is being rendered the application my set this field to 1
 	which will cause the rendering to finish soon. This field is
@@ -296,11 +278,39 @@ fz_device *fz_new_bbox_device(fz_context *ctx, fz_rect *rectp);
 
 	Currently only tests for the presence of non-grayscale colors.
 
+	is_color: Possible values returned:
+		0: Definitely greyscale
+		1: Probably color (all colors were grey, but there
+		were images or shadings in a non grey colorspace).
+		2: Definitely color
+
 	threshold: The difference from grayscale that will be tolerated.
 	Typical values to use are either 0 (be exact) and 0.02 (allow an
 	imperceptible amount of slop).
+
+	options: A set of bitfield options, from the FZ_TEST_OPT set.
+
+	passthrough: A device to pass all calls through to, or NULL.
+	If set, then the test device can both test and pass through to
+	an underlying device (like, say, the display list device). This
+	means that a display list can be created and at the end we'll
+	know if it's color or not.
+
+	In the absence of a passthrough device, the device will throw
+	an exception to stop page interpretation when color is found.
 */
-fz_device *fz_new_test_device(fz_context *ctx, int *is_color, float threshold);
+fz_device *fz_new_test_device(fz_context *ctx, int *is_color, float threshold, int options, fz_device *passthrough);
+
+enum
+{
+	/* If set, test every pixel of images exhaustively.
+	 * If clear, just look at colorspaces for images. */
+	FZ_TEST_OPT_IMAGES = 1,
+
+	/* If set, test every pixel of shadings. */
+	/* If clear, just look at colorspaces for shadings. */
+	FZ_TEST_OPT_SHADINGS = 2
+};
 
 /*
 	fz_new_draw_device: Create a device to draw on a pixmap.
@@ -310,8 +320,10 @@ fz_device *fz_new_test_device(fz_context *ctx, int *is_color, float threshold);
 	draw device, see fz_clear_pixmap* for how to clear it prior to
 	calling fz_new_draw_device. Free the device by calling
 	fz_drop_device.
+
+	transform: Transform from user space in points to device space in pixels.
 */
-fz_device *fz_new_draw_device(fz_context *ctx, fz_pixmap *dest);
+fz_device *fz_new_draw_device(fz_context *ctx, const fz_matrix *transform, fz_pixmap *dest);
 
 /*
 	fz_new_draw_device_with_bbox: Create a device to draw on a pixmap.
@@ -322,11 +334,45 @@ fz_device *fz_new_draw_device(fz_context *ctx, fz_pixmap *dest);
 	calling fz_new_draw_device. Free the device by calling
 	fz_drop_device.
 
+	transform: Transform from user space in points to device space in pixels.
+
 	clip: Bounding box to restrict any marking operations of the
 	draw device.
 */
-fz_device *fz_new_draw_device_with_bbox(fz_context *ctx, fz_pixmap *dest, const fz_irect *clip);
+fz_device *fz_new_draw_device_with_bbox(fz_context *ctx, const fz_matrix *transform, fz_pixmap *dest, const fz_irect *clip);
 
-fz_device *fz_new_draw_device_type3(fz_context *ctx, fz_pixmap *dest);
+fz_device *fz_new_draw_device_type3(fz_context *ctx, const fz_matrix *transform, fz_pixmap *dest);
+
+/*
+	struct fz_draw_options: Options for creating a pixmap and draw device.
+*/
+typedef struct fz_draw_options_s fz_draw_options;
+
+struct fz_draw_options_s
+{
+	int rotate;
+	int x_resolution;
+	int y_resolution;
+	int width;
+	int height;
+	fz_colorspace *colorspace;
+	int alpha;
+};
+
+extern const char *fz_draw_options_usage;
+
+/*
+	fz_parse_draw_options: Parse draw device options from a comma separated key-value string.
+*/
+fz_draw_options *fz_parse_draw_options(fz_context *ctx, fz_draw_options *options, const char *string);
+
+/*
+	fz_new_draw_device_with_options: Create a new pixmap and draw device, using the specified options.
+
+	options: Options to configure the draw device, and choose the resolution and colorspace.
+	mediabox: The bounds of the page in points.
+	pixmap: An out parameter containing the newly created pixmap.
+*/
+fz_device *fz_new_draw_device_with_options(fz_context *ctx, const fz_draw_options *options, const fz_rect *mediabox, fz_pixmap **pixmap);
 
 #endif

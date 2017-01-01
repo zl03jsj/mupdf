@@ -31,7 +31,7 @@ fz_document_handler_context *fz_keep_document_handler_context(fz_context *ctx)
 
 void fz_drop_document_handler_context(fz_context *ctx)
 {
-	if (!ctx || !ctx->handler)
+	if (!ctx)
 		return;
 
 	if (fz_drop_imp(ctx, ctx->handler, &ctx->handler->refs))
@@ -46,7 +46,7 @@ void fz_register_document_handler(fz_context *ctx, const fz_document_handler *ha
 	fz_document_handler_context *dc;
 	int i;
 
-	if (!ctx || !handler)
+	if (!handler)
 		return;
 
 	dc = ctx->handler;
@@ -70,8 +70,8 @@ fz_open_document_with_stream(fz_context *ctx, const char *magic, fz_stream *stre
 	int best_i, best_score;
 	fz_document_handler_context *dc;
 
-	if (ctx == NULL || magic == NULL || stream == NULL)
-		return NULL;
+	if (magic == NULL || stream == NULL)
+		fz_throw(ctx, FZ_ERROR_GENERIC, "no document to open");
 
 	dc = ctx->handler;
 	if (dc->count == 0)
@@ -92,7 +92,7 @@ fz_open_document_with_stream(fz_context *ctx, const char *magic, fz_stream *stre
 	if (best_i >= 0)
 		return dc->handler[best_i]->open_with_stream(ctx, stream);
 
-	return NULL;
+	fz_throw(ctx, FZ_ERROR_GENERIC, "cannot find document handler for file type: %s", magic);
 }
 
 fz_document *
@@ -101,9 +101,11 @@ fz_open_document(fz_context *ctx, const char *filename)
 	int i, score;
 	int best_i, best_score;
 	fz_document_handler_context *dc;
+	fz_stream *file;
+	fz_document *doc;
 
-	if (ctx == NULL || filename == NULL)
-		return NULL;
+	if (filename == NULL)
+		fz_throw(ctx, FZ_ERROR_GENERIC, "no document to open");
 
 	dc = ctx->handler;
 	if (dc->count == 0)
@@ -121,10 +123,22 @@ fz_open_document(fz_context *ctx, const char *filename)
 		}
 	}
 
-	if (best_i >= 0)
+	if (best_i < 0)
+		fz_throw(ctx, FZ_ERROR_GENERIC, "cannot find document handler for file: '%s'", filename);
+
+	if (dc->handler[best_i]->open)
 		return dc->handler[best_i]->open(ctx, filename);
 
-	return NULL;
+	file = fz_open_file(ctx, filename);
+
+	fz_try(ctx)
+		doc = dc->handler[best_i]->open_with_stream(ctx, file);
+	fz_always(ctx)
+		fz_drop_stream(ctx, file);
+	fz_catch(ctx)
+		fz_rethrow(ctx);
+
+	return doc;
 }
 
 void *
@@ -138,16 +152,18 @@ fz_new_document_of_size(fz_context *ctx, int size)
 fz_document *
 fz_keep_document(fz_context *ctx, fz_document *doc)
 {
-	if (doc)
-		++doc->refs;
-	return doc;
+	return fz_keep_imp(ctx, doc, &doc->refs);
 }
 
 void
 fz_drop_document(fz_context *ctx, fz_document *doc)
 {
-	if (doc && --doc->refs == 0 && doc->close)
-		doc->close(ctx, doc);
+	if (fz_drop_imp(ctx, doc, &doc->refs))
+	{
+		if (doc->drop_document)
+			doc->drop_document(ctx, doc);
+		fz_free(ctx, doc);
+	}
 }
 
 static void
@@ -158,6 +174,12 @@ fz_ensure_layout(fz_context *ctx, fz_document *doc)
 		doc->layout(ctx, doc, DEFW, DEFH, DEFEM);
 		doc->did_layout = 1;
 	}
+}
+
+int
+fz_is_document_reflowable(fz_context *ctx, fz_document *doc)
+{
+	return doc ? doc->is_reflowable : 0;
 }
 
 int
@@ -187,9 +209,21 @@ fz_has_permission(fz_context *ctx, fz_document *doc, fz_permission p)
 fz_outline *
 fz_load_outline(fz_context *ctx, fz_document *doc)
 {
+	fz_ensure_layout(ctx, doc);
 	if (doc && doc->load_outline)
 		return doc->load_outline(ctx, doc);
 	return NULL;
+}
+
+int
+fz_resolve_link(fz_context *ctx, fz_document *doc, const char *uri, float *xp, float *yp)
+{
+	fz_ensure_layout(ctx, doc);
+	if (xp) *xp = 0;
+	if (yp) *yp = 0;
+	if (doc && doc->resolve_link)
+		return doc->resolve_link(ctx, doc, uri, xp, yp);
+	return -1;
 }
 
 void
@@ -348,18 +382,16 @@ fz_new_annot(fz_context *ctx, int size)
 fz_annot *
 fz_keep_annot(fz_context *ctx, fz_annot *annot)
 {
-	if (annot)
-		++annot->refs;
-	return annot;
+	return fz_keep_imp(ctx, annot, &annot->refs);
 }
 
 void
 fz_drop_annot(fz_context *ctx, fz_annot *annot)
 {
-	if (annot && --annot->refs == 0)
+	if (fz_drop_imp(ctx, annot, &annot->refs))
 	{
-		if (annot->drop_annot_imp)
-			annot->drop_annot_imp(ctx, annot);
+		if (annot->drop_annot)
+			annot->drop_annot(ctx, annot);
 		fz_free(ctx, annot);
 	}
 }
@@ -375,26 +407,22 @@ fz_new_page(fz_context *ctx, int size)
 fz_page *
 fz_keep_page(fz_context *ctx, fz_page *page)
 {
-	if (page)
-		++page->refs;
-	return page;
+	return fz_keep_imp(ctx, page, &page->refs);
 }
 
 void
 fz_drop_page(fz_context *ctx, fz_page *page)
 {
-	if (page)
+	if (fz_drop_imp(ctx, page, &page->refs))
 	{
-		if (--page->refs == 0 && page->drop_page_imp)
-		{
-			page->drop_page_imp(ctx, page);
-			fz_free(ctx, page);
-		}
+		if (page->drop_page)
+			page->drop_page(ctx, page);
+		fz_free(ctx, page);
 	}
 }
 
 fz_transition *
-fz_page_presentation(fz_context *ctx, fz_page *page, float *duration)
+fz_page_presentation(fz_context *ctx, fz_page *page, fz_transition *transition, float *duration)
 {
 	float dummy;
 	if (duration)
@@ -402,40 +430,35 @@ fz_page_presentation(fz_context *ctx, fz_page *page, float *duration)
 	else
 		duration = &dummy;
 	if (page && page->page_presentation && page)
-		return page->page_presentation(ctx, page, duration);
+		return page->page_presentation(ctx, page, transition, duration);
 	return NULL;
 }
 
 int fz_count_separations_on_page(fz_context *ctx, fz_page *page)
 {
-	if (ctx == NULL || page == NULL || page->count_separations == NULL)
-		return 0;
-
-	return page->count_separations(ctx, page);
+	if (page && page->count_separations)
+		return page->count_separations(ctx, page);
+	return 0;
 }
 
 void fz_control_separation_on_page(fz_context *ctx, fz_page *page, int sep, int disable)
 {
-	if (ctx == NULL || page == NULL || page->control_separation == NULL)
-		return;
-
-	page->control_separation(ctx, page, sep, disable);
+	if (page && page->control_separation)
+		page->control_separation(ctx, page, sep, disable);
 }
 
 int fz_separation_disabled_on_page (fz_context *ctx, fz_page *page, int sep)
 {
-	if (ctx == NULL || page == NULL || page->separation_disabled == NULL)
-		return 0;
-	return page->separation_disabled(ctx, page, sep);
+	if (page && page->separation_disabled)
+		return page->separation_disabled(ctx, page, sep);
+	return 0;
 }
 
 const char *fz_get_separation_on_page(fz_context *ctx, fz_page *page, int sep, uint32_t *rgba, uint32_t *cmyk)
 {
-	if (ctx == NULL || page == NULL || page->get_separation == NULL)
-	{
-		*rgba = 0;
-		*cmyk = 0;
-		return NULL;
-	}
-	return page->get_separation(ctx, page, sep, rgba, cmyk);
+	if (page && page->get_separation)
+		return page->get_separation(ctx, page, sep, rgba, cmyk);
+	*rgba = 0;
+	*cmyk = 0;
+	return NULL;
 }

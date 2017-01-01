@@ -13,16 +13,16 @@ fz_open_copy(fz_context *ctx, fz_stream *chain)
 struct null_filter
 {
 	fz_stream *chain;
-	int remain;
+	size_t remain;
 	fz_off_t offset;
 	unsigned char buffer[4096];
 };
 
 static int
-next_null(fz_context *ctx, fz_stream *stm, int max)
+next_null(fz_context *ctx, fz_stream *stm, size_t max)
 {
 	struct null_filter *state = stm->state;
-	int n;
+	size_t n;
 
 	if (state->remain == 0)
 		return EOF;
@@ -39,8 +39,8 @@ next_null(fz_context *ctx, fz_stream *stm, int max)
 		return EOF;
 	state->chain->rp += n;
 	state->remain -= n;
-	state->offset += n;
-	stm->pos += n;
+	state->offset += (fz_off_t)n;
+	stm->pos += (fz_off_t)n;
 	return *stm->rp++;
 }
 
@@ -89,10 +89,10 @@ struct concat_filter
 };
 
 static int
-next_concat(fz_context *ctx, fz_stream *stm, int max)
+next_concat(fz_context *ctx, fz_stream *stm, size_t max)
 {
 	struct concat_filter *state = (struct concat_filter *)stm->state;
-	int n;
+	size_t n;
 
 	while (state->current < state->count)
 	{
@@ -104,7 +104,7 @@ next_concat(fz_context *ctx, fz_stream *stm, int max)
 		{
 			stm->rp = state->chain[state->current]->rp;
 			stm->wp = state->chain[state->current]->wp;
-			stm->pos += n;
+			stm->pos += (fz_off_t)n;
 			return *stm->rp++;
 		}
 		else
@@ -207,7 +207,7 @@ static inline int unhex(int a)
 }
 
 static int
-next_ahxd(fz_context *ctx, fz_stream *stm, int max)
+next_ahxd(fz_context *ctx, fz_stream *stm, size_t max)
 {
 	fz_ahxd *state = stm->state;
 	unsigned char *p = state->buffer;
@@ -305,7 +305,7 @@ struct fz_a85d_s
 };
 
 static int
-next_a85d(fz_context *ctx, fz_stream *stm, int max)
+next_a85d(fz_context *ctx, fz_stream *stm, size_t max)
 {
 	fz_a85d *state = stm->state;
 	unsigned char *p = state->buffer;
@@ -449,7 +449,7 @@ struct fz_rld_s
 };
 
 static int
-next_rld(fz_context *ctx, fz_stream *stm, int max)
+next_rld(fz_context *ctx, fz_stream *stm, size_t max)
 {
 	fz_rld *state = stm->state;
 	unsigned char *p = state->buffer;
@@ -562,10 +562,10 @@ struct fz_arc4c_s
 };
 
 static int
-next_arc4(fz_context *ctx, fz_stream *stm, int max)
+next_arc4(fz_context *ctx, fz_stream *stm, size_t max)
 {
 	fz_arc4c *state = stm->state;
-	int n = fz_available(ctx, state->chain, max);
+	size_t n = fz_available(ctx, state->chain, max);
 
 	if (n == 0)
 		return EOF;
@@ -576,7 +576,7 @@ next_arc4(fz_context *ctx, fz_stream *stm, int max)
 	stm->wp = state->buffer + n;
 	fz_arc4_encrypt(&state->arc4, stm->rp, state->chain->rp, n);
 	state->chain->rp += n;
-	stm->pos += n;
+	stm->pos += (fz_off_t)n;
 
 	return *stm->rp++;
 }
@@ -627,7 +627,7 @@ struct fz_aesd_s
 };
 
 static int
-next_aesd(fz_context *ctx, fz_stream *stm, int max)
+next_aesd(fz_context *ctx, fz_stream *stm, size_t max)
 {
 	fz_aesd *state = stm->state;
 	unsigned char *p = state->buffer;
@@ -650,7 +650,7 @@ next_aesd(fz_context *ctx, fz_stream *stm, int max)
 
 	while (p < ep)
 	{
-		int n = fz_read(ctx, state->chain, state->bp, 16);
+		size_t n = fz_read(ctx, state->chain, state->bp, 16);
 		if (n == 0)
 			break;
 		else if (n < 16)

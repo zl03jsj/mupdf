@@ -16,11 +16,15 @@ fz_trace_matrix(fz_context *ctx, fz_output *out, const fz_matrix *ctm)
 static void
 fz_trace_color(fz_context *ctx, fz_output *out, fz_colorspace *colorspace, const float *color, float alpha)
 {
-	int i;
-	fz_printf(ctx, out, " colorspace=\"%s\" color=\"", colorspace->name);
-	for (i = 0; i < colorspace->n; i++)
-		fz_printf(ctx, out, "%s%g", i == 0 ? "" : " ", color[i]);
-	fz_printf(ctx, out, "\"");
+	int i, n;
+	if (colorspace)
+	{
+		n = fz_colorspace_n(ctx, colorspace);
+		fz_printf(ctx, out, " colorspace=\"%s\" color=\"", fz_colorspace_name(ctx, colorspace));
+		for (i = 0; i < n; i++)
+			fz_printf(ctx, out, "%s%g", i == 0 ? "" : " ", color[i]);
+		fz_printf(ctx, out, "\"");
+	}
 	if (alpha < 1)
 		fz_printf(ctx, out, " alpha=\"%g\"", alpha);
 }
@@ -35,7 +39,7 @@ static void
 fz_trace_text_span(fz_context *ctx, fz_output *out, fz_text_span *span)
 {
 	int i;
-	fz_printf(ctx, out, "<span font=\"%s\" wmode=\"%d\"", span->font->name, span->wmode);
+	fz_printf(ctx, out, "<span font=\"%s\" wmode=\"%d\"", fz_font_name(ctx, span->font), span->wmode);
 	fz_printf(ctx, out, " trm=\"%g %g %g %g\">\n", span->trm.a, span->trm.b, span->trm.c, span->trm.d);
 	for (i = 0; i < span->len; i++)
 	{

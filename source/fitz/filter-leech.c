@@ -1,4 +1,4 @@
-#include "mupdf/fitz.h"
+#include "fitz-imp.h"
 
 #include <zlib.h>
 
@@ -11,11 +11,11 @@ struct fz_leech_s
 };
 
 static int
-next_leech(fz_context *ctx, fz_stream *stm, int max)
+next_leech(fz_context *ctx, fz_stream *stm, size_t max)
 {
 	fz_leech *state = stm->state;
 	fz_buffer *buffer = state->buffer;
-	int n = fz_available(ctx, state->chain, max);
+	size_t n = fz_available(ctx, state->chain, max);
 
 	if (n > max)
 		n = max;

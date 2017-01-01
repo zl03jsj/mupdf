@@ -1,4 +1,5 @@
-#include "mupdf/xps.h"
+#include "mupdf/fitz.h"
+#include "xps-imp.h"
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -20,31 +21,31 @@ static inline int unhex(int a)
 }
 
 int
-xps_count_font_encodings(fz_font *font)
+xps_count_font_encodings(fz_context *ctx, fz_font *font)
 {
-	FT_Face face = font->ft_face;
+	FT_Face face = fz_font_ft_face(ctx, font);
 	return face->num_charmaps;
 }
 
 void
-xps_identify_font_encoding(fz_font *font, int idx, int *pid, int *eid)
+xps_identify_font_encoding(fz_context *ctx, fz_font *font, int idx, int *pid, int *eid)
 {
-	FT_Face face = font->ft_face;
+	FT_Face face = fz_font_ft_face(ctx, font);
 	*pid = face->charmaps[idx]->platform_id;
 	*eid = face->charmaps[idx]->encoding_id;
 }
 
 void
-xps_select_font_encoding(fz_font *font, int idx)
+xps_select_font_encoding(fz_context *ctx, fz_font *font, int idx)
 {
-	FT_Face face = font->ft_face;
+	FT_Face face = fz_font_ft_face(ctx, font);
 	FT_Set_Charmap(face, face->charmaps[idx]);
 }
 
 int
-xps_encode_font_char(fz_font *font, int code)
+xps_encode_font_char(fz_context *ctx, fz_font *font, int code)
 {
-	FT_Face face = font->ft_face;
+	FT_Face face = fz_font_ft_face(ctx, font);
 	int gid = FT_Get_Char_Index(face, code);
 	if (gid == 0 && face->charmap && face->charmap->platform_id == 3 && face->charmap->encoding_id == 0)
 		gid = FT_Get_Char_Index(face, 0xF000 | code);
@@ -55,7 +56,7 @@ void
 xps_measure_font_glyph(fz_context *ctx, xps_document *doc, fz_font *font, int gid, xps_glyph_metrics *mtx)
 {
 	int mask = FT_LOAD_NO_SCALE | FT_LOAD_IGNORE_TRANSFORM;
-	FT_Face face = font->ft_face;
+	FT_Face face = fz_font_ft_face(ctx, font);
 	FT_Fixed hadv = 0, vadv = 0;
 
 	fz_lock(ctx, FZ_LOCK_FREETYPE);
@@ -151,15 +152,15 @@ xps_select_best_font_encoding(fz_context *ctx, xps_document *doc, fz_font *font)
 
 	int i, k, n, pid, eid;
 
-	n = xps_count_font_encodings(font);
+	n = xps_count_font_encodings(ctx, font);
 	for (k = 0; xps_cmap_list[k].pid != -1; k++)
 	{
 		for (i = 0; i < n; i++)
 		{
-			xps_identify_font_encoding(font, i, &pid, &eid);
+			xps_identify_font_encoding(ctx, font, i, &pid, &eid);
 			if (pid == xps_cmap_list[k].pid && eid == xps_cmap_list[k].eid)
 			{
-				xps_select_font_encoding(font, i);
+				xps_select_font_encoding(ctx, font, i);
 				return;
 			}
 		}
@@ -242,10 +243,13 @@ xps_lookup_font(fz_context *ctx, xps_document *doc, char *base_uri, char *font_u
 
 		if (style_att)
 		{
-			font->fake_bold = !!strstr(style_att, "Bold");
-			font->is_bold = font->fake_bold;
-			font->fake_italic = !!strstr(style_att, "Italic");
-			font->is_italic = font->fake_italic;
+			fz_font_flags_t *flags = fz_font_flags(font);
+			int bold = !!strstr(style_att, "Bold");
+			int italic = !!strstr(style_att, "Italic");
+			flags->fake_bold = bold;
+			flags->is_bold = bold;
+			flags->fake_italic = italic;
+			flags->is_italic = italic;
 		}
 
 		xps_select_best_font_encoding(ctx, doc, font);
@@ -286,23 +290,16 @@ xps_parse_digits(char *s, int *digit)
 	return s;
 }
 
-static inline int is_real_num_char(int c)
-{
-	return (c >= '0' && c <= '9') ||
-		c == 'e' || c == 'E' || c == '+' || c == '-' || c == '.';
-}
-
 static char *
-xps_parse_real_num(char *s, float *number)
+xps_parse_real_num(char *s, float *number, int *override)
 {
-	char buf[64];
-	char *p = buf;
-	while (is_real_num_char(*s))
-		*p++ = *s++;
-	*p = 0;
-	if (buf[0])
-		*number = fz_atof(buf);
-	return s;
+	char *tail;
+	float v;
+	v = fz_strtof(s, &tail);
+	*override = tail != s;
+	if (*override)
+		*number = v;
+	return tail;
 }
 
 static char *
@@ -326,14 +323,19 @@ xps_parse_glyph_index(char *s, int *glyph_index)
 }
 
 static char *
-xps_parse_glyph_metrics(char *s, float *advance, float *uofs, float *vofs)
+xps_parse_glyph_metrics(char *s, float *advance, float *uofs, float *vofs, int bidi_level)
 {
+	int override;
 	if (*s == ',')
-		s = xps_parse_real_num(s + 1, advance);
+	{
+		s = xps_parse_real_num(s + 1, advance, &override);
+		if (override && (bidi_level & 1))
+			*advance = -*advance;
+	}
 	if (*s == ',')
-		s = xps_parse_real_num(s + 1, uofs);
+		s = xps_parse_real_num(s + 1, uofs, &override);
 	if (*s == ',')
-		s = xps_parse_real_num(s + 1, vofs);
+		s = xps_parse_real_num(s + 1, vofs, &override);
 	return s;
 }
 
@@ -354,7 +356,7 @@ xps_parse_glyphs_imp(fz_context *ctx, xps_document *doc, const fz_matrix *ctm,
 	float y = originy;
 	char *us = unicode;
 	char *is = indices;
-	int un = 0;
+	size_t un = 0;
 
 	if (!unicode && !indices)
 		fz_warn(ctx, "glyphs element with neither characters nor indices");
@@ -377,7 +379,7 @@ xps_parse_glyphs_imp(fz_context *ctx, xps_document *doc, const fz_matrix *ctm,
 
 	while ((us && un > 0) || (is && *is))
 	{
-		int char_code = '?';
+		int char_code = 0xFFFD;
 		int code_count = 1;
 		int glyph_count = 1;
 
@@ -414,7 +416,7 @@ xps_parse_glyphs_imp(fz_context *ctx, xps_document *doc, const fz_matrix *ctm,
 				is = xps_parse_glyph_index(is, &glyph_index);
 
 			if (glyph_index == -1)
-				glyph_index = xps_encode_font_char(font, char_code);
+				glyph_index = xps_encode_font_char(ctx, font, char_code);
 
 			xps_measure_font_glyph(ctx, doc, font, glyph_index, &mtx);
 			if (is_sideways)
@@ -424,12 +426,12 @@ xps_parse_glyphs_imp(fz_context *ctx, xps_document *doc, const fz_matrix *ctm,
 			else
 				advance = mtx.hadv * 100;
 
-			if (font->fake_bold)
+			if (fz_font_flags(font)->fake_bold)
 				advance *= 1.02f;
 
 			if (is && *is)
 			{
-				is = xps_parse_glyph_metrics(is, &advance, &u_offset, &v_offset);
+				is = xps_parse_glyph_metrics(is, &advance, &u_offset, &v_offset, bidi_level);
 				if (*is == ';')
 					is ++;
 			}

@@ -23,6 +23,12 @@ typedef struct fz_colorspace_s fz_colorspace;
 int fz_colorspace_is_indexed(fz_context *ctx, fz_colorspace *cs);
 
 /*
+	fz_colorspace_is_lab: Return true, iff a given colorspace is
+	lab.
+*/
+int fz_colorspace_is_lab(fz_context *ctx, fz_colorspace *cs);
+
+/*
 	fz_device_gray: Get colorspace representing device specific gray.
 */
 fz_colorspace *fz_device_gray(fz_context *ctx);
@@ -41,6 +47,11 @@ fz_colorspace *fz_device_bgr(fz_context *ctx);
 	fz_device_cmyk: Get colorspace representing device specific CMYK.
 */
 fz_colorspace *fz_device_cmyk(fz_context *ctx);
+
+/*
+	fz_device_lab: Get colorspace representing device specific LAB.
+*/
+fz_colorspace *fz_device_lab(fz_context *ctx);
 
 /*
 	fz_set_device_gray: Set colorspace representing device specific gray.
@@ -62,29 +73,21 @@ void fz_set_device_bgr(fz_context *ctx, fz_colorspace *cs);
 */
 void fz_set_device_cmyk(fz_context *ctx, fz_colorspace *cs);
 
-struct fz_colorspace_s
-{
-	fz_storable storable;
-	unsigned int size;
-	char name[16];
-	int n;
-	void (*to_rgb)(fz_context *ctx, fz_colorspace *, const float *src, float *rgb);
-	void (*from_rgb)(fz_context *ctx, fz_colorspace *, const float *rgb, float *dst);
-	void (*free_data)(fz_context *Ctx, fz_colorspace *);
-	void *data;
-};
+typedef void (fz_colorspace_convert_fn)(fz_context *ctx, fz_colorspace *cs, const float *src, float *dst);
 
-fz_colorspace *fz_new_colorspace(fz_context *ctx, char *name, int n);
+typedef void (fz_colorspace_destruct_fn)(fz_context *ctx, fz_colorspace *cs);
+
+fz_colorspace *fz_new_colorspace(fz_context *ctx, char *name, int n, fz_colorspace_convert_fn *to_rgb, fz_colorspace_convert_fn *from_rgb, fz_colorspace_destruct_fn *destruct, void *data, size_t size);
 fz_colorspace *fz_new_indexed_colorspace(fz_context *ctx, fz_colorspace *base, int high, unsigned char *lookup);
 fz_colorspace *fz_keep_colorspace(fz_context *ctx, fz_colorspace *colorspace);
 void fz_drop_colorspace(fz_context *ctx, fz_colorspace *colorspace);
 void fz_drop_colorspace_imp(fz_context *ctx, fz_storable *colorspace);
 
-void fz_convert_color(fz_context *ctx, fz_colorspace *dsts, float *dstv, fz_colorspace *srcs, const float *srcv);
+int fz_colorspace_is(fz_context *ctx, const fz_colorspace *cs, fz_colorspace_convert_fn *to_rgb);
+int fz_colorspace_n(fz_context *ctx, const fz_colorspace *cs);
+const char *fz_colorspace_name(fz_context *ctx, const fz_colorspace *cs);
 
-void fz_new_colorspace_context(fz_context *ctx);
-fz_colorspace_context *fz_keep_colorspace_context(fz_context *ctx);
-void fz_drop_colorspace_context(fz_context *ctx);
+void fz_convert_color(fz_context *ctx, fz_colorspace *dsts, float *dstv, fz_colorspace *srcs, const float *srcv);
 
 typedef struct fz_color_converter_s fz_color_converter;
 

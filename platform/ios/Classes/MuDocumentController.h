@@ -28,7 +28,6 @@ enum
 	BARMODE_DELETE
 };
 
-
 typedef enum Signstep_s {
 	SIGN_STEP_NOT_SIGINING,
 	SIGN_STEP_CHOOSE_IMAGEFILE,
@@ -41,7 +40,7 @@ typedef enum Signstep_s {
 } Signstep;
 
 @interface MuDocumentController : UIViewController <UIScrollViewDelegate, UIGestureRecognizerDelegate, UISearchBarDelegate, MuDialogCreator, MuUpdater, MuFileSelectViewDelegate, MuPfxPswViewDelegate>
-- (id) initWithFilename: (NSString*)nsfilename path:(char *)cstr document:(MuDocRef *)aDoc;
+- (instancetype) initWithFilename: (NSString*)nsfilename path:(NSString *)path document:(MuDocRef *)aDoc;
 - (void) createPageView: (int)number;
 - (void) gotoPage: (int)number animated: (BOOL)animated;
 - (void) onShowOutline: (id)sender;

@@ -36,16 +36,15 @@ void fz_drop_buffer(fz_context *ctx, fz_buffer *buf);
 
 	Returns length of stream.
 */
-int fz_buffer_storage(fz_context *ctx, fz_buffer *buf, unsigned char **data);
+size_t fz_buffer_storage(fz_context *ctx, fz_buffer *buf, unsigned char **data);
 
-struct fz_buffer_s
-{
-	int refs;
-	unsigned char *data;
-	int cap, len;
-	int unused_bits;
-	int shared;
-};
+/*
+	fz_string_from_buffer: Ensure that a buffers data ends in a
+	0 byte, and return a pointer to it.
+
+	Returns pointer to data.
+*/
+const char *fz_string_from_buffer(fz_context *ctx, fz_buffer *buf);
 
 /*
 	fz_new_buffer: Create a new buffer.
@@ -55,7 +54,7 @@ struct fz_buffer_s
 	Returns pointer to new buffer. Throws exception on allocation
 	failure.
 */
-fz_buffer *fz_new_buffer(fz_context *ctx, int capacity);
+fz_buffer *fz_new_buffer(fz_context *ctx, size_t capacity);
 
 /*
 	fz_new_buffer_from_data: Create a new buffer with existing data.
@@ -70,17 +69,17 @@ fz_buffer *fz_new_buffer(fz_context *ctx, int capacity);
 	Returns pointer to new buffer. Throws exception on allocation
 	failure.
 */
-fz_buffer *fz_new_buffer_from_data(fz_context *ctx, unsigned char *data, int size);
+fz_buffer *fz_new_buffer_from_data(fz_context *ctx, unsigned char *data, size_t size);
 
 /*
 	fz_new_buffer_from_shared_data: Like fz_new_buffer, but does not take ownership.
 */
-fz_buffer *fz_new_buffer_from_shared_data(fz_context *ctx, const char *data, int size);
+fz_buffer *fz_new_buffer_from_shared_data(fz_context *ctx, const char *data, size_t size);
 
 /*
 	fz_new_buffer_from_base64: Create a new buffer with data decoded from a base64 input string.
 */
-fz_buffer *fz_new_buffer_from_base64(fz_context *ctx, const char *data, int size);
+fz_buffer *fz_new_buffer_from_base64(fz_context *ctx, const char *data, size_t size);
 
 /*
 	fz_resize_buffer: Ensure that a buffer has a given capacity,
@@ -92,7 +91,7 @@ fz_buffer *fz_new_buffer_from_base64(fz_context *ctx, const char *data, int size
 	of the buffer contents is smaller than capacity, it is truncated.
 
 */
-void fz_resize_buffer(fz_context *ctx, fz_buffer *buf, int capacity);
+void fz_resize_buffer(fz_context *ctx, fz_buffer *buf, size_t capacity);
 
 /*
 	fz_grow_buffer: Make some space within a buffer (i.e. ensure that
@@ -127,15 +126,36 @@ void fz_append_buffer(fz_context *ctx, fz_buffer *buf, fz_buffer *extra);
 	fz_buffer_print_pdfstring: Print a string using PDF syntax and escapes.
 	The buffer will grow as required.
 */
-void fz_write_buffer(fz_context *ctx, fz_buffer *buf, const void *data, int len);
+void fz_write_buffer(fz_context *ctx, fz_buffer *buf, const void *data, size_t len);
 void fz_write_buffer_byte(fz_context *ctx, fz_buffer *buf, int val);
 void fz_write_buffer_rune(fz_context *ctx, fz_buffer *buf, int val);
 void fz_write_buffer_int32_le(fz_context *ctx, fz_buffer *buf, int x);
 void fz_write_buffer_int16_le(fz_context *ctx, fz_buffer *buf, int x);
 void fz_write_buffer_bits(fz_context *ctx, fz_buffer *buf, int val, int bits);
 void fz_write_buffer_pad(fz_context *ctx, fz_buffer *buf);
-int fz_buffer_printf(fz_context *ctx, fz_buffer *buffer, const char *fmt, ...);
-int fz_buffer_vprintf(fz_context *ctx, fz_buffer *buffer, const char *fmt, va_list args);
+size_t fz_buffer_printf(fz_context *ctx, fz_buffer *buffer, const char *fmt, ...);
+size_t fz_buffer_vprintf(fz_context *ctx, fz_buffer *buffer, const char *fmt, va_list args);
 void fz_buffer_print_pdf_string(fz_context *ctx, fz_buffer *buffer, const char *text);
+
+/*
+	fz_md5_buffer: create MD5 digest of buffer contents.
+*/
+void fz_md5_buffer(fz_context *ctx, fz_buffer *buffer, unsigned char digest[16]);
+
+/*
+	fz_buffer_extract: Take ownership of buffer contents.
+	Performs the same task as fz_buffer_storage, but ownership of
+	the data buffer returns with this call. The buffer is left
+	empty.
+
+	Note: Bad things may happen if this is called on a buffer with
+	multiple references that is being used from multiple threads.
+
+	data: Pointer to place to retrieve data pointer.
+
+	Returns length of stream.
+*/
+size_t fz_buffer_extract(fz_context *ctx, fz_buffer *buf, unsigned char **data);
+
 
 #endif

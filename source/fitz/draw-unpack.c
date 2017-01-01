@@ -14,6 +14,25 @@ static unsigned char get1_tab_1p[256][16];
 static unsigned char get1_tab_255[256][8];
 static unsigned char get1_tab_255p[256][16];
 
+/*
+	Bug 697012 shows that the unpacking code can confuse valgrind due
+	to the use of undefined bits in the padding at the end of lines.
+	We unpack from bits to bytes by copying from a lookup table.
+	Valgrind is not capable of understanding that it doesn't matter
+	what the undefined bits are, as the bytes we copy that correspond
+	to the defined bits will always agree regardless of these
+	undefined bits by construction of the table.
+
+	We therefore have a VGMASK macro that explicitly masks off these
+	bits in PACIFY_VALGRIND builds.
+*/
+#ifdef PACIFY_VALGRIND
+static const unsigned char mask[9] = { 0x00, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff };
+#define VGMASK(v,m) (v & mask[(m)])
+#else
+#define VGMASK(v,m) (v)
+#endif
+
 static void
 init_get1_tables(void)
 {
@@ -47,14 +66,20 @@ init_get1_tables(void)
 }
 
 void
-fz_unpack_tile(fz_context *ctx, fz_pixmap *dst, unsigned char * restrict src, int n, int depth, int stride, int scale)
+fz_unpack_tile(fz_context *ctx, fz_pixmap *dst, unsigned char * restrict src, int n, int depth, size_t stride, int scale)
 {
-	int pad, x, y, k;
+	int pad, x, y, k, skip;
 	int w = dst->w;
 
 	pad = 0;
+	skip = 0;
 	if (dst->n > n)
 		pad = 255;
+	if (dst->n < n)
+	{
+		skip = n - dst->n;
+		n = dst->n;
+	}
 
 	if (depth == 1)
 		init_get1_tables();
@@ -71,12 +96,12 @@ fz_unpack_tile(fz_context *ctx, fz_pixmap *dst, unsigned char * restrict src, in
 
 	for (y = 0; y < dst->h; y++)
 	{
-		unsigned char *sp = src + (unsigned int)(y * stride);
-		unsigned char *dp = dst->samples + (unsigned int)(y * dst->stride);
+		unsigned char *sp = src + (y * stride);
+		unsigned char *dp = dst->samples + (y * dst->stride);
 
 		/* Specialized loops */
 
-		if (n == 1 && depth == 1 && scale == 1 && !pad)
+		if (n == 1 && depth == 1 && scale == 1 && !pad && !skip)
 		{
 			int w3 = w >> 3;
 			for (x = 0; x < w3; x++)
@@ -86,10 +111,10 @@ fz_unpack_tile(fz_context *ctx, fz_pixmap *dst, unsigned char * restrict src, in
 			}
 			x = x << 3;
 			if (x < w)
-				memcpy(dp, get1_tab_1[*sp], w - x);
+				memcpy(dp, get1_tab_1[VGMASK(*sp, w - x)], w - x);
 		}
 
-		else if (n == 1 && depth == 1 && scale == 255 && !pad)
+		else if (n == 1 && depth == 1 && scale == 255 && !pad && !skip)
 		{
 			int w3 = w >> 3;
 			for (x = 0; x < w3; x++)
@@ -99,10 +124,10 @@ fz_unpack_tile(fz_context *ctx, fz_pixmap *dst, unsigned char * restrict src, in
 			}
 			x = x << 3;
 			if (x < w)
-				memcpy(dp, get1_tab_255[*sp], w - x);
+				memcpy(dp, get1_tab_255[VGMASK(*sp, w - x)], w - x);
 		}
 
-		else if (n == 1 && depth == 1 && scale == 1 && pad)
+		else if (n == 1 && depth == 1 && scale == 1 && pad && !skip)
 		{
 			int w3 = w >> 3;
 			for (x = 0; x < w3; x++)
@@ -112,10 +137,10 @@ fz_unpack_tile(fz_context *ctx, fz_pixmap *dst, unsigned char * restrict src, in
 			}
 			x = x << 3;
 			if (x < w)
-				memcpy(dp, get1_tab_1p[*sp], (w - x) << 1);
+				memcpy(dp, get1_tab_1p[VGMASK(*sp, w - x)], (w - x) << 1);
 		}
 
-		else if (n == 1 && depth == 1 && scale == 255 && pad)
+		else if (n == 1 && depth == 1 && scale == 255 && pad && !skip)
 		{
 			int w3 = w >> 3;
 			for (x = 0; x < w3; x++)
@@ -125,17 +150,17 @@ fz_unpack_tile(fz_context *ctx, fz_pixmap *dst, unsigned char * restrict src, in
 			}
 			x = x << 3;
 			if (x < w)
-				memcpy(dp, get1_tab_255p[*sp], (w - x) << 1);
+				memcpy(dp, get1_tab_255p[VGMASK(*sp, w - x)], (w - x) << 1);
 		}
 
-		else if (depth == 8 && !pad)
+		else if (depth == 8 && !pad && !skip)
 		{
 			int len = w * n;
 			while (len--)
 				*dp++ = *sp++;
 		}
 
-		else if (depth == 8 && pad)
+		else if (depth == 8 && pad && !skip)
 		{
 			for (x = 0; x < w; x++)
 			{
@@ -162,6 +187,7 @@ fz_unpack_tile(fz_context *ctx, fz_pixmap *dst, unsigned char * restrict src, in
 					}
 					b++;
 				}
+				b += skip;
 				if (pad)
 					*dp++ = 255;
 			}
@@ -179,7 +205,8 @@ fz_decode_indexed_tile(fz_context *ctx, fz_pixmap *pix, const float *decode, int
 	unsigned char *p = pix->samples;
 	int stride = pix->stride - pix->w * pix->n;
 	int len;
-	int n = pix->n - 1;
+	int pn = pix->n;
+	int n = pn - pix->alpha;
 	int needed;
 	int k;
 	int h;
@@ -208,7 +235,7 @@ fz_decode_indexed_tile(fz_context *ctx, fz_pixmap *pix, const float *decode, int
 				int value = (add[k] + (((p[k] << 8) * mul[k]) >> 8)) >> 8;
 				p[k] = fz_clampi(value, 0, 255);
 			}
-			p += n + 1;
+			p += pn;
 		}
 		p += stride;
 	}
@@ -223,22 +250,16 @@ fz_decode_tile(fz_context *ctx, fz_pixmap *pix, const float *decode)
 	int stride = pix->stride - pix->w * pix->n;
 	int len;
 	int n = fz_maxi(1, pix->n - pix->alpha);
-	int needed;
 	int k;
 	int h;
 
-	needed = 0;
 	for (k = 0; k < n; k++)
 	{
 		int min = decode[k * 2] * 255;
 		int max = decode[k * 2 + 1] * 255;
 		add[k] = min;
 		mul[k] = max - min;
-		needed |= min != 0 || max != 255;
 	}
-
-	if (!needed)
-		return;
 
 	h = pix->h;
 	while (h--)

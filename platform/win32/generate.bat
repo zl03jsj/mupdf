@@ -27,30 +27,35 @@ if not exist generated/gen_cmap_japan.h cmapdump.exe generated/gen_cmap_japan.h 
 if not exist generated/gen_cmap_korea.h cmapdump.exe generated/gen_cmap_korea.h resources\cmaps\korea\*
 
 if not exist generated/gen_adobe_ca.h bin2hex.exe generated/gen_adobe_ca.h resources/certs/AdobeCA.p7c
-if not exist generated/gen_js_util.h cquote.exe generated/gen_js_util.h source/pdf/js/pdf-util.js
+if not exist generated/gen_js_util.h cquote.exe generated/gen_js_util.h source/pdf/pdf-js-util.js
 
-if not exist generated/DroidSansFallback.c fontdump.exe generated/DroidSansFallback.c resources/fonts/droid/DroidSansFallback.ttc
-if not exist generated/DroidSansFallbackFull.c fontdump.exe generated/DroidSansFallbackFull.c resources/fonts/droid/DroidSansFallbackFull.ttc
+if not exist generated/DroidSansFallback.c fontdump.exe generated/DroidSansFallback.c resources/fonts/droid/DroidSansFallback.ttf
+if not exist generated/DroidSansFallbackFull.c fontdump.exe generated/DroidSansFallbackFull.c resources/fonts/droid/DroidSansFallbackFull.ttf
 
 if not exist generated/Dingbats.c fontdump.exe generated/Dingbats.c resources/fonts/urw/Dingbats.cff
-if not exist generated/NimbusMono-Bold.c fontdump.exe generated/NimbusMono-Bold.c resources/fonts/urw/NimbusMono-Bold.cff
-if not exist generated/NimbusMono-BoldOblique.c fontdump.exe generated/NimbusMono-BoldOblique.c resources/fonts/urw/NimbusMono-BoldOblique.cff
-if not exist generated/NimbusMono-Oblique.c fontdump.exe generated/NimbusMono-Oblique.c resources/fonts/urw/NimbusMono-Oblique.cff
-if not exist generated/NimbusMono-Regular.c fontdump.exe generated/NimbusMono-Regular.c resources/fonts/urw/NimbusMono-Regular.cff
-if not exist generated/NimbusRomNo9L-Med.c fontdump.exe generated/NimbusRomNo9L-Med.c resources/fonts/urw/NimbusRomNo9L-Med.cff
-if not exist generated/NimbusRomNo9L-MedIta.c fontdump.exe generated/NimbusRomNo9L-MedIta.c resources/fonts/urw/NimbusRomNo9L-MedIta.cff
-if not exist generated/NimbusRomNo9L-Reg.c fontdump.exe generated/NimbusRomNo9L-Reg.c resources/fonts/urw/NimbusRomNo9L-Reg.cff
-if not exist generated/NimbusRomNo9L-RegIta.c fontdump.exe generated/NimbusRomNo9L-RegIta.c resources/fonts/urw/NimbusRomNo9L-RegIta.cff
-if not exist generated/NimbusSanL-Bol.c fontdump.exe generated/NimbusSanL-Bol.c resources/fonts/urw/NimbusSanL-Bol.cff
-if not exist generated/NimbusSanL-BolIta.c fontdump.exe generated/NimbusSanL-BolIta.c resources/fonts/urw/NimbusSanL-BolIta.cff
-if not exist generated/NimbusSanL-Reg.c fontdump.exe generated/NimbusSanL-Reg.c resources/fonts/urw/NimbusSanL-Reg.cff
-if not exist generated/NimbusSanL-RegIta.c fontdump.exe generated/NimbusSanL-RegIta.c resources/fonts/urw/NimbusSanL-RegIta.cff
-if not exist generated/StandardSymL.c fontdump.exe generated/StandardSymL.c resources/fonts/urw/StandardSymL.cff
+if not exist generated/NimbusMonoPS-Bold.c fontdump.exe generated/NimbusMonoPS-Bold.c resources/fonts/urw/NimbusMonoPS-Bold.cff
+if not exist generated/NimbusMonoPS-BoldItalic.c fontdump.exe generated/NimbusMonoPS-BoldItalic.c resources/fonts/urw/NimbusMonoPS-BoldItalic.cff
+if not exist generated/NimbusMonoPS-Italic.c fontdump.exe generated/NimbusMonoPS-Italic.c resources/fonts/urw/NimbusMonoPS-Italic.cff
+if not exist generated/NimbusMonoPS-Regular.c fontdump.exe generated/NimbusMonoPS-Regular.c resources/fonts/urw/NimbusMonoPS-Regular.cff
+if not exist generated/NimbusRoman-Bold.c fontdump.exe generated/NimbusRoman-Bold.c resources/fonts/urw/NimbusRoman-Bold.cff
+if not exist generated/NimbusRoman-BoldItalic.c fontdump.exe generated/NimbusRoman-BoldItalic.c resources/fonts/urw/NimbusRoman-BoldItalic.cff
+if not exist generated/NimbusRoman-Regular.c fontdump.exe generated/NimbusRoman-Regular.c resources/fonts/urw/NimbusRoman-Regular.cff
+if not exist generated/NimbusRoman-Italic.c fontdump.exe generated/NimbusRoman-Italic.c resources/fonts/urw/NimbusRoman-Italic.cff
+if not exist generated/NimbusSans-Bold.c fontdump.exe generated/NimbusSans-Bold.c resources/fonts/urw/NimbusSans-Bold.cff
+if not exist generated/NimbusSans-BoldOblique.c fontdump.exe generated/NimbusSans-BoldOblique.c resources/fonts/urw/NimbusSans-BoldOblique.cff
+if not exist generated/NimbusSans-Regular.c fontdump.exe generated/NimbusSans-Regular.c resources/fonts/urw/NimbusSans-Regular.cff
+if not exist generated/NimbusSans-Oblique.c fontdump.exe generated/NimbusSans-Oblique.c resources/fonts/urw/NimbusSans-Oblique.cff
+if not exist generated/StandardSymbolsPS.c fontdump.exe generated/StandardSymbolsPS.c resources/fonts/urw/StandardSymbolsPS.cff
 
 if not exist generated/CharisSIL-R.c fontdump.exe generated/CharisSIL-R.c resources/fonts/sil/CharisSIL-R.cff
 if not exist generated/CharisSIL-I.c fontdump.exe generated/CharisSIL-I.c resources/fonts/sil/CharisSIL-I.cff
 if not exist generated/CharisSIL-B.c fontdump.exe generated/CharisSIL-B.c resources/fonts/sil/CharisSIL-B.cff
 if not exist generated/CharisSIL-BI.c fontdump.exe generated/CharisSIL-BI.c resources/fonts/sil/CharisSIL-BI.cff
+
+if not exist generated/SourceHanSansCN-Regular.c fontdump.exe generated/SourceHanSansCN-Regular.c resources/fonts/han/SourceHanSansCN-Regular.otf
+if not exist generated/SourceHanSansJP-Regular.c fontdump.exe generated/SourceHanSansJP-Regular.c resources/fonts/han/SourceHanSansJP-Regular.otf
+if not exist generated/SourceHanSansKR-Regular.c fontdump.exe generated/SourceHanSansKR-Regular.c resources/fonts/han/SourceHanSansKR-Regular.otf
+if not exist generated/SourceHanSansTW-Regular.c fontdump.exe generated/SourceHanSansTW-Regular.c resources/fonts/han/SourceHanSansTW-Regular.otf
 
 if not exist generated/NotoEmoji-Regular.c fontdump.exe generated/NotoEmoji-Regular.c resources/fonts/noto/NotoEmoji-Regular.ttf
 if not exist generated/NotoKufiArabic-Regular.c fontdump.exe generated/NotoKufiArabic-Regular.c resources/fonts/noto/NotoKufiArabic-Regular.ttf
@@ -146,6 +151,7 @@ if not exist generated/NotoSansYi-Regular.c fontdump.exe generated/NotoSansYi-Re
 if not exist generated/NotoSerif-Regular.c fontdump.exe generated/NotoSerif-Regular.c resources/fonts/noto/NotoSerif-Regular.ttf
 if not exist generated/NotoSerifArmenian-Regular.c fontdump.exe generated/NotoSerifArmenian-Regular.c resources/fonts/noto/NotoSerifArmenian-Regular.ttf
 if not exist generated/NotoSerifBengali-Regular.c fontdump.exe generated/NotoSerifBengali-Regular.c resources/fonts/noto/NotoSerifBengali-Regular.ttf
+if not exist generated/NotoSerifDevanagari-Regular.c fontdump.exe generated/NotoSerifDevanagari-Regular.c resources/fonts/noto/NotoSerifDevanagari-Regular.ttf
 if not exist generated/NotoSerifGeorgian-Regular.c fontdump.exe generated/NotoSerifGeorgian-Regular.c resources/fonts/noto/NotoSerifGeorgian-Regular.ttf
 if not exist generated/NotoSerifGujarati-Regular.c fontdump.exe generated/NotoSerifGujarati-Regular.c resources/fonts/noto/NotoSerifGujarati-Regular.ttf
 if not exist generated/NotoSerifKannada-Regular.c fontdump.exe generated/NotoSerifKannada-Regular.c resources/fonts/noto/NotoSerifKannada-Regular.ttf
@@ -156,7 +162,8 @@ if not exist generated/NotoSerifTamil-Regular.c fontdump.exe generated/NotoSerif
 if not exist generated/NotoSerifTelugu-Regular.c fontdump.exe generated/NotoSerifTelugu-Regular.c resources/fonts/noto/NotoSerifTelugu-Regular.ttf
 if not exist generated/NotoSerifThai-Regular.c fontdump.exe generated/NotoSerifThai-Regular.c resources/fonts/noto/NotoSerifThai-Regular.ttf
 
-del cmapdump.obj fontdump.obj cquote.obj bin2hex.obj cmapdump.exe fontdump.exe cquote.exe bin2hex.exe
+del namedump.obj cmapdump.obj fontdump.obj cquote.obj bin2hex.obj
+del namedump.exe cmapdump.exe fontdump.exe cquote.exe bin2hex.exe
 
 goto fin
 

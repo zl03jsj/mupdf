@@ -32,7 +32,7 @@
 typedef unsigned long ulong;
 #endif
 
-static ulong
+static inline ulong
 umuldiv(ulong a, ulong b, ulong c)
 {
 	double d;
@@ -106,7 +106,7 @@ fz_strtod(const char *as, char **aas)
 	flag = 0;	/* Fsign, Fesign, Fdpoint */
 	na = 0;		/* number of digits of a[] */
 	dp = 0;		/* na of decimal point */
-	ex = 0;		/* exonent */
+	ex = 0;		/* exponent */
 
 	state = S0;
 	for(s=(char*)as;; s++) {
@@ -390,7 +390,7 @@ fpcmp(char *a, ulong* f)
 	}
 }
 
-static void
+static inline void
 divby(char *a, int *na, int b)
 {
 	int n, c;
@@ -429,6 +429,7 @@ xx:
 		n -= c<<b;
 		*p++ = c + '0';
 		(*na)++;
+		if (*na >= Ndig) break; /* abort if overflowing */
 	}
 	*p = 0;
 }
@@ -465,7 +466,7 @@ divascii(char *a, int *na, int *dp, int *bp)
 	divby(a, na, b);
 }
 
-static void
+static inline void
 mulby(char *a, char *p, char *q, int b)
 {
 	int n, c;

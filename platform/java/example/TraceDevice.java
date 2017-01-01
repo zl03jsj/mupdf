@@ -34,7 +34,7 @@ public class TraceDevice extends Device implements PathWalker, TextWalker
 	}
 
 	public void showGlyph(Font font, Matrix trm, int glyph, int unicode, boolean wmode) {
-		System.out.println("glyph '" + (char)unicode + "' " + glyph + "\t" + font + " " +  trm);
+		System.out.println("glyph '" + (char)unicode + "' " + glyph + "\t" + font + " " + trm);
 	}
 
 	public void tracePath(Path path) {
@@ -81,7 +81,7 @@ public class TraceDevice extends Device implements PathWalker, TextWalker
 		System.out.println("ignoreText " + ctm);
 		traceText(text);
 	}
-	public void fillShade(Shade shade, Matrix ctm, float alpha) {
+	public void fillShade(Shade shd, Matrix ctm, float alpha) {
 		System.out.println("fillShade " + ctm + " " + alpha);
 	}
 	public void fillImage(Image img, Matrix ctm, float alpha) {

@@ -1,8 +1,8 @@
 LOCAL_PATH := $(call my-dir)
 
-ifdef SUPPORT_GPROOF
+ifdef FZ_ENABLE_GPRF
 include $(CLEAR_VARS)
-LOCAL_MODULE    := gsso
+LOCAL_MODULE := gsso
 LOCAL_SRC_FILES := libgs.so
 include $(PREBUILT_SHARED_LIBRARY)
 endif
@@ -11,7 +11,7 @@ include $(CLEAR_VARS)
 
 MY_ROOT := ../../..
 
-LOCAL_CFLAGS += -Wall -Wno-maybe-uninitialized
+LOCAL_CFLAGS += -Wall -Wno-uninitialized
 
 ifeq ($(TARGET_ARCH),arm)
 LOCAL_CFLAGS += -DARCH_ARM -DARCH_THUMB -DARCH_ARM_CAN_LOAD_UNALIGNED
@@ -19,15 +19,15 @@ ifdef NDK_PROFILER
 LOCAL_CFLAGS += -pg -DNDK_PROFILER
 endif
 endif
-ifdef SUPPORT_GPROOF
-LOCAL_CFLAGS += -DSUPPORT_GPROOF
+ifdef FZ_ENABLE_GPRF
+LOCAL_CFLAGS += -DFZ_ENABLE_GPRF
 endif
 LOCAL_CFLAGS += -DAA_BITS=8
 ifdef MEMENTO
 LOCAL_CFLAGS += -DMEMENTO -DMEMENTO_LEAKONLY
 endif
-ifdef SSL_BUILD
-LOCAL_CFLAGS += -DHAVE_OPENSSL
+ifdef CRYPTO_BUILD
+LOCAL_CFLAGS += -DHAVE_LIBCRYPTO
 endif
 
 LOCAL_C_INCLUDES := \
@@ -54,11 +54,11 @@ LOCAL_C_INCLUDES := \
 ifdef V8_BUILD
 LOCAL_C_INCLUDES += $(MY_ROOT)/thirdparty/$(V8)/include
 endif
-ifdef SSL_BUILD
+ifdef CRYPTO_BUILD
 LOCAL_C_INCLUDES += $(MY_ROOT)/thirdparty/openssl/include
 endif
 
-LOCAL_MODULE    := mupdfcore
+LOCAL_MODULE := mupdfcore
 LOCAL_SRC_FILES := \
 	$(wildcard $(MY_ROOT)/source/fitz/*.c) \
 	$(wildcard $(MY_ROOT)/source/pdf/*.c) \
@@ -68,13 +68,11 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(MY_ROOT)/source/gprf/*.c) \
 	$(wildcard $(MY_ROOT)/source/html/*.c) \
 	$(wildcard $(MY_ROOT)/generated/*.c)
-LOCAL_SRC_FILES += \
-	$(MY_ROOT)/source/pdf/js/pdf-js.c \
 
-ifdef SUPPORT_GPROOF
+ifdef FZ_ENABLE_GPRF
 LOCAL_SHARED_LIBRARIES := gsso
 endif
-LOCAL_LDLIBS    := -lm -llog -ljnigraphics
+LOCAL_LDLIBS := -lm -llog -ljnigraphics
 
 LOCAL_SRC_FILES := $(addprefix ../, $(LOCAL_SRC_FILES))
 

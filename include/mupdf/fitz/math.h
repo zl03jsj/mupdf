@@ -3,7 +3,9 @@
 
 #include "mupdf/fitz/system.h"
 
-/* Multiply scaled two integers in the 0..255 range */
+/*
+	Multiply scaled two integers in the 0..255 range
+*/
 static inline int fz_mul255(int a, int b)
 {
 	/* see Jim Blinn's book "Dirty Pixels" for how this works */
@@ -12,25 +14,38 @@ static inline int fz_mul255(int a, int b)
 	return x >> 8;
 }
 
-/* Expand a value A from the 0...255 range to the 0..256 range */
+/*
+	Expand a value A from the 0...255 range to the 0..256 range
+*/
 #define FZ_EXPAND(A) ((A)+((A)>>7))
 
-/* Combine values A (in any range) and B (in the 0..256 range),
- * to give a single value in the same range as A was. */
+/*
+	Combine values A (in any range) and B (in the 0..256 range),
+	to give a single value in the same range as A was.
+*/
 #define FZ_COMBINE(A,B) (((A)*(B))>>8)
 
-/* Combine values A and C (in the same (any) range) and B and D (in the
- * 0..256 range), to give a single value in the same range as A and C were. */
-#define FZ_COMBINE2(A,B,C,D) (FZ_COMBINE((A), (B)) + FZ_COMBINE((C), (D)))
+/*
+	Combine values A and C (in the same (any) range) and B and D (in
+	the 0..256 range), to give a single value in the same range as A
+	and C were.
+*/
+#define FZ_COMBINE2(A,B,C,D) (((A) * (B) + (C) * (D))>>8)
 
-/* Blend SRC and DST (in the same range) together according to
- * AMOUNT (in the 0...256 range). */
+/*
+	Blend SRC and DST (in the same range) together according to
+	AMOUNT (in the 0...256 range).
+*/
 #define FZ_BLEND(SRC, DST, AMOUNT) ((((SRC)-(DST))*(AMOUNT) + ((DST)<<8))>>8)
 
-/* Range checking atof */
+/*
+	Range checking atof
+*/
 float fz_atof(const char *s);
 
-/* atoi that copes with NULL */
+/*
+	atoi that copes with NULL
+*/
 int fz_atoi(const char *s);
 
 fz_off_t fz_atoo(const char *s);
@@ -56,6 +71,11 @@ static inline float fz_min(float a, float b)
 }
 
 static inline int fz_mini(int a, int b)
+{
+	return (a < b ? a : b);
+}
+
+static inline size_t fz_minz(size_t a, size_t b)
 {
 	return (a < b ? a : b);
 }
@@ -112,7 +132,7 @@ struct fz_point_s
 
 	Rectangles are always axis-aligned with the X- and Y- axes.
 	The relationship between the coordinates are that x0 <= x1 and
-	y0 <= y1 in all cases except for infinte rectangles. The area
+	y0 <= y1 in all cases except for infinite rectangles. The area
 	of a rectangle is defined as (x1 - x0) * (y1 - y0). If either
 	x0 > x1 or y0 > y1 is true for a given rectangle then it is
 	defined to be infinite.
@@ -122,7 +142,7 @@ struct fz_point_s
 
 	x0, y0: The top left corner.
 
-	x1, y1: The botton right corner.
+	x1, y1: The bottom right corner.
 */
 typedef struct fz_rect_s fz_rect;
 struct fz_rect_s
@@ -202,7 +222,7 @@ fz_is_empty_irect(const fz_irect *r)
 }
 
 /*
-	fz_is_infinite: Check if rectangle is infinite.
+	fz_is_infinite_rect: Check if rectangle is infinite.
 
 	An infinite rectangle is defined as one where either of the
 	two relationships between corner coordinates are not true.
@@ -213,6 +233,13 @@ fz_is_infinite_rect(const fz_rect *r)
 	return ((r)->x0 > (r)->x1 || (r)->y0 > (r)->y1);
 }
 
+/*
+	fz_is_infinite_irect: Check if an integer rectangle
+	is infinite.
+
+	An infinite rectangle is defined as one where either of the
+	two relationships between corner coordinates are not true.
+*/
 static inline int
 fz_is_infinite_irect(const fz_irect *r)
 {
@@ -568,6 +595,15 @@ fz_rect *fz_include_point_in_rect(fz_rect *r, const fz_point *p);
 	Does not throw exceptions.
 */
 fz_irect *fz_translate_irect(fz_irect *a, int xoff, int yoff);
+
+/*
+	fz_contains_rect: Test rectangle inclusion.
+
+	Return true if a entirely contains b.
+
+	Does not throw exceptions.
+*/
+int fz_contains_rect(const fz_rect *a, const fz_rect *b);
 
 /*
 	fz_transform_point: Apply a transformation to a point.

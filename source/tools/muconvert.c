@@ -13,7 +13,7 @@ static float layout_em = 12;
 static char *layout_css = NULL;
 
 /* output options */
-static const char *output = "out.pdf";
+static const char *output = NULL;
 static const char *format = NULL;
 static const char *options = "";
 
@@ -37,28 +37,32 @@ static void usage(void)
 		"\n"
 		"\t-o -\toutput file name (%%d for page number)\n"
 		"\t-F -\toutput format (default inferred from output file name)\n"
-		"\t\tcbz, pdf\n"
+		"\t\tcbz, pdf, png\n"
 		"\t-O -\tcomma separated list of options for output format\n"
 		"\n"
-		"\tpages\tcomma separated list of page numbers and ranges, where N is the last page\n"
+		"\tpages\tcomma separated list of page ranges (N=last page)\n"
 		"\n"
 		);
-	fprintf(stderr, "%s\n", fz_cbz_write_options_usage);
-	fprintf(stderr, "%s\n", fz_pdf_write_options_usage);
+	fputs(fz_draw_options_usage, stderr);
+	fputs(fz_stext_options_usage, stderr);
+	fputs(fz_cbz_write_options_usage, stderr);
+	fputs(fz_png_write_options_usage, stderr);
+#if FZ_ENABLE_PDF
+	fputs(fz_pdf_write_options_usage, stderr);
+#endif
 	exit(1);
 }
 
 static void runpage(int number)
 {
-	fz_matrix ctm;
 	fz_rect mediabox;
 	fz_page *page;
 	fz_device *dev;
 
 	page = fz_load_page(ctx, doc, number - 1);
 	fz_bound_page(ctx, page, &mediabox);
-	dev = fz_begin_page(ctx, out, &mediabox, &ctm);
-	fz_run_page(ctx, page, dev, &ctm, NULL);
+	dev = fz_begin_page(ctx, out, &mediabox);
+	fz_run_page(ctx, page, dev, &fz_identity, NULL);
 	fz_end_page(ctx, out, dev);
 	fz_drop_page(ctx, page);
 }
@@ -90,9 +94,9 @@ int muconvert_main(int argc, char **argv)
 
 		case 'p': password = fz_optarg; break;
 		case 'A': alphabits = atoi(fz_optarg); break;
-		case 'W': layout_w = atof(fz_optarg); break;
-		case 'H': layout_h = atof(fz_optarg); break;
-		case 'S': layout_em = atof(fz_optarg); break;
+		case 'W': layout_w = fz_atof(fz_optarg); break;
+		case 'H': layout_h = fz_atof(fz_optarg); break;
+		case 'S': layout_em = fz_atof(fz_optarg); break;
 		case 'U': layout_css = fz_optarg; break;
 
 		case 'o': output = fz_optarg; break;
@@ -101,7 +105,7 @@ int muconvert_main(int argc, char **argv)
 		}
 	}
 
-	if (fz_optind == argc)
+	if (fz_optind == argc || (!format && !output))
 		usage();
 
 	/* Create a context to hold the exception stack and various caches. */
@@ -127,8 +131,7 @@ int muconvert_main(int argc, char **argv)
 	if (layout_css)
 	{
 		fz_buffer *buf = fz_read_file(ctx, layout_css);
-		fz_write_buffer_byte(ctx, buf, 0);
-		fz_set_user_css(ctx, (char*)buf->data);
+		fz_set_user_css(ctx, fz_string_from_buffer(ctx, buf));
 		fz_drop_buffer(ctx, buf);
 	}
 
@@ -137,7 +140,7 @@ int muconvert_main(int argc, char **argv)
 		out = fz_new_document_writer(ctx, output, format, options);
 	fz_catch(ctx)
 	{
-		fprintf(stderr, "cannot open document: %s\n", fz_caught_message(ctx));
+		fprintf(stderr, "cannot create document: %s\n", fz_caught_message(ctx));
 		fz_drop_context(ctx);
 		return EXIT_FAILURE;
 	}
@@ -158,6 +161,8 @@ int muconvert_main(int argc, char **argv)
 
 		fz_drop_document(ctx, doc);
 	}
+
+	fz_close_document_writer(ctx, out);
 
 	fz_drop_document_writer(ctx, out);
 	fz_drop_context(ctx);

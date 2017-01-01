@@ -4,7 +4,7 @@
 
 // Bidi include file
 #include "mupdf/fitz.h"
-#include "bidi-impl.h"
+#include "bidi-imp.h"
 
 #ifndef TRUE
 #define TRUE (1)
@@ -20,7 +20,7 @@
 	-----------
 
 	Sample Implementation of the Unicode Bidirectional Algorithm as it
-	was revised by Revision 5 of the Uniode Technical Report # 9
+	was revised by Revision 5 of the Unicode Technical Report # 9
 	(1999-8-17)
 
 	Verified for changes to the algorithm up through Unicode 5.2.0 (2009).
@@ -44,7 +44,7 @@
 	in UAX#9 had been clarified.
 
 	To see this code running in an actual Windows program,
-	download the free Unibook uitlity from http://unicode.org/unibook
+	download the free Unibook utility from http://unicode.org/unibook
 	The bidi demo is executed from the tools menu. It is build from
 	this source file.
 
@@ -131,7 +131,7 @@
 	3. Process the first paragraph by calling BidiParagraph. That
 	   function changes B into BN and returns a length including the
 	   paragraph separator. (The iteration over multiple paragraphs
-	   is left as excercise for the reader).
+	   is left as exercise for the reader).
 
 	4. Assign directional types again, but now assign specific types
 	   to whitespace characters.
@@ -152,7 +152,7 @@
 	reference implementation. Version 25 and its updates fix various
 	minor issues with the scaffolding used for demonstrating the
 	algorithm using pseudo-alphabets from the command line or dialog
-	box. No changes to the implementation of the actual bidi algrithm
+	box. No changes to the implementation of the actual bidi algorithm
 	are made in any of the minor updates to version 25. Version 26
 	also makes no change to the actual algorithm but was verified
 	against the official BidiTest.txt file for Unicode 5.2.0.
@@ -323,24 +323,24 @@ void reverse(uint32_t *psz, int cch)
 // Set a run of cval values at locations all prior to, but not including
 // iStart, to the new value nval.
 static
-void set_deferred_run(fz_bidi_chartype *pval, int cval, int iStart, fz_bidi_chartype nval)
+void set_deferred_run(fz_bidi_chartype *pval, size_t cval, size_t iStart, fz_bidi_chartype nval)
 {
-	int i;
+	size_t i;
 
-	for (i = iStart - 1; i >= iStart - cval; i--)
+	for (i = iStart; i > iStart - cval; )
 	{
-		pval[i] = nval;
+		pval[--i] = nval;
 	}
 }
 
 static
-void set_deferred_level_run(fz_bidi_level *pval, int cval, int iStart, fz_bidi_level nval)
+void set_deferred_level_run(fz_bidi_level *pval, size_t cval, size_t iStart, fz_bidi_level nval)
 {
-	int i;
+	size_t i;
 
-	for (i = iStart - 1; i >= iStart - cval; i--)
+	for (i = iStart; i > iStart - cval; )
 	{
-		pval[i] = nval;
+		pval[--i] = nval;
 	}
 }
 
@@ -367,8 +367,7 @@ void set_deferred_level_run(fz_bidi_level *pval, int cval, int iStart, fz_bidi_l
 			or at the end of the input text.
 
 ------------------------------------------------------------------------*/
-#if 0
-static int resolve_paragraphs(fz_bidi_chartype *types, int cch)
+int fz_bidi_resolve_paragraphs(fz_bidi_chartype *types, int cch)
 {
 	int ich;
 
@@ -381,6 +380,7 @@ static int resolve_paragraphs(fz_bidi_chartype *types, int cch)
 	return ich;
 }
 
+#if 0
 /*------------------------------------------------------------------------
 	Function: base_level
 
@@ -451,10 +451,10 @@ static fz_bidi_chartype embedding_direction(fz_bidi_chartype level)
 		  the outermost call. The nesting counter counts the recursion
 		  depth and not the embedding level.
 ------------------------------------------------------------------------*/
-int fz_bidi_resolve_explicit(fz_bidi_level level, fz_bidi_chartype dir, fz_bidi_chartype *pcls, fz_bidi_level *plevel, int cch,
+size_t fz_bidi_resolve_explicit(fz_bidi_level level, fz_bidi_chartype dir, fz_bidi_chartype *pcls, fz_bidi_level *plevel, size_t cch,
 				fz_bidi_level n_nest)
 {
-	int ich;
+	size_t ich;
 
 	// always called with a valid nesting level
 	// nesting levels are != embedding levels
@@ -535,7 +535,7 @@ int fz_bidi_resolve_explicit(fz_bidi_level level, fz_bidi_chartype dir, fz_bidi_
 enum bidi_state // possible states
 {
 	xa,	//	arabic letter
-	xr,	//	right leter
+	xr,	//	right letter
 	xl,	//	left letter
 
 	ao,	//	arabic lett. foll by ON
@@ -625,7 +625,7 @@ const fz_bidi_action action_weak[][10] =
 {
 	//   N,.. L,   R,  AN,  EN,  AL, NSM,  CS,..ES,  ET,
 /*xa*/ { xxx, xxx, xxx, xxx, xxA, xxR, xxR, xxN, xxN, xxN }, /* arabic letter			*/
-/*xr*/ { xxx, xxx, xxx, xxx, xxE, xxR, xxR, xxN, xxN, xIx }, /* right leter			 */
+/*xr*/ { xxx, xxx, xxx, xxx, xxE, xxR, xxR, xxN, xxN, xIx }, /* right letter			 */
 /*xl*/ { xxx, xxx, xxx, xxx, xxL, xxR, xxL, xxN, xxN, xIx }, /* left letter			 */
 
 /*ao*/ { xxx, xxx, xxx, xxx, xxA, xxR, xxN, xxN, xxN, xxN }, /* arabic lett. foll by ON	*/
@@ -667,7 +667,7 @@ fz_bidi_chartype get_resolved_type(fz_bidi_action action)
 
 	States can be of two kinds:
 	 - Immediate Resolution State, where each input token
-	   is resolved as soon as it is seen. These states havve
+	   is resolved as soon as it is seen. These states have
 	   only single action codes (xxN) or the no-op (xxx)
 	   for static input tokens.
 	 - Deferred Resolution State, where input tokens either
@@ -704,23 +704,23 @@ fz_bidi_chartype get_resolved_type(fz_bidi_action action)
 	Note: On input only these directional classes are expected
 		  AL, HL, R, L,  ON, BDI_BN, NSM, AN, EN, ES, ET, CS,
 ------------------------------------------------------------------------*/
-void fz_bidi_resolve_weak(fz_context *ctx, fz_bidi_level baselevel, fz_bidi_chartype *pcls, fz_bidi_level *plevel, int cch)
+void fz_bidi_resolve_weak(fz_context *ctx, fz_bidi_level baselevel, fz_bidi_chartype *pcls, fz_bidi_level *plevel, size_t cch)
 {
 	int state = odd(baselevel) ? xr : xl;
 	fz_bidi_chartype cls;
-	int ich;
+	size_t ich;
 	fz_bidi_action action;
 	fz_bidi_chartype cls_run;
 	fz_bidi_chartype cls_new;
 
 	fz_bidi_level level = baselevel;
 
-	int cch_run = 0;
+	size_t cch_run = 0;
 
 	for (ich = 0; ich < cch; ich++)
 	{
 		if (pcls[ich] > BDI_BN) {
-			fz_warn(ctx, "error: pcls[%d] > BN (%d)\n", ich, pcls[ich]);
+			fz_warn(ctx, "error: pcls[" FMT_zu "] > BN (%d)\n", ich, pcls[ich]);
 		}
 
 		// ignore boundary neutrals
@@ -796,7 +796,7 @@ void fz_bidi_resolve_weak(fz_context *ctx, fz_bidi_level baselevel, fz_bidi_char
 		set_deferred_run(pcls, cch_run, ich, cls_run);
 }
 
-// === RESOLVE NEUTAL TYPES ==============================================
+// === RESOLVE NEUTRAL TYPES ==============================================
 
 // action values
 enum neutral_action
@@ -838,7 +838,7 @@ enum neutral_state
 	rn,	// N preceded by right
 	ln,	// N preceded by left
 	a,	// AN preceded by left (the abbrev 'la' is used up above)
-	na	// N preceeded by a
+	na	// N preceded by a
 } ;
 
 /*------------------------------------------------------------------------
@@ -897,15 +897,15 @@ const int state_neutrals[][5] =
 
 		  W8 resolves a number of ENs to L
 ------------------------------------------------------------------------*/
-void fz_bidi_resolve_neutrals(fz_bidi_level baselevel, fz_bidi_chartype *pcls, const fz_bidi_level *plevel, int cch)
+void fz_bidi_resolve_neutrals(fz_bidi_level baselevel, fz_bidi_chartype *pcls, const fz_bidi_level *plevel, size_t cch)
 {
 	// the state at the start of text depends on the base level
 	int state = odd(baselevel) ? r : l;
 	fz_bidi_chartype cls;
-	int ich;
+	size_t ich;
 	fz_bidi_chartype cls_run;
 
-	int cch_run = 0;
+	size_t cch_run = 0;
 	fz_bidi_level level = baselevel;
 
 	for (ich = 0; ich < cch; ich++)
@@ -958,7 +958,7 @@ void fz_bidi_resolve_neutrals(fz_bidi_level baselevel, fz_bidi_chartype *pcls, c
 		set_deferred_run(pcls, cch_run, ich, cls_run);
 }
 
-// === RESOLVE IMPLLICIT =================================================
+// === RESOLVE IMPLICITLY =================================================
 
 /*------------------------------------------------------------------------
 	Function: resolveImplicit
@@ -985,9 +985,9 @@ const fz_bidi_level add_level[][4] =
 
 };
 
-void fz_bidi_resolve_implicit(const fz_bidi_chartype *pcls, fz_bidi_level *plevel, int cch)
+void fz_bidi_resolve_implicit(const fz_bidi_chartype *pcls, fz_bidi_level *plevel, size_t cch)
 {
-	int ich;
+	size_t ich;
 
 	for (ich = 0; ich < cch; ich++)
 	{
@@ -1058,11 +1058,11 @@ static int resolve_lines(uint32_t *psz_input, int *pbrk, int cch)
 		  would have to be adjusted.
 ------------------------------------------------------------------------*/
 void fz_bidi_resolve_whitespace(fz_bidi_level baselevel, const fz_bidi_chartype *pcls, fz_bidi_level *plevel,
-							int cch)
+				size_t cch)
 {
-	int cchrun = 0;
+	size_t cchrun = 0;
 	fz_bidi_level oldlevel = baselevel;
-	int ich;
+	size_t ich;
 
 	for (ich = 0; ich < cch; ich++)
 	{

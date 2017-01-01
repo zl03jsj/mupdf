@@ -2,7 +2,7 @@ package com.artifex.mupdf.fitz;
 
 public class Image
 {
-	private long pointer;
+	protected long pointer;
 
 	protected native void finalize();
 
@@ -14,7 +14,7 @@ public class Image
 	private native long newNativeFromPixmap(Pixmap pixmap);
 	private native long newNativeFromFile(String filename);
 
-	private Image(long p) {
+	protected Image(long p) {
 		pointer = p;
 	}
 
@@ -31,15 +31,12 @@ public class Image
 	public native int getXResolution();
 	public native int getYResolution();
 
+	public native ColorSpace getColorSpace();
 	public native int getNumberOfComponents();
 	public native int getBitsPerComponent();
 	public native boolean getImageMask();
 	public native boolean getInterpolate();
 	public native Image getMask();
 
-	public native Pixmap toPixmap(int w, int h);
-
-	public Pixmap toPixmap() {
-		return toPixmap(getWidth(), getHeight());
-	}
+	public native Pixmap toPixmap();
 }

@@ -1,4 +1,5 @@
-#include "mupdf/svg.h"
+#include "mupdf/fitz.h"
+#include "svg-imp.h"
 
 typedef struct svg_page_s svg_page;
 
@@ -9,12 +10,11 @@ struct svg_page_s
 };
 
 static void
-svg_close_document(fz_context *ctx, fz_document *doc_)
+svg_drop_document(fz_context *ctx, fz_document *doc_)
 {
 	svg_document *doc = (svg_document*)doc_;
 	fz_drop_tree(ctx, doc->idmap, NULL);
 	fz_drop_xml(ctx, doc->root);
-	fz_free(ctx, doc);
 }
 
 static int
@@ -47,7 +47,7 @@ svg_run_page(fz_context *ctx, fz_page *page_, fz_device *dev, const fz_matrix *c
 }
 
 static void
-svg_drop_page_imp(fz_context *ctx, fz_page *page_)
+svg_drop_page(fz_context *ctx, fz_page *page_)
 {
 	/* nothing */
 }
@@ -64,7 +64,7 @@ svg_load_page(fz_context *ctx, fz_document *doc_, int number)
 	page = fz_new_page(ctx, sizeof *page);
 	page->super.bound_page = svg_bound_page;
 	page->super.run_page_contents = svg_run_page;
-	page->super.drop_page_imp = svg_drop_page_imp;
+	page->super.drop_page = svg_drop_page;
 	page->doc = doc;
 
 	return (fz_page*)page;
@@ -88,11 +88,14 @@ svg_open_document_with_buffer(fz_context *ctx, fz_buffer *buf)
 {
 	svg_document *doc;
 	fz_xml *root;
+	size_t len;
+	unsigned char *data;
 
-	root = fz_parse_xml(ctx, buf->data, buf->len, 0);
+	len = fz_buffer_storage(ctx, buf, &data);
+	root = fz_parse_xml(ctx, data, len, 0);
 
 	doc = fz_new_document(ctx, svg_document);
-	doc->super.close = svg_close_document;
+	doc->super.drop_document = svg_drop_document;
 	doc->super.count_pages = svg_count_pages;
 	doc->super.load_page = svg_load_page;
 
@@ -112,26 +115,12 @@ svg_open_document_with_stream(fz_context *ctx, fz_stream *file)
 
 	buf = fz_read_all(ctx, file, 0);
 	fz_try(ctx)
+	{
+		fz_write_buffer_byte(ctx, buf, 0);
 		doc = svg_open_document_with_buffer(ctx, buf);
+	}
 	fz_always(ctx)
 		fz_drop_buffer(ctx, buf);
-	fz_catch(ctx)
-		fz_rethrow(ctx);
-
-	return doc;
-}
-
-static fz_document *
-svg_open_document(fz_context *ctx, const char *filename)
-{
-	fz_stream *file;
-	fz_document *doc;
-
-	file = fz_open_file(ctx, filename);
-	fz_try(ctx)
-		doc = svg_open_document_with_stream(ctx, file);
-	fz_always(ctx)
-		fz_drop_stream(ctx, file);
 	fz_catch(ctx)
 		fz_rethrow(ctx);
 
@@ -190,6 +179,6 @@ fz_new_image_from_svg(fz_context *ctx, fz_buffer *buf)
 fz_document_handler svg_document_handler =
 {
 	&svg_recognize,
-	&svg_open_document,
+	NULL,
 	&svg_open_document_with_stream
 };

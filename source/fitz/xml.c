@@ -85,7 +85,7 @@ struct fz_xml_s
 	fz_xml *up, *down, *tail, *prev, *next;
 };
 
-static void indent(int n)
+static void xml_indent(int n)
 {
 	while (n--) {
 		putchar(' ');
@@ -99,7 +99,7 @@ void fz_debug_xml(fz_xml *item, int level)
 	{
 		char *s = item->text;
 		int c;
-		indent(level);
+		xml_indent(level);
 		putchar('"');
 		while ((c = *s++)) {
 			switch (c) {
@@ -128,16 +128,16 @@ void fz_debug_xml(fz_xml *item, int level)
 		fz_xml *child;
 		struct attribute *att;
 
-		indent(level);
+		xml_indent(level);
 		printf("(%s\n", item->name);
 		for (att = item->atts; att; att = att->next)
 		{
-			indent(level);
+			xml_indent(level);
 			printf("=%s %s\n", att->name, att->value);
 		}
 		for (child = item->down; child; child = child->next)
 			fz_debug_xml(child, level + 1);
-		indent(level);
+		xml_indent(level);
 		printf(")%s\n", item->name);
 	}
 }
@@ -248,10 +248,10 @@ void fz_detach_xml(fz_xml *node)
 		node->up->down = NULL;
 }
 
-static int xml_parse_entity(int *c, char *a)
+static size_t xml_parse_entity(int *c, char *a)
 {
 	char *b;
-	int i;
+	size_t i;
 
 	if (a[1] == '#') {
 		if (a[2] == 'x')
@@ -284,7 +284,7 @@ static int xml_parse_entity(int *c, char *a)
 
 	/* We should only be doing this for XHTML, but it shouldn't be a problem. */
 	for (i = 0; i < nelem(html_entities); ++i) {
-		unsigned int n = strlen(html_entities[i].ent);
+		size_t n = strlen(html_entities[i].ent);
 		if (!memcmp(a+1, html_entities[i].ent, n) && a[1+n] == ';') {
 			*c = html_entities[i].ucs;
 			return n + 2;
@@ -585,7 +585,7 @@ parse_attribute_value:
 	return "end of data in attribute value";
 }
 
-static char *convert_to_utf8(fz_context *doc, unsigned char *s, int n, int *dofree)
+static char *convert_to_utf8(fz_context *doc, unsigned char *s, size_t n, int *dofree)
 {
 	unsigned char *e = s + n;
 	char *dst, *d;
@@ -626,7 +626,7 @@ static char *convert_to_utf8(fz_context *doc, unsigned char *s, int n, int *dofr
 }
 
 fz_xml *
-fz_parse_xml(fz_context *ctx, unsigned char *s, int n, int preserve_white)
+fz_parse_xml(fz_context *ctx, unsigned char *s, size_t n, int preserve_white)
 {
 	struct parser parser;
 	fz_xml root, *node;

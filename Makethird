@@ -13,6 +13,8 @@ JPEG_DIR := thirdparty/jpeg
 MUJS_DIR := thirdparty/mujs
 OPENJPEG_DIR := thirdparty/openjpeg/src/lib/openjp2
 ZLIB_DIR := thirdparty/zlib
+LURATECH_DIR := thirdparty/luratech
+JPEGXR_DIR := thirdparty/jpegxr
 
 CURL_DIR := thirdparty/curl
 GLFW_DIR := thirdparty/glfw
@@ -35,7 +37,10 @@ $(MUJS_OUT)/%.o: $(MUJS_DIR)/%.c | $(MUJS_OUT)
 
 MUJS_CFLAGS := -I$(MUJS_DIR)
 
-HAVE_MUJS := yes
+else
+
+MUJS_CFLAGS := -DFZ_ENABLE_JS=0
+
 endif
 
 # --- FreeType 2 ---
@@ -169,6 +174,165 @@ HARFBUZZ_CFLAGS := $(SYS_HARFBUZZ_CFLAGS)
 HARFBUZZ_LIBS := $(SYS_HARFBUZZ_LIBS)
 endif
 
+# --- LURATECH ---
+
+ifneq "$(wildcard $(LURATECH_DIR)/ldf_jb2)$(wildcard $(LURATECH_DIR)/lwf_jp2)" ""
+
+LURATECH_OUT := $(OUT)/luratech
+LURATECH_SRC := \
+	jb2_adt_cache.c \
+	jb2_adt_decoder_halftone_region.c \
+	jb2_adt_encoder_text_region.c \
+	jb2_adt_huffman_tree.c \
+	jb2_adt_symbol_instance.c \
+	jb2_adt_context_ref_encoder.c \
+	jb2_adt_context_ref_buffer.c \
+	jb2_adt_context_ref_encoder.c \
+	jb2_adt_mq_encoder.c \
+	jb2_adt_decoder_text_region.c \
+	jb2_adt_huffman_table_user_defined.c \
+	jb2_adt_mmr_tables.c \
+	jb2_adt_huffman_table_symbol.c \
+	jb2_adt_component.c \
+	jb2_adt_context_buffer.c \
+	jb2_adt_context_decoder.c \
+	jb2_adt_context_encoder.c \
+	jb2_adt_context_ref_decoder.c \
+	jb2_adt_decoder_collective_bitmap.c \
+	jb2_adt_decoder_generic_region.c \
+	jb2_adt_decoder_pattern_dict.c \
+	jb2_adt_decoder_symbol_dict.c \
+	jb2_adt_encoder_symbol_dict.c \
+	jb2_adt_external_cache.c \
+	jb2_adt_file.c \
+	jb2_adt_file_extras.c \
+	jb2_adt_handle_document.c \
+	jb2_adt_huffman_decoder.c \
+	jb2_adt_huffman_encoder.c \
+	jb2_adt_huffman_table.c \
+	jb2_adt_huffman_table_standard.c \
+	jb2_adt_location.c \
+	jb2_adt_memory.c \
+	jb2_adt_message.c \
+	jb2_adt_mmr_decoder.c \
+	jb2_adt_mq_decoder.c \
+	jb2_adt_mq_encoder.c \
+	jb2_adt_mq_state.c \
+	jb2_adt_pattern_dict.c \
+	jb2_adt_pdf_file.c \
+	jb2_adt_pdf_stream.c \
+	jb2_adt_props_decompress.c \
+	jb2_adt_read_bit_buffer.c \
+	jb2_adt_read_data.c \
+	jb2_adt_render_common.c \
+	jb2_adt_render_generic_region.c \
+	jb2_adt_render_halftone_region.c \
+	jb2_adt_render_text_region.c \
+	jb2_adt_run_array.c \
+	jb2_adt_segment_array.c \
+	jb2_adt_segment.c \
+	jb2_adt_segment_end_of_stripe.c \
+	jb2_adt_segment_generic_region.c \
+	jb2_adt_segment_halftone_region.c \
+	jb2_adt_segment_page_info.c \
+	jb2_adt_segment_pattern_dict.c \
+	jb2_adt_segment_region.c \
+	jb2_adt_segment_symbol_dict.c \
+	jb2_adt_segment_table.c \
+	jb2_adt_segment_text_region.c \
+	jb2_adt_segment_types.c \
+	jb2_adt_stack.c \
+	jb2_adt_symbol.c \
+	jb2_adt_symbol_dict.c \
+	jb2_adt_symbol_unify.c \
+	jb2_adt_write_bits.c \
+	jb2_adt_write_data.c \
+	jb2_adt_write_pdf.c \
+	jb2_common.c \
+	jb2_license_dummy.c \
+	jp2_adt_band_array.c \
+	jp2_adt_band_buffer.c \
+	jp2_adt_block_array.c \
+	jp2_adt_cache.c \
+	jp2_adt_comp.c \
+	jp2_adt_component_array.c \
+	jp2_adt_decomp.c \
+	jp2_adt_ebcot_decoder.c \
+	jp2_adt_external_cache.c \
+	jp2_adt_image.c \
+	jp2_adt_memory.c \
+	jp2_adt_mq_decoder.c \
+	jp2_adt_mq_state.c \
+	jp2_adt_packet_decoder.c \
+	jp2_adt_precinct_array.c \
+	jp2_adt_rate.c \
+	jp2_adt_rate_list.c \
+	jp2_adt_read_bits.c \
+	jp2_adt_read_data.c \
+	jp2_adt_reader_requirements.c \
+	jp2_adt_resolution_array.c \
+	jp2_adt_tile_array.c \
+	jp2_adt_tlm_marker_array.c \
+	jp2_adt_write_data.c \
+	jp2_buffer.c \
+	jp2c_code_cb.c \
+	jp2c_coder.c \
+	jp2c_codestream.c \
+	jp2c_file_format.c \
+	jp2c_format.c \
+	jp2c_memory.c \
+	jp2_code_cb.c \
+	jp2_common.c \
+	jp2c_progression.c \
+	jp2c_quant.c \
+	jp2c_wavelet.c \
+	jp2c_wavelet_lifting.c \
+	jp2c_weights.c \
+	jp2c_write.c \
+	jp2d_codestream.c \
+	jp2d_decoder.c \
+	jp2d_file_format.c \
+	jp2d_format.c \
+	jp2d_image.c \
+	jp2d_memory.c \
+	jp2d_partial_decoding.c \
+	jp2d_progression.c \
+	jp2d_quant.c \
+	jp2d_scale.c \
+	jp2d_wavelet.c \
+	jp2d_wavelet_lifting.c \
+	jp2d_write.c \
+	jp2_icc.c \
+	jp2_license.c \
+	jp2_packet.c \
+	jp2_tag_tree.c
+
+LURATECH_OBJ := $(addprefix $(LURATECH_OUT)/, $(LURATECH_SRC:%.c=%.o))
+
+$(LURATECH_OUT):
+	$(MKDIR_CMD)
+$(LURATECH_OUT)/%.o: $(LURATECH_DIR)/ldf_jb2/source/common/%.c | $(LURATECH_OUT)
+	$(CC_CMD) \
+		-I$(LURATECH_DIR)/ldf_jb2/source/common \
+		-DLINUX
+$(LURATECH_OUT)/%.o: $(LURATECH_DIR)/ldf_jb2/source/compress/%.c | $(LURATECH_OUT)
+	$(CC_CMD) \
+		-I$(LURATECH_DIR)/ldf_jb2/source/common \
+		-DLINUX
+$(LURATECH_OUT)/%.o: $(LURATECH_DIR)/lwf_jp2/library/source/%.c | $(LURATECH_OUT)
+	$(CC_CMD) \
+		-I$(LURATECH_DIR)/ldf_jb2/source/common \
+		-DLINUX
+
+LURATECH_CFLAGS := \
+-I$(LURATECH_DIR)/ldf_jb2/source/common \
+	-I$(LURATECH_DIR)/ldf_jb2/source/libraries \
+	-I$(LURATECH_DIR)/ldf_jb2/source/compress \
+	-I$(LURATECH_DIR)/lwf_jp2/library/source \
+	-DHAVE_LURATECH
+
+else # --- LURATECH ---
+
 # --- JBIG2DEC ---
 
 ifneq "$(wildcard $(JBIG2DEC_DIR)/README)" ""
@@ -189,7 +353,7 @@ JBIG2DEC_SRC := \
 	jbig2_refinement.c \
 	jbig2_segment.c \
 	jbig2_symbol_dict.c \
-	jbig2_text.c \
+	jbig2_text.c
 
 JBIG2DEC_OBJ := $(addprefix $(JBIG2DEC_OUT)/, $(JBIG2DEC_SRC:%.c=%.o))
 
@@ -203,6 +367,52 @@ else
 JBIG2DEC_CFLAGS := $(SYS_JBIG2DEC_CFLAGS)
 JBIG2DEC_LIBS := $(SYS_JBIG2DEC_LIBS)
 endif
+
+# --- OpenJPEG ---
+
+ifneq "$(wildcard $(OPENJPEG_DIR)/openjpeg.h)" ""
+
+OPENJPEG_OUT := $(OUT)/openjpeg
+OPENJPEG_SRC := \
+	bio.c \
+	cidx_manager.c \
+	cio.c \
+	dwt.c \
+	event.c \
+	function_list.c \
+	image.c \
+	invert.c \
+	j2k.c \
+	jp2.c \
+	mct.c \
+	mqc.c \
+	openjpeg.c \
+	phix_manager.c \
+	pi.c \
+	ppix_manager.c \
+	raw.c \
+	t1.c \
+	t2.c \
+	tcd.c \
+	tgt.c \
+	thix_manager.c \
+	tpix_manager.c \
+	thread.c
+
+OPENJPEG_OBJ := $(addprefix $(OPENJPEG_OUT)/, $(OPENJPEG_SRC:%.c=%.o))
+
+$(OPENJPEG_OUT):
+	$(MKDIR_CMD)
+$(OPENJPEG_OUT)/%.o: $(OPENJPEG_DIR)/%.c | $(OPENJPEG_OUT)
+	$(CC_CMD) -DOPJ_STATIC -DOPJ_HAVE_STDINT_H
+
+OPENJPEG_CFLAGS += -I$(OPENJPEG_DIR) -DOPJ_HAVE_INTTYPES_H=1 -DUSE_JPIP=1
+else
+OPENJPEG_CFLAGS := $(SYS_OPENJPEG_CFLAGS)
+OPENJPEG_LIBS := $(SYS_OPENJPEG_LIBS)
+endif
+
+endif # --- LURATECH ---
 
 # --- JPEG library from IJG ---
 
@@ -254,47 +464,38 @@ JPEG_CFLAGS := $(SYS_JPEG_CFLAGS) -DSHARE_JPEG
 JPEG_LIBS := $(SYS_JPEG_LIBS)
 endif
 
-# --- OpenJPEG ---
+# --- jpegxr ---
 
-ifneq "$(wildcard $(OPENJPEG_DIR)/CMakeLists.txt)" ""
+ifneq "$(wildcard $(JPEGXR_DIR)/T835E.pdf)" ""
 
-OPENJPEG_OUT := $(OUT)/openjpeg
-OPENJPEG_SRC := \
-	bio.c \
-	cidx_manager.c \
-	cio.c \
-	dwt.c \
-	event.c \
-	function_list.c \
-	image.c \
-	invert.c \
-	j2k.c \
-	jp2.c \
-	mct.c \
-	mqc.c \
-	openjpeg.c \
-	phix_manager.c \
-	pi.c \
-	ppix_manager.c \
-	raw.c \
-	t1.c \
-	t2.c \
-	tcd.c \
-	tgt.c \
-	thix_manager.c \
-	tpix_manager.c \
+JPEGXR_OUT := $(OUT)/jpegxr
+JPEGXR_SRC := \
+	algo.c \
+	api.c \
+	flags.c \
+	init.c \
+	io.c \
+	cr_parse.c \
+	jpegxr_pixelformat.c \
+	r_parse.c \
+	r_strip.c \
+	r_tile_spatial.c \
+	r_tile_frequency.c \
+	x_strip.c
 
-OPENJPEG_OBJ := $(addprefix $(OPENJPEG_OUT)/, $(OPENJPEG_SRC:%.c=%.o))
+JPEGXR_OBJ := $(addprefix $(JPEGXR_OUT)/, $(JPEGXR_SRC:%.c=%.o))
 
-$(OPENJPEG_OUT):
+$(JPEGXR_OUT):
 	$(MKDIR_CMD)
-$(OPENJPEG_OUT)/%.o: $(OPENJPEG_DIR)/%.c | $(OPENJPEG_OUT)
-	$(CC_CMD) -DOPJ_STATIC -DOPJ_HAVE_STDINT_H
 
-OPENJPEG_CFLAGS += -I$(OPENJPEG_DIR) -DOPJ_HAVE_INTTYPES_H=1 -DUSE_JPIP=1
-else
-OPENJPEG_CFLAGS := $(SYS_OPENJPEG_CFLAGS)
-OPENJPEG_LIBS := $(SYS_OPENJPEG_LIBS)
+$(JPEGXR_OUT)/%.o: $(JPEGXR_DIR)/Software/%.c | $(JPEGXR_OUT)
+	$(CC_CMD) $(JPEGXR_CFLAGS)
+
+JPEGXR_CFLAGS := \
+	-I$(JPEGXR_DIR) \
+	-I$(JPEGXR_DIR)/Software \
+	-DHAVE_JPEGXR
+
 endif
 
 # --- ZLIB ---
@@ -338,115 +539,51 @@ ifneq "$(wildcard $(CURL_DIR)/README)" ""
 CURL_LIB := $(OUT)/libcurl.a
 CURL_OUT := $(OUT)/curl
 CURL_SRC := \
-	amigaos.c \
-	asyn-ares.c \
-	asyn-thread.c \
-	axtls.c \
 	base64.c \
-	bundles.c \
 	conncache.c \
 	connect.c \
 	content_encoding.c \
-	cookie.c \
 	curl_addrinfo.c \
-	curl_darwinssl.c \
-	curl_fnmatch.c \
-	curl_gethostname.c \
-	curl_gssapi.c \
-	curl_memrchr.c \
-	curl_multibyte.c \
-	curl_ntlm.c \
-	curl_ntlm_core.c \
-	curl_ntlm_msgs.c \
-	curl_ntlm_wb.c \
-	curl_rand.c \
-	curl_rtmp.c \
-	curl_sasl.c \
-	curl_schannel.c \
-	curl_sspi.c \
-	curl_threads.c \
-	cyassl.c \
-	dict.c \
+	dotdot.c \
 	easy.c \
 	escape.c \
-	file.c \
 	fileinfo.c \
 	formdata.c \
-	ftp.c \
-	ftplistparser.c \
 	getenv.c \
 	getinfo.c \
-	gopher.c \
-	gtls.c \
 	hash.c \
-	hmac.c \
-	hostasyn.c \
 	hostcheck.c \
-	hostip.c \
 	hostip4.c \
-	hostip6.c \
+	hostip.c \
 	hostsyn.c \
 	http.c \
 	http_chunks.c \
-	http_digest.c \
-	http_negotiate.c \
-	http_negotiate_sspi.c \
-	http_proxy.c \
-	idn_win32.c \
 	if2ip.c \
-	imap.c \
-	inet_ntop.c \
-	inet_pton.c \
-	krb4.c \
-	krb5.c \
-	ldap.c \
 	llist.c \
-	md4.c \
-	md5.c \
-	memdebug.c \
 	mprintf.c \
 	multi.c \
 	netrc.c \
-	non-ascii.c \
 	nonblock.c \
-	nss.c \
-	openldap.c \
+	openssl.c \
 	parsedate.c \
-	pingpong.c \
 	pipeline.c \
-	polarssl.c \
-	polarssl_threadlock.c \
-	pop3.c \
 	progress.c \
-	qssl.c \
-	rawstr.c \
-	rtsp.c \
-	security.c \
 	select.c \
 	sendf.c \
 	share.c \
 	slist.c \
-	smtp.c \
-	socks.c \
-	socks_gssapi.c \
 	speedcheck.c \
 	splay.c \
-	ssh.c \
-	sslgen.c \
-	ssluse.c \
+	strcase.c \
 	strdup.c \
-	strequal.c \
 	strerror.c \
-	strtok.c \
-	strtoofft.c \
-	telnet.c \
-	tftp.c \
 	timeval.c \
 	transfer.c \
 	url.c \
 	version.c \
+	vtls.c \
 	warnless.c \
-	wildcard.c \
+	wildcard.c
 
 $(CURL_LIB): $(addprefix $(CURL_OUT)/, $(CURL_SRC:%.c=%.o))
 
@@ -454,9 +591,15 @@ $(CURL_OUT):
 	$(MKDIR_CMD)
 
 CRL_CFLAGS := -DHAVE_CONFIG_H -DBUILDING_LIBCURL -DCURL_STATICLIB \
-	-DCURL_DISABLE_LDAP -I$(CURL_DIR)/include
+	-DCURL_DISABLE_LDAP -I$(CURL_DIR)/include -I$(CURL_DIR)/lib
+ifeq "$(HAVE_OPENSSL_SSL)" "yes"
+CRL_CFLAGS += -DUSE_OPENSSL
+endif
 
 $(CURL_OUT)/%.o: $(CURL_DIR)/lib/%.c	| $(CURL_OUT)
+	$(CC_CMD) $(CRL_CFLAGS)
+
+$(CURL_OUT)/%.o: $(CURL_DIR)/lib/vtls/%.c	| $(CURL_OUT)
 	$(CC_CMD) $(CRL_CFLAGS)
 
 CURL_CFLAGS := -I$(CURL_DIR)/include
@@ -475,6 +618,37 @@ ifneq "$(wildcard $(GLFW_DIR)/README.md)" ""
 
 GLFW_LIB := $(OUT)/libglfw.a
 GLFW_OUT := $(OUT)/glfw
+
+ifeq "$(OS)" "MACOS"
+
+GLFW_SRC := \
+	cocoa_init.m \
+	cocoa_monitor.m \
+	cocoa_window.m \
+	context.c \
+	init.c \
+	input.c \
+	iokit_joystick.m \
+	mach_time.m \
+	monitor.c \
+	nsgl_context.m \
+	posix_tls.c \
+	window.c
+
+$(GLFW_OUT)/%.o: $(GLFW_DIR)/src/%.m | $(GLFW_OUT)
+	$(CC_CMD) -D_GLFW_COCOA -D_GLFW_NSGL -D_GLFW_USE_MENUBAR -D_GLFW_USE_RETINA -D_GLFW_USE_OPENGL -Wno-deprecated-declarations
+$(GLFW_OUT)/%.o: $(GLFW_DIR)/src/%.c | $(GLFW_OUT)
+	$(CC_CMD) -D_GLFW_COCOA -D_GLFW_NSGL -D_GLFW_USE_MENUBAR -D_GLFW_USE_RETINA -D_GLFW_USE_OPENGL
+
+GLFW_OBJ := $(addprefix $(GLFW_OUT)/, $(GLFW_SRC))
+GLFW_OBJ := $(GLFW_OBJ:%.c=%.o)
+GLFW_OBJ := $(GLFW_OBJ:%.m=%.o)
+
+$(GLFW_LIB): $(GLFW_OBJ)
+GLFW_LIBS := -framework OpenGL -framework IOKit -framework CoreVideo -framework Cocoa
+
+else
+
 GLFW_SRC := \
 	context.c \
 	glx_context.c \
@@ -488,7 +662,18 @@ GLFW_SRC := \
 	x11_init.c \
 	x11_monitor.c \
 	x11_window.c \
-	xkb_unicode.c \
+	xkb_unicode.c
+
+$(GLFW_OUT)/%.o: $(GLFW_DIR)/src/%.c | $(GLFW_OUT)
+	$(CC_CMD) -D_GLFW_X11 -D_GLFW_GLX -D_GLFW_USE_OPENGL -D_GLFW_HAS_GLXGETPROCADDRESS
+$(GLFW_LIB): $(addprefix $(GLFW_OUT)/, $(GLFW_SRC:%.c=%.o))
+GLFW_LIBS := -lGL -lX11 -lXcursor -lXrandr -lXinerama -lpthread
+
+endif
+
+GLFW_CFLAGS := -I$(GLFW_DIR)/include
+$(GLFW_OUT):
+	$(MKDIR_CMD)
 
 GLFW_SRC_UNUSED := \
 	egl_context.c \
@@ -507,15 +692,6 @@ GLFW_SRC_UNUSED := \
 	wl_monitor.c \
 	wl_window.c \
 
-$(GLFW_LIB): $(addprefix $(GLFW_OUT)/, $(GLFW_SRC:%.c=%.o))
-$(GLFW_OUT):
-	$(MKDIR_CMD)
-$(GLFW_OUT)/%.o: $(GLFW_DIR)/src/%.c | $(GLFW_OUT)
-	$(CC_CMD) -D_GLFW_X11 -D_GLFW_GLX -D_GLFW_USE_OPENGL -D_GLFW_HAS_GLXGETPROCADDRESS
-
-GLFW_CFLAGS := -I$(GLFW_DIR)/include
-GLFW_LIBS := -lGL -lX11 -lXcursor -lXrandr -lXinerama -lpthread
-
 HAVE_GLFW := yes
 
 else ifeq "$(HAVE_GLFW)" "yes"
@@ -528,4 +704,11 @@ endif
 ifeq "$(HAVE_X11)" "yes"
 X11_CFLAGS := $(SYS_X11_CFLAGS)
 X11_LIBS := $(SYS_X11_LIBS)
+endif
+
+# --- OpenSSL ---
+
+ifeq "$(HAVE_LIBCRYPTO)" "yes"
+LIBCRYPTO_CFLAGS := $(SYS_LIBCRYPTO_CFLAGS)
+LIBCRYPTO_LIBS := $(SYS_LIBCRYPTO_LIBS)
 endif

@@ -3,7 +3,7 @@
 	package="com.artifex.mupdfdemo"
 	android:versionCode="50"
 	android:versionName="@string/version"
-        android:debuggable="false"
+	android:debuggable="false"
 	android:installLocation="auto">
 	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 	<uses-permission android:name="android.permission.INTERNET" />
@@ -54,6 +54,11 @@
 			<intent-filter>
 				<action android:name="android.intent.action.VIEW"/>
 				<category android:name="android.intent.category.DEFAULT"/>
+				<data android:mimeType="text/xml"/>
+			</intent-filter>
+			<intent-filter>
+				<action android:name="android.intent.action.VIEW"/>
+				<category android:name="android.intent.category.DEFAULT"/>
 				<category android:name="android.intent.category.BROWSABLE"/>
 				<data android:scheme="file"/>
 				<data android:mimeType="*/*"/>
@@ -87,6 +92,15 @@
 				<data android:pathPattern=".*\\.epub"/>
 				<data android:host="*"/>
 			</intent-filter>
+			<intent-filter>
+				<action android:name="android.intent.action.VIEW"/>
+				<category android:name="android.intent.category.DEFAULT"/>
+				<category android:name="android.intent.category.BROWSABLE"/>
+				<data android:scheme="file"/>
+				<data android:mimeType="*/*"/>
+				<data android:pathPattern=".*\\.fb2"/>
+				<data android:host="*"/>
+			</intent-filter>
 		</activity>
 		<activity
 			android:name="OutlineActivity"
@@ -99,4 +113,4 @@
 			android:label="@string/print">
 		</activity>
 	</application>
-</manifest> 
+</manifest>

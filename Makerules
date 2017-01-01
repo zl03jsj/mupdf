@@ -7,13 +7,29 @@ OS := $(OS:Darwin=MACOS)
 
 HAVE_LIBDL ?= yes
 
+
 CFLAGS += -Wall
+
+ifeq (,$(findstring -fembed-bitcode,$(XCFLAGS)))
+# clang does not support these in combination with -fembed-bitcode
+CFLAGS += -ffunction-sections -fdata-sections
+endif
+
+ifeq "$(OS)" "MACOS"
+LDREMOVEUNREACH = -Wl,-dead_strip
+else
+LDREMOVEUNREACH = -Wl,--gc-sections
+endif
 
 ifeq "$(build)" "debug"
 CFLAGS += -pipe -g -DDEBUG
 LDFLAGS += -g
 else ifeq "$(build)" "release"
 CFLAGS += -pipe -O2 -DNDEBUG -fomit-frame-pointer
+LDFLAGS += $(LDREMOVEUNREACH) -Wl,-s
+else ifeq "$(build)" "small"
+CFLAGS += -pipe -Os -DNDEBUG -fomit-frame-pointer
+LDFLAGS += $(LDREMOVEUNREACH) -Wl,-s
 else ifeq "$(build)" "sanitize"
 CFLAGS += -pipe -g -DDEBUG -fsanitize=address -fno-omit-frame-pointer
 LDFLAGS += -fsanitize=address
@@ -25,6 +41,7 @@ CFLAGS += -pipe -g -DDEBUG -pg -fprofile-arcs -ftest-coverage
 LIBS += -lgcov
 else ifeq "$(build)" "native"
 CFLAGS += -pipe -O2 -DNDEBUG -fomit-frame-pointer -march=native -mfpmath=sse
+LDFLAGS += $(LDREMOVEUNREACH) -Wl,-s
 else ifeq "$(build)" "memento"
 CFLAGS += -pipe -g -DMEMENTO -DDEBUG
 LDFLAGS += -g -d -rdynamic
@@ -46,21 +63,26 @@ endif
 # Windows (MINGW) build doesn't use system libraries.
 ifeq "$(OS)" "MINGW"
 
+WINDRES = windres
 HAVE_X11 ?= no
+HAVE_WIN32 = yes
+CC=gcc
+# Add flags required for Harfbuzz because of missing strdup
+CFLAGS+= -U__STRICT_ANSI__
 
 # Mac OS X doesn't have pkg-config so we hard code paths.
 else ifeq "$(OS)" "MACOS"
 
-HAVE_X11 ?= yes
+HAVE_X11 ?= no
 HAVE_PTHREADS ?= yes
 
-# Mac OS X deprecated openssl, so the default is to not include it.
-HAVE_OPENSSL ?= yes
-SYS_OPENSSL_CFLAGS =
-SYS_OPENSSL_LIBS =
-ifeq "$(HAVE_OPENSSL)" "yes"
-SYS_OPENSSL_CFLAGS = -DHAVE_OPENSSL
-SYS_OPENSSL_LIBS  = -L./thirdparty/openssl/macos -lcrypto -lssl
+# Mac OS X deprecated libcrypto, so the default is to not include it.
+HAVE_LIBCRYTO ?= no
+SYS_LIBCRYPTO_CFLAGS =
+SYS_LIBCRYPTO_LIBS =
+ifeq "$(HAVE_LIBCRYPTO)" "yes"
+SYS_LIBCRYPTO_CFLAGS = -DHAVE_LIBCRYPTO
+SYS_LIBCRYPTO_LIBS = -lcrypto
 endif
 
 SYS_CURL_DEPS = -lpthread
@@ -86,17 +108,22 @@ else ifeq "$(OS)" "Linux"
 HAVE_PTHREADS ?= yes
 
 ifeq "$(shell pkg-config --exists libcrypto && echo yes)" "yes"
-HAVE_OPENSSL = yes
-SYS_OPENSSL_CFLAGS = -DHAVE_OPENSSL $(shell pkg-config --cflags libcrypto)
-SYS_OPENSSL_LIBS = $(shell pkg-config --libs libcrypto)
+HAVE_LIBCRYPTO = yes
+SYS_LIBCRYPTO_CFLAGS = -DHAVE_LIBCRYPTO $(shell pkg-config --cflags libcrypto)
+SYS_LIBCRYPTO_LIBS = $(shell pkg-config --libs libcrypto)
 endif
 
 ifeq "$(shell pkg-config --exists libcurl && echo yes)" "yes"
 HAVE_CURL = yes
 SYS_CURL_CFLAGS = $(shell pkg-config --cflags libcurl)
 SYS_CURL_LIBS = $(shell pkg-config --libs libcurl)
+ifeq "$(shell pkg-config --exists openssl && echo yes)" "yes"
+HAVE_OPENSSL_SSL = yes
+SYS_CURL_CFLAGS += $(shell pkg-config --cflags openssl)
+SYS_CURL_DEPS += $(shell pkg-config --libs openssl)
 endif
-SYS_CURL_DEPS = -lpthread -lrt
+endif
+SYS_CURL_DEPS += -lpthread -lrt
 
 ifeq "$(shell pkg-config --exists x11 xext && echo yes)" "yes"
 HAVE_X11 = yes
@@ -168,14 +195,18 @@ ifeq "$(OS)" "w64_x86-cross-mingw32"
 CC = i686-w64-mingw32-gcc
 LD = i686-w64-mingw32-gcc
 AR = i686-w64-mingw32-ar
+WINDRES = i686-w64-mingw32-windres
 CROSSCOMPILE=yes
+HAVE_WIN32=yes
 endif
 
 ifeq "$(OS)" "w64_amd64-cross-mingw32"
 CC = x86_64-w64-mingw32-gcc
 LD = x86_64-w64-mingw32-gcc
 AR = x86_64-w64-mingw32-ar
+WINDRES = x86-64-mingw32-windres
 CROSSCOMPILE=yes
+HAVE_WIN32=yes
 endif
 
 ifeq "$(OS)" "pnacl-cross"
@@ -201,22 +232,12 @@ endif
 # Most variables when building for iOS are set up in ios/build_libs.sh,
 # which is called from the Xcode project as a "Run Script" build step.
 # The following section works for both device and simulator builds.
-
 ifeq "$(OS)" "ios"
-
-HAVE_OPENSSL ?= no
-
-ifeq "$(HAVE_OPENSSL)" "yes"
-SYS_OPENSSL_CFLAGS = -DHAVE_OPENSSL
-SYS_OPENSSL_LIBS  = -L./thirdparty/openssl/macos -lcrypto -lssl
-endif
-
 CC = xcrun cc
 AR = xcrun ar
 LD = xcrun ld
 RANLIB_CMD = xcrun ranlib $@
 CROSSCOMPILE=yes
-
 endif
 
 ifeq "$(OS)" "tizen-arm"
@@ -237,9 +258,8 @@ LD = $(TIZEN_TOOLS)ld $(TIZEN_FLAGS)
 CROSSCOMPILE=yes
 endif
 
-ifeq "$(OS)" "MINGW"
+ifeq "$(HAVE_WIN32)" "yes"
 WIN32_LIBS=-lcomdlg32 -lgdi32
-HAVE_WIN32=yes
 LDFLAGS += -Wl,-subsystem,windows
 endif
 
@@ -253,5 +273,3 @@ ifeq "$(HAVE_PTHREADS)" "yes"
 CFLAGS += -DHAVE_PTHREADS
 LIBS += -lpthread
 endif
-
-USE_Z_SIGN ?= yes

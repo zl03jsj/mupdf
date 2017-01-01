@@ -55,7 +55,7 @@ fz_char_and_box *fz_stext_char_at(fz_context *ctx, fz_char_and_box *cab, fz_stex
 	return cab;
 }
 
-static int charat(fz_context *ctx, fz_stext_page *page, int idx)
+static inline int charat(fz_context *ctx, fz_stext_page *page, int idx)
 {
 	fz_char_and_box cab;
 	return fz_stext_char_at(ctx, &cab, page, idx)->c;
@@ -69,7 +69,7 @@ static fz_rect *bboxat(fz_context *ctx, fz_stext_page *page, int idx, fz_rect *b
 	return bbox;
 }
 
-static int textlen(fz_context *ctx, fz_stext_page *page)
+static int textlen_stext(fz_context *ctx, fz_stext_page *page)
 {
 	int len = 0;
 	int block_num;
@@ -95,7 +95,7 @@ static int textlen(fz_context *ctx, fz_stext_page *page)
 	return len;
 }
 
-static int match(fz_context *ctx, fz_stext_page *page, const char *s, int n)
+static int match_stext(fz_context *ctx, fz_stext_page *page, const char *s, int n)
 {
 	int orig = n;
 	int c;
@@ -134,10 +134,11 @@ fz_search_stext_page(fz_context *ctx, fz_stext_page *text, const char *needle, f
 		return 0;
 
 	hit_count = 0;
-	len = textlen(ctx, text);
-	for (pos = 0; pos < len; pos++)
+	len = textlen_stext(ctx, text);
+	pos = 0;
+	while (pos < len)
 	{
-		n = match(ctx, text, needle, pos);
+		n = match_stext(ctx, text, needle, pos);
 		if (n)
 		{
 			fz_rect linebox = fz_empty_rect;
@@ -161,6 +162,11 @@ fz_search_stext_page(fz_context *ctx, fz_stext_page *text, const char *needle, f
 			}
 			if (!fz_is_empty_rect(&linebox) && hit_count < hit_max)
 				hit_bbox[hit_count++] = linebox;
+			pos += n;
+		}
+		else
+		{
+			pos += 1;
 		}
 	}
 
@@ -225,7 +231,7 @@ fz_copy_selection(fz_context *ctx, fz_stext_page *page, fz_rect rect)
 	fz_buffer *buffer;
 	fz_rect hitbox;
 	int c, i, block_num, seen = 0;
-	char *s;
+	unsigned char *s;
 
 	float x0 = rect.x0;
 	float x1 = rect.x1;
@@ -259,7 +265,7 @@ fz_copy_selection(fz_context *ctx, fz_stext_page *page, fz_rect rect)
 					fz_stext_char_bbox(ctx, &hitbox, span, i);
 					c = span->text[i].c;
 					if (c < 32)
-						c = '?';
+						c = 0xFFFD;
 					if (hitbox.x1 >= x0 && hitbox.x0 <= x1 && hitbox.y1 >= y0 && hitbox.y0 <= y1)
 					{
 						fz_write_buffer_rune(ctx, buffer, c);
@@ -274,7 +280,7 @@ fz_copy_selection(fz_context *ctx, fz_stext_page *page, fz_rect rect)
 
 	fz_write_buffer_byte(ctx, buffer, 0);
 
-	s = (char*)buffer->data;
-	fz_free(ctx, buffer);
-	return s;
+	fz_buffer_extract(ctx, buffer, &s);
+	fz_drop_buffer(ctx, buffer);
+	return (char*)s;
 }

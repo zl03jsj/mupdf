@@ -161,12 +161,11 @@
 
 #ifndef MEMENTO_H
 
-#include <memory.h>
+#include <stdlib.h>
 
 #ifdef __ANDROID__
 #define MEMENTO_ANDROID
 #include <stdio.h>
-#include <stdlib.h>
 #endif
 
 #define MEMENTO_H
@@ -214,6 +213,7 @@ void Memento_listNewBlocks(void);
 size_t Memento_setMax(size_t);
 void Memento_stats(void);
 void *Memento_label(void *, const char *);
+void Memento_tick(void);
 
 void *Memento_malloc(size_t s);
 void *Memento_realloc(void *, size_t s);
@@ -221,13 +221,16 @@ void  Memento_free(void *);
 void *Memento_calloc(size_t, size_t);
 
 void Memento_info(void *addr);
-void Memento_listBLockInfo(void);
+void Memento_listBlockInfo(void);
 void *Memento_takeRef(void *blk);
 void *Memento_dropRef(void *blk);
+void *Memento_adjustRef(void *blk, int adjust);
 void *Memento_reference(void *blk);
 
 void Memento_startLeaking(void);
 void Memento_stopLeaking(void);
+
+void Memento_fin(void);
 
 #ifdef MEMENTO
 
@@ -267,9 +270,12 @@ void Memento_stopLeaking(void);
 #define Memento_listBlockInfo()   do {} while (0)
 #define Memento_takeRef(A)        (A)
 #define Memento_dropRef(A)        (A)
+#define Memento_adjustRef(A,V)    (A)
 #define Memento_reference(A)      (A)
+#define Memento_tick()            do {} while (0)
 #define Memento_startLeaking()    do {} while (0)
 #define Memento_stopLeaking()     do {} while (0)
+#define Memento_fin()             do {} while (0)
 
 #endif /* MEMENTO */
 

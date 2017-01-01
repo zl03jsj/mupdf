@@ -11,6 +11,7 @@ ASCII85Decode
 ASCIIHexDecode
 AcroForm
 Adobe.PPKLite
+All
 AllOff
 AllOn
 Alpha
@@ -23,6 +24,7 @@ Ascent
 B
 BBox
 BC
+BE
 BG
 BM
 BPC
@@ -38,6 +40,7 @@ BitsPerSample
 BlackIs1
 BleedBox
 Blinds
+Border
 Bounds
 Box
 Bt
@@ -76,6 +79,7 @@ Contents
 Coords
 Count
 Cover
+CreationDate
 Creator
 CropBox
 Crypt
@@ -96,6 +100,7 @@ DecodeParms
 Default
 DescendantFonts
 Descent
+Design
 Dest
 Dests
 DeviceCMYK
@@ -166,9 +171,11 @@ H
 Height
 Highlight
 I
+IC
 ICCBased
 ID
 IM
+IRT
 Identity
 Identity-H
 Identity-V
@@ -209,6 +216,7 @@ Limits
 Line
 Linearized
 Link
+Locked
 Luminosity
 M
 MK
@@ -244,6 +252,7 @@ Of
 Off
 OpenType
 Opt
+Order
 Ordering
 Outlines
 P
@@ -270,6 +279,7 @@ Push
 Q
 QuadPoints
 R
+RBGroups
 RGB
 RI
 RL
@@ -345,6 +355,7 @@ V2
 VE
 Version
 VerticesPerRow
+View
 W
 W2
 WMode

@@ -23,11 +23,17 @@ fz_stream *fz_open_faxd(fz_context *ctx, fz_stream *chain,
 	int k, int end_of_line, int encoded_byte_align,
 	int columns, int rows, int end_of_block, int black_is_1);
 fz_stream *fz_open_flated(fz_context *ctx, fz_stream *chain, int window_bits);
-fz_stream *fz_open_lzwd(fz_context *ctx, fz_stream *chain, int early_change, int min_bits, int reverse_bits);
+fz_stream *fz_open_lzwd(fz_context *ctx, fz_stream *chain, int early_change, int min_bits, int reverse_bits, int old_tiff);
 fz_stream *fz_open_predict(fz_context *ctx, fz_stream *chain, int predictor, int columns, int colors, int bpc);
 fz_stream *fz_open_jbig2d(fz_context *ctx, fz_stream *chain, fz_jbig2_globals *globals);
 
-fz_jbig2_globals *fz_load_jbig2_globals(fz_context *ctx, unsigned char *data, int size);
+fz_jbig2_globals *fz_load_jbig2_globals(fz_context *ctx, fz_buffer *buf);
 void fz_drop_jbig2_globals_imp(fz_context *ctx, fz_storable *globals);
+
+/* Extra filters for tiff */
+fz_stream *fz_open_sgilog16(fz_context *ctx, fz_stream *chain, int w);
+fz_stream *fz_open_sgilog24(fz_context *ctx, fz_stream *chain, int w);
+fz_stream *fz_open_sgilog32(fz_context *ctx, fz_stream *chain, int w);
+fz_stream *fz_open_thunder(fz_context *ctx, fz_stream *chain, int w);
 
 #endif

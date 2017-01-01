@@ -10,6 +10,7 @@
 
 int mudraw_main(int argc, char *argv[]);
 int murun_main(int argc, char *argv[]);
+
 int pdfclean_main(int argc, char *argv[]);
 int pdfextract_main(int argc, char *argv[]);
 int pdfinfo_main(int argc, char *argv[]);
@@ -26,8 +27,10 @@ static struct {
 	char *desc;
 } tools[] = {
 	{ mudraw_main, "draw", "convert document" },
+#if FZ_ENABLE_JS
 	{ murun_main, "run", "run javascript" },
-	{ muaddimage_main, "addimg", "add image to pdf file" },
+#endif
+#if FZ_ENABLE_PDF
 	{ pdfclean_main, "clean", "rewrite pdf file" },
 	{ pdfextract_main, "extract", "extract font and image resources" },
 	{ pdfinfo_main, "info", "show information about pdf resources" },
@@ -36,12 +39,14 @@ static struct {
 	{ pdfshow_main, "show", "show internal pdf objects" },
 	{ pdfcreate_main, "create", "create pdf document" },
 	{ pdfmerge_main, "merge", "merge pages from multiple pdf sources into a new pdf" },
+	{ muaddimage_main, "addimg", "add image to pdf file" },
+#endif
 };
 
 static int
 namematch(const char *end, const char *start, const char *match)
 {
-	int len = strlen(match);
+	size_t len = strlen(match);
 	return ((end - len >= start) && (strncmp(end - len, match, len) == 0));
 }
 

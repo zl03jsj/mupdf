@@ -1,4 +1,4 @@
-#include "mupdf/fitz.h"
+#include "fitz-imp.h"
 
 struct fz_output_context_s
 {
@@ -7,7 +7,7 @@ struct fz_output_context_s
 	fz_output *err;
 };
 
-static void std_write(fz_context *ctx, void *opaque, const void *buffer, int count);
+static void std_write(fz_context *ctx, void *opaque, const void *buffer, size_t count);
 
 static fz_output fz_stdout_global = {
 	&fz_stdout_global,
@@ -45,7 +45,7 @@ fz_keep_output_context(fz_context *ctx)
 void
 fz_drop_output_context(fz_context *ctx)
 {
-	if (!ctx || !ctx->output)
+	if (!ctx)
 		return;
 
 	if (fz_drop_imp(ctx, ctx->output, &ctx->output->refs))
@@ -83,12 +83,12 @@ fz_stderr(fz_context *ctx)
 }
 
 static void
-file_write(fz_context *ctx, void *opaque, const void *buffer, int count)
+file_write(fz_context *ctx, void *opaque, const void *buffer, size_t count)
 {
 	FILE *file = opaque;
 	size_t n;
 
-	if (count < 0)
+	if (count == 0)
 		return;
 
 	if (count == 1)
@@ -100,12 +100,12 @@ file_write(fz_context *ctx, void *opaque, const void *buffer, int count)
 	}
 
 	n = fwrite(buffer, 1, count, file);
-	if (n < (size_t)count && ferror(file))
+	if (n < count && ferror(file))
 		fz_throw(ctx, FZ_ERROR_GENERIC, "cannot fwrite: %s", strerror(errno));
 }
 
 static void
-std_write(fz_context *ctx, void *opaque, const void *buffer, int count)
+std_write(fz_context *ctx, void *opaque, const void *buffer, size_t count)
 {
 	FILE *f = opaque == &fz_stdout_global ? stdout : opaque == &fz_stderr_global ? stderr : NULL;
 	file_write(ctx, f, buffer, count);
@@ -177,7 +177,7 @@ fz_new_output_with_path(fz_context *ctx, const char *filename, int append)
 }
 
 static void
-buffer_write(fz_context *ctx, void *opaque, const void *data, int len)
+buffer_write(fz_context *ctx, void *opaque, const void *data, size_t len)
 {
 	fz_buffer *buffer = opaque;
 	fz_write_buffer(ctx, buffer, data, len);
@@ -193,7 +193,7 @@ static fz_off_t
 buffer_tell(fz_context *ctx, void *opaque)
 {
 	fz_buffer *buffer = opaque;
-	return buffer->len;
+	return (fz_off_t)buffer->len;
 }
 
 static void
@@ -243,7 +243,7 @@ void
 fz_vprintf(fz_context *ctx, fz_output *out, const char *fmt, va_list old_args)
 {
 	char buffer[256], *p = buffer;
-	int len;
+	size_t len;
 	va_list args;
 
 	if (!out) return;
@@ -291,4 +291,52 @@ fz_save_buffer(fz_context *ctx, fz_buffer *buf, const char *filename)
 		fz_drop_output(ctx, out);
 	fz_catch(ctx)
 		fz_rethrow(ctx);
+}
+
+fz_band_writer *fz_new_band_writer_of_size(fz_context *ctx, size_t size, fz_output *out)
+{
+	fz_band_writer *writer = fz_calloc(ctx, size, 1);
+
+	assert(size >= sizeof(*writer));
+
+	writer->out = out;
+
+	return writer;
+}
+
+void fz_write_header(fz_context *ctx, fz_band_writer *writer, int w, int h, int n, int alpha, int xres, int yres, int pagenum)
+{
+	if (writer == NULL || writer->band == NULL)
+		return;
+	writer->w = w;
+	writer->h = h;
+	writer->n = n;
+	writer->alpha = alpha;
+	writer->xres = xres;
+	writer->yres = yres;
+	writer->pagenum = pagenum;
+	writer->header(ctx, writer);
+}
+
+void fz_write_band(fz_context *ctx, fz_band_writer *writer, int stride, int band_start, int band_height, const unsigned char *samples)
+{
+	if (writer == NULL || writer->band == NULL)
+		return;
+	writer->band(ctx, writer, stride, band_start, band_height, samples);
+}
+
+void fz_write_trailer(fz_context *ctx, fz_band_writer *writer)
+{
+	if (writer == NULL || writer->trailer == NULL)
+		return;
+	writer->trailer(ctx, writer);
+}
+
+void fz_drop_band_writer(fz_context *ctx, fz_band_writer *writer)
+{
+	if (writer == NULL)
+		return;
+	if (writer->drop != NULL)
+		writer->drop(ctx, writer);
+	fz_free(ctx, writer);
 }

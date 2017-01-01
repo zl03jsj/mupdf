@@ -2,7 +2,7 @@ package com.artifex.mupdf.fitz;
 
 public class DisplayList
 {
-	protected long pointer;
+	private long pointer;
 
 	protected native void finalize();
 
@@ -17,9 +17,23 @@ public class DisplayList
 		pointer = newNative();
 	}
 
-	public native void run(Device device, Matrix ctm, Rect scissor, Cookie cookie);
+	private DisplayList(long p) {
+		pointer = p;
+	}
 
-	public void run(Device device, Matrix ctm, Cookie cookie) {
-		run(device, ctm, null, cookie);
+
+	public native Pixmap toPixmap(Matrix ctm, ColorSpace colorspace, boolean alpha);
+	public native StructuredText toStructuredText(String options);
+
+	public StructuredText toStructuredText() {
+		return toStructuredText(null);
+	}
+
+	public native Rect[] search(String needle);
+
+	public native void run(Device dev, Matrix ctm, Rect scissor, Cookie cookie);
+
+	public void run(Device dev, Matrix ctm, Cookie cookie) {
+		run(dev, ctm, null, cookie);
 	}
 }

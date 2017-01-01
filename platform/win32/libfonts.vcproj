@@ -10,135 +10,16 @@
 		<Platform
 			Name="Win32"
 		/>
+		<Platform
+			Name="x64"
+		/>
 	</Platforms>
 	<ToolFiles>
 	</ToolFiles>
 	<Configurations>
 		<Configuration
-			Name="Debug|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)\$(ProjectName)"
-			ConfigurationType="4"
-			CharacterSet="2"
-			>
-			<Tool
-				Name="VCPreBuildEventTool"
-			/>
-			<Tool
-				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"
-			/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
-			/>
-			<Tool
-				Name="VCMIDLTool"
-			/>
-			<Tool
-				Name="VCCLCompilerTool"
-				Optimization="0"
-				MinimalRebuild="true"
-				BasicRuntimeChecks="3"
-				RuntimeLibrary="1"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
-				DebugInformationFormat="4"
-			/>
-			<Tool
-				Name="VCManagedResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCPreLinkEventTool"
-			/>
-			<Tool
-				Name="VCLibrarianTool"
-				IgnoreAllDefaultLibraries="true"
-			/>
-			<Tool
-				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCXDCMakeTool"
-			/>
-			<Tool
-				Name="VCBscMakeTool"
-			/>
-			<Tool
-				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCPostBuildEventTool"
-			/>
-		</Configuration>
-		<Configuration
-			Name="Memento|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)\$(ProjectName)"
-			ConfigurationType="4"
-			CharacterSet="2"
-			>
-			<Tool
-				Name="VCPreBuildEventTool"
-			/>
-			<Tool
-				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"
-			/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
-			/>
-			<Tool
-				Name="VCMIDLTool"
-			/>
-			<Tool
-				Name="VCCLCompilerTool"
-				Optimization="0"
-				MinimalRebuild="true"
-				BasicRuntimeChecks="3"
-				RuntimeLibrary="1"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
-				DebugInformationFormat="4"
-			/>
-			<Tool
-				Name="VCManagedResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCPreLinkEventTool"
-			/>
-			<Tool
-				Name="VCLibrarianTool"
-				IgnoreAllDefaultLibraries="true"
-			/>
-			<Tool
-				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCXDCMakeTool"
-			/>
-			<Tool
-				Name="VCBscMakeTool"
-			/>
-			<Tool
-				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCPostBuildEventTool"
-			/>
-		</Configuration>
-		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			OutputDirectory="$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="4"
 			CharacterSet="2"
@@ -162,9 +43,73 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				RuntimeLibrary="0"
+				EnableFunctionLevelLinking="true"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="3"
+				OmitDefaultLibName="true"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLibrarianTool"
+				IgnoreAllDefaultLibraries="true"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release|x64"
+			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			ConfigurationType="4"
+			CharacterSet="2"
+			WholeProgramOptimization="0"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+				TargetEnvironment="3"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				RuntimeLibrary="0"
+				EnableFunctionLevelLinking="true"
+				WarningLevel="3"
+				Detect64BitPortabilityProblems="false"
+				DebugInformationFormat="3"
+				OmitDefaultLibName="true"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -228,51 +173,51 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\generated\NimbusMono-Bold.c"
+			RelativePath="..\..\generated\NimbusMonoPS-Bold.c"
 			>
 		</File>
 		<File
-			RelativePath="..\..\generated\NimbusMono-BoldOblique.c"
+			RelativePath="..\..\generated\NimbusMonoPS-BoldItalic.c"
 			>
 		</File>
 		<File
-			RelativePath="..\..\generated\NimbusMono-Oblique.c"
+			RelativePath="..\..\generated\NimbusMonoPS-Italic.c"
 			>
 		</File>
 		<File
-			RelativePath="..\..\generated\NimbusMono-Regular.c"
+			RelativePath="..\..\generated\NimbusMonoPS-Regular.c"
 			>
 		</File>
 		<File
-			RelativePath="..\..\generated\NimbusRomNo9L-Med.c"
+			RelativePath="..\..\generated\NimbusRoman-Bold.c"
 			>
 		</File>
 		<File
-			RelativePath="..\..\generated\NimbusRomNo9L-MedIta.c"
+			RelativePath="..\..\generated\NimbusRoman-BoldItalic.c"
 			>
 		</File>
 		<File
-			RelativePath="..\..\generated\NimbusRomNo9L-Reg.c"
+			RelativePath="..\..\generated\NimbusRoman-Italic.c"
 			>
 		</File>
 		<File
-			RelativePath="..\..\generated\NimbusRomNo9L-RegIta.c"
+			RelativePath="..\..\generated\NimbusRoman-Regular.c"
 			>
 		</File>
 		<File
-			RelativePath="..\..\generated\NimbusSanL-Bol.c"
+			RelativePath="..\..\generated\NimbusSans-Bold.c"
 			>
 		</File>
 		<File
-			RelativePath="..\..\generated\NimbusSanL-BolIta.c"
+			RelativePath="..\..\generated\NimbusSans-BoldOblique.c"
 			>
 		</File>
 		<File
-			RelativePath="..\..\generated\NimbusSanL-Reg.c"
+			RelativePath="..\..\generated\NimbusSans-Oblique.c"
 			>
 		</File>
 		<File
-			RelativePath="..\..\generated\NimbusSanL-RegIta.c"
+			RelativePath="..\..\generated\NimbusSans-Regular.c"
 			>
 		</File>
 		<File
@@ -652,6 +597,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\generated\NotoSerifDevanagari-Regular.c"
+			>
+		</File>
+		<File
 			RelativePath="..\..\generated\NotoSerifGeorgian-Regular.c"
 			>
 		</File>
@@ -688,7 +637,23 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\generated\StandardSymL.c"
+			RelativePath="..\..\generated\SourceHanSansCN-Regular.c"
+			>
+		</File>
+		<File
+			RelativePath="..\..\generated\SourceHanSansJP-Regular.c"
+			>
+		</File>
+		<File
+			RelativePath="..\..\generated\SourceHanSansKR-Regular.c"
+			>
+		</File>
+		<File
+			RelativePath="..\..\generated\SourceHanSansTW-Regular.c"
+			>
+		</File>
+		<File
+			RelativePath="..\..\generated\StandardSymbolsPS.c"
 			>
 		</File>
 	</Files>

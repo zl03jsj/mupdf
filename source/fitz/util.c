@@ -4,14 +4,16 @@ fz_display_list *
 fz_new_display_list_from_page(fz_context *ctx, fz_page *page)
 {
 	fz_display_list *list;
+	fz_rect bounds;
 	fz_device *dev;
 
-	list = fz_new_display_list(ctx);
+	list = fz_new_display_list(ctx, fz_bound_page(ctx, page, &bounds));
 
 	fz_try(ctx)
 	{
 		dev = fz_new_list_device(ctx, list);
 		fz_run_page(ctx, page, dev, &fz_identity, NULL);
+		fz_close_device(ctx, dev);
 	}
 	fz_always(ctx)
 	{
@@ -42,6 +44,62 @@ fz_new_display_list_from_page_number(fz_context *ctx, fz_document *doc, int numb
 	return list;
 }
 
+fz_display_list *
+fz_new_display_list_from_page_contents(fz_context *ctx, fz_page *page)
+{
+	fz_display_list *list;
+	fz_rect bounds;
+	fz_device *dev;
+
+	list = fz_new_display_list(ctx, fz_bound_page(ctx, page, &bounds));
+
+	fz_try(ctx)
+	{
+		dev = fz_new_list_device(ctx, list);
+		fz_run_page_contents(ctx, page, dev, &fz_identity, NULL);
+		fz_close_device(ctx, dev);
+	}
+	fz_always(ctx)
+	{
+		fz_drop_device(ctx, dev);
+	}
+	fz_catch(ctx)
+	{
+		fz_drop_display_list(ctx, list);
+		fz_rethrow(ctx);
+	}
+
+	return list;
+}
+
+fz_display_list *
+fz_new_display_list_from_annot(fz_context *ctx, fz_annot *annot)
+{
+	fz_display_list *list;
+	fz_rect bounds;
+	fz_device *dev;
+
+	list = fz_new_display_list(ctx, fz_bound_annot(ctx, annot, &bounds));
+
+	fz_try(ctx)
+	{
+		dev = fz_new_list_device(ctx, list);
+		fz_run_annot(ctx, annot, dev, &fz_identity, NULL);
+		fz_close_device(ctx, dev);
+	}
+	fz_always(ctx)
+	{
+		fz_drop_device(ctx, dev);
+	}
+	fz_catch(ctx)
+	{
+		fz_drop_display_list(ctx, list);
+		fz_rethrow(ctx);
+	}
+
+	return list;
+}
+
 fz_pixmap *
 fz_new_pixmap_from_display_list(fz_context *ctx, fz_display_list *list, const fz_matrix *ctm, fz_colorspace *cs, int alpha)
 {
@@ -62,8 +120,9 @@ fz_new_pixmap_from_display_list(fz_context *ctx, fz_display_list *list, const fz
 
 	fz_try(ctx)
 	{
-		dev = fz_new_draw_device(ctx, pix);
-		fz_run_display_list(ctx, list, dev, ctm, NULL, NULL);
+		dev = fz_new_draw_device(ctx, ctm, pix);
+		fz_run_display_list(ctx, list, dev, &fz_identity, NULL, NULL);
+		fz_close_device(ctx, dev);
 	}
 	fz_always(ctx)
 	{
@@ -79,7 +138,7 @@ fz_new_pixmap_from_display_list(fz_context *ctx, fz_display_list *list, const fz
 }
 
 fz_pixmap *
-fz_new_pixmap_from_page_contents(fz_context *ctx, fz_page *page, const fz_matrix *ctm, fz_colorspace *cs)
+fz_new_pixmap_from_page_contents(fz_context *ctx, fz_page *page, const fz_matrix *ctm, fz_colorspace *cs, int alpha)
 {
 	fz_rect rect;
 	fz_irect irect;
@@ -90,13 +149,17 @@ fz_new_pixmap_from_page_contents(fz_context *ctx, fz_page *page, const fz_matrix
 	fz_transform_rect(&rect, ctm);
 	fz_round_rect(&irect, &rect);
 
-	pix = fz_new_pixmap_with_bbox(ctx, cs, &irect, 0);
-	fz_clear_pixmap_with_value(ctx, pix, 0xFF);
+	pix = fz_new_pixmap_with_bbox(ctx, cs, &irect, alpha);
+	if (alpha)
+		fz_clear_pixmap(ctx, pix);
+	else
+		fz_clear_pixmap_with_value(ctx, pix, 0xFF);
 
 	fz_try(ctx)
 	{
-		dev = fz_new_draw_device(ctx, pix);
-		fz_run_page_contents(ctx, page, dev, ctm, NULL);
+		dev = fz_new_draw_device(ctx, ctm, pix);
+		fz_run_page_contents(ctx, page, dev, &fz_identity, NULL);
+		fz_close_device(ctx, dev);
 	}
 	fz_always(ctx)
 	{
@@ -112,7 +175,7 @@ fz_new_pixmap_from_page_contents(fz_context *ctx, fz_page *page, const fz_matrix
 }
 
 fz_pixmap *
-fz_new_pixmap_from_annot(fz_context *ctx, fz_annot *annot, const fz_matrix *ctm, fz_colorspace *cs)
+fz_new_pixmap_from_annot(fz_context *ctx, fz_annot *annot, const fz_matrix *ctm, fz_colorspace *cs, int alpha)
 {
 	fz_rect rect;
 	fz_irect irect;
@@ -123,13 +186,17 @@ fz_new_pixmap_from_annot(fz_context *ctx, fz_annot *annot, const fz_matrix *ctm,
 	fz_transform_rect(&rect, ctm);
 	fz_round_rect(&irect, &rect);
 
-	pix = fz_new_pixmap_with_bbox(ctx, cs, &irect, 1);
-	fz_clear_pixmap(ctx, pix);
+	pix = fz_new_pixmap_with_bbox(ctx, cs, &irect, alpha);
+	if (alpha)
+		fz_clear_pixmap(ctx, pix);
+	else
+		fz_clear_pixmap_with_value(ctx, pix, 0xFF);
 
 	fz_try(ctx)
 	{
-		dev = fz_new_draw_device(ctx, pix);
-		fz_run_annot(ctx, annot, dev, ctm, NULL);
+		dev = fz_new_draw_device(ctx, ctm, pix);
+		fz_run_annot(ctx, annot, dev, &fz_identity, NULL);
+		fz_close_device(ctx, dev);
 	}
 	fz_always(ctx)
 	{
@@ -145,7 +212,7 @@ fz_new_pixmap_from_annot(fz_context *ctx, fz_annot *annot, const fz_matrix *ctm,
 }
 
 fz_pixmap *
-fz_new_pixmap_from_page(fz_context *ctx, fz_page *page, const fz_matrix *ctm, fz_colorspace *cs)
+fz_new_pixmap_from_page(fz_context *ctx, fz_page *page, const fz_matrix *ctm, fz_colorspace *cs, int alpha)
 {
 	fz_rect rect;
 	fz_irect irect;
@@ -156,13 +223,17 @@ fz_new_pixmap_from_page(fz_context *ctx, fz_page *page, const fz_matrix *ctm, fz
 	fz_transform_rect(&rect, ctm);
 	fz_round_rect(&irect, &rect);
 
-	pix = fz_new_pixmap_with_bbox(ctx, cs, &irect, 0);
-	fz_clear_pixmap_with_value(ctx, pix, 0xFF);
+	pix = fz_new_pixmap_with_bbox(ctx, cs, &irect, alpha);
+	if (alpha)
+		fz_clear_pixmap(ctx, pix);
+	else
+		fz_clear_pixmap_with_value(ctx, pix, 0xFF);
 
 	fz_try(ctx)
 	{
-		dev = fz_new_draw_device(ctx, pix);
-		fz_run_page(ctx, page, dev, ctm, NULL);
+		dev = fz_new_draw_device(ctx, ctm, pix);
+		fz_run_page(ctx, page, dev, &fz_identity, NULL);
+		fz_close_device(ctx, dev);
 	}
 	fz_always(ctx)
 	{
@@ -178,14 +249,14 @@ fz_new_pixmap_from_page(fz_context *ctx, fz_page *page, const fz_matrix *ctm, fz
 }
 
 fz_pixmap *
-fz_new_pixmap_from_page_number(fz_context *ctx, fz_document *doc, int number, const fz_matrix *ctm, fz_colorspace *cs)
+fz_new_pixmap_from_page_number(fz_context *ctx, fz_document *doc, int number, const fz_matrix *ctm, fz_colorspace *cs, int alpha)
 {
 	fz_page *page;
 	fz_pixmap *pix;
 
 	page = fz_load_page(ctx, doc, number);
 	fz_try(ctx)
-		pix = fz_new_pixmap_from_page(ctx, page, ctm, cs);
+		pix = fz_new_pixmap_from_page(ctx, page, ctm, cs, alpha);
 	fz_always(ctx)
 		fz_drop_page(ctx, page);
 	fz_catch(ctx)
@@ -194,16 +265,21 @@ fz_new_pixmap_from_page_number(fz_context *ctx, fz_document *doc, int number, co
 }
 
 fz_stext_page *
-fz_new_stext_page_from_display_list(fz_context *ctx, fz_display_list *list, fz_stext_sheet *sheet)
+fz_new_stext_page_from_display_list(fz_context *ctx, fz_display_list *list, fz_stext_sheet *sheet, const fz_stext_options *options)
 {
 	fz_stext_page *text;
 	fz_device *dev;
+	fz_rect mediabox;
 
-	text = fz_new_stext_page(ctx);
+	if (list == NULL)
+		return NULL;
+
+	text = fz_new_stext_page(ctx, fz_bound_display_list(ctx, list, &mediabox));
 	fz_try(ctx)
 	{
-		dev = fz_new_stext_device(ctx, sheet, text);
+		dev = fz_new_stext_device(ctx, sheet, text, options);
 		fz_run_display_list(ctx, list, dev, &fz_identity, NULL, NULL);
+		fz_close_device(ctx, dev);
 	}
 	fz_always(ctx)
 	{
@@ -219,16 +295,21 @@ fz_new_stext_page_from_display_list(fz_context *ctx, fz_display_list *list, fz_s
 }
 
 fz_stext_page *
-fz_new_stext_page_from_page(fz_context *ctx, fz_page *page, fz_stext_sheet *sheet)
+fz_new_stext_page_from_page(fz_context *ctx, fz_page *page, fz_stext_sheet *sheet, const fz_stext_options *options)
 {
 	fz_stext_page *text;
 	fz_device *dev;
+	fz_rect mediabox;
 
-	text = fz_new_stext_page(ctx);
+	if (page == NULL)
+		return NULL;
+
+	text = fz_new_stext_page(ctx, fz_bound_page(ctx, page, &mediabox));
 	fz_try(ctx)
 	{
-		dev = fz_new_stext_device(ctx, sheet, text);
+		dev = fz_new_stext_device(ctx, sheet, text, options);
 		fz_run_page(ctx, page, dev, &fz_identity, NULL);
+		fz_close_device(ctx, dev);
 	}
 	fz_always(ctx)
 	{
@@ -244,14 +325,14 @@ fz_new_stext_page_from_page(fz_context *ctx, fz_page *page, fz_stext_sheet *shee
 }
 
 fz_stext_page *
-fz_new_stext_page_from_page_number(fz_context *ctx, fz_document *doc, int number, fz_stext_sheet *sheet)
+fz_new_stext_page_from_page_number(fz_context *ctx, fz_document *doc, int number, fz_stext_sheet *sheet, const fz_stext_options *options)
 {
 	fz_page *page;
 	fz_stext_page *text;
 
 	page = fz_load_page(ctx, doc, number);
 	fz_try(ctx)
-		text = fz_new_stext_page_from_page(ctx, page, sheet);
+		text = fz_new_stext_page_from_page(ctx, page, sheet, options);
 	fz_always(ctx)
 		fz_drop_page(ctx, page);
 	fz_catch(ctx)
@@ -269,7 +350,7 @@ fz_search_display_list(fz_context *ctx, fz_display_list *list, const char *needl
 	sheet = fz_new_stext_sheet(ctx);
 	fz_try(ctx)
 	{
-		text = fz_new_stext_page_from_display_list(ctx, list, sheet);
+		text = fz_new_stext_page_from_display_list(ctx, list, sheet, NULL);
 		count = fz_search_stext_page(ctx, text, needle, hit_bbox, hit_max);
 	}
 	fz_always(ctx)
@@ -290,7 +371,7 @@ fz_search_page(fz_context *ctx, fz_page *page, const char *needle, fz_rect *hit_
 	sheet = fz_new_stext_sheet(ctx);
 	fz_try(ctx)
 	{
-		text = fz_new_stext_page_from_page(ctx, page, sheet);
+		text = fz_new_stext_page_from_page(ctx, page, sheet, NULL);
 		count = fz_search_stext_page(ctx, text, needle, hit_bbox, hit_max);
 	}
 	fz_always(ctx)
@@ -366,7 +447,7 @@ fz_new_buffer_from_stext_page(fz_context *ctx, fz_stext_page *text, const fz_rec
 						fz_stext_char_bbox(ctx, &hitbox, span, i);
 						c = span->text[i].c;
 						if (c < 32)
-							c = '?';
+							c = 0xFFFD;
 						if (hitbox.x1 >= x0 && hitbox.x0 <= x1 && hitbox.y1 >= y0 && hitbox.y0 <= y1)
 						{
 							saw_text = 1;
@@ -397,7 +478,7 @@ fz_new_buffer_from_stext_page(fz_context *ctx, fz_stext_page *text, const fz_rec
 }
 
 fz_buffer *
-fz_new_buffer_from_display_list(fz_context *ctx, fz_display_list *list, const fz_rect *sel, int crlf)
+fz_new_buffer_from_display_list(fz_context *ctx, fz_display_list *list, const fz_rect *sel, int crlf, const fz_stext_options *options)
 {
 	fz_stext_sheet *sheet;
 	fz_stext_page *text;
@@ -406,7 +487,7 @@ fz_new_buffer_from_display_list(fz_context *ctx, fz_display_list *list, const fz
 	sheet = fz_new_stext_sheet(ctx);
 	fz_try(ctx)
 	{
-		text = fz_new_stext_page_from_display_list(ctx, list, sheet);
+		text = fz_new_stext_page_from_display_list(ctx, list, sheet, options);
 		buf = fz_new_buffer_from_stext_page(ctx, text, sel, crlf);
 	}
 	fz_always(ctx)
@@ -418,7 +499,7 @@ fz_new_buffer_from_display_list(fz_context *ctx, fz_display_list *list, const fz
 }
 
 fz_buffer *
-fz_new_buffer_from_page(fz_context *ctx, fz_page *page, const fz_rect *sel, int crlf)
+fz_new_buffer_from_page(fz_context *ctx, fz_page *page, const fz_rect *sel, int crlf, const fz_stext_options *options)
 {
 	fz_stext_sheet *sheet;
 	fz_stext_page *text;
@@ -427,7 +508,7 @@ fz_new_buffer_from_page(fz_context *ctx, fz_page *page, const fz_rect *sel, int 
 	sheet = fz_new_stext_sheet(ctx);
 	fz_try(ctx)
 	{
-		text = fz_new_stext_page_from_page(ctx, page, sheet);
+		text = fz_new_stext_page_from_page(ctx, page, sheet, options);
 		buf = fz_new_buffer_from_stext_page(ctx, text, sel, crlf);
 	}
 	fz_always(ctx)
@@ -439,14 +520,14 @@ fz_new_buffer_from_page(fz_context *ctx, fz_page *page, const fz_rect *sel, int 
 }
 
 fz_buffer *
-fz_new_buffer_from_page_number(fz_context *ctx, fz_document *doc, int number, const fz_rect *sel, int crlf)
+fz_new_buffer_from_page_number(fz_context *ctx, fz_document *doc, int number, const fz_rect *sel, int crlf, const fz_stext_options *options)
 {
 	fz_page *page;
 	fz_buffer *buf;
 
 	page = fz_load_page(ctx, doc, number);
 	fz_try(ctx)
-		buf = fz_new_buffer_from_page(ctx, page, sel, crlf);
+		buf = fz_new_buffer_from_page(ctx, page, sel, crlf, options);
 	fz_always(ctx)
 		fz_drop_page(ctx, page);
 	fz_catch(ctx)

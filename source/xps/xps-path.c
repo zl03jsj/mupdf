@@ -1,4 +1,5 @@
-#include "mupdf/xps.h"
+#include "mupdf/fitz.h"
+#include "xps-imp.h"
 
 static char *
 xps_parse_float_array(fz_context *ctx, xps_document *doc, char *s, int num, float *x)
@@ -90,7 +91,7 @@ angle_between(const fz_point u, const fz_point v)
 }
 
 /*
-	Some explaination of the parameters here is warranted. See:
+	Some explanation of the parameters here is warranted. See:
 
 	http://www.w3.org/TR/SVG11/implnote.html#ArcImplementationNotes
 
