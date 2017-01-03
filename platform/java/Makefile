@@ -3,8 +3,8 @@ OS ?= $(shell uname)
 ifeq "$(OS)" "Darwin"
 MUPDF_JAVA := libmupdf_java64.jnilib
 JAVA_CFLAGS := \
-	-I /Library/Java/JavaVirtualMachines/jdk1.8.0_66.jdk/Contents/Home/include \
-	-I /Library/Java/JavaVirtualMachines/jdk1.8.0_66.jdk/Contents/Home/include/darwin
+	-I /Library/Java/JavaVirtualMachines/jdk1.8.0_102.jdk/Contents/Home/include \
+	-I /Library/Java/JavaVirtualMachines/jdk1.8.0_102.jdk/Contents/Home/include/darwin
 else
 
 BITS := $(shell getconf LONG_BIT)

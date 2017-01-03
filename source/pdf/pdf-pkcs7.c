@@ -1,6 +1,6 @@
 #include "mupdf/pdf.h" // TODO: move this file to pdf module
 
-#define HAVE_LIBCRYPTO
+// #define HAVE_LIBCRYPTO
 #ifdef HAVE_LIBCRYPTO
 
 #include "openssl/err.h"
@@ -838,49 +838,6 @@ int pdf_signatures_supported(fz_context *ctx)
 	return 1;
 }
 
-#if 0
-BIO *Z_file_segment_BIO(fz_context *ctx, const char *filename, pdf_obj *byterange)
-{
-	BIO *bdata = NULL;
-	BIO *bsegs = NULL;
-	FILE *f = NULL;
-
-	int (*brange)[2] = NULL;
-	int brange_len = pdf_array_len(ctx, byterange)/2;
-
-	fz_var(bdata);
-	fz_var(bsegs);
-	fz_var(f);
-
-	fz_try(ctx)
-	{
-		int i;
-		brange = fz_calloc(ctx, brange_len, sizeof(*brange));
-		for (i = 0; i < brange_len; i++)
-		{
-			brange[i][0] = pdf_to_int(ctx, pdf_array_get(ctx, byterange, 2*i));
-			brange[i][1] = pdf_to_int(ctx, pdf_array_get(ctx, byterange, 2*i+1));
-		}
-        bdata = BIO_new_file(filename, "rb");
-		bsegs = BIO_new(BIO_f_segments());
-		if (bsegs == NULL)
-			fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to create segment filter");
-
-		bsegs->next_bio = bdata;
-		BIO_set_segments(bsegs, brange, brange_len);
-    }
-    fz_always(ctx) {
-        if(f) fclose(f);
-    }
-    fz_catch(ctx) {
-        if(brange) fz_free(ctx, brange);
-        fz_rethrow(ctx);
-
-    }
-    return bsegs;
-}
-#endif
-
 static void z_openssl_dosign_adobe_like(fz_context *ctx, z_device *device, pdf_document *doc, pdf_annot *annot, z_pdf_sign_appearance *app)
 {
     z_openssl_device *dev = (z_openssl_device*)device;
@@ -941,10 +898,8 @@ static void z_openssl_dosign(fz_context *ctx, z_device *device, pdf_document* do
         pdf_obj *wobj = annot->obj;
 		pdf_signature_set_value(ctx, doc, wobj, device);
 
-        pdf_annot_rect(ctx, annot, &rect);
 		/* Create an appearance stream only if the signature is intended to be visible */
-		if ( !fz_is_empty_rect(&rect) && app)
-		{
+        if( app && !fz_is_empty_rect(&app->rect)) {
             app->set_app(ctx, doc, annot, app);
 		}
 	}

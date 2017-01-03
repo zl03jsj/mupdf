@@ -160,21 +160,16 @@ pdf_load_image_imp(fz_context *ctx, pdf_document *doc, pdf_obj *rdb, pdf_obj *di
              * this block is modified by zl
              * or when dict is direct image obj, the program crush!
              *-----------------------------------*/
-            int num = 0, gen = 0;
-            if( pdf_is_indirect(ctx, dict) ) {
-                num = pdf_to_num(ctx, dict);
-                gen = pdf_to_gen(ctx, dict);
-            }
-            else {
-                num = pdf_obj_parent_num(ctx, dict);
-                pdf_xref_entry *x = pdf_get_xref_entry(ctx, doc, num);
-                if(x) {
-                    gen = x->gen;
-                }
-            }
+            int num = 0;
+            if( pdf_is_indirect(ctx, dict) ) num = pdf_to_num(ctx, dict);
+            else num = pdf_obj_parent_num(ctx, dict);
+
             if( 0!=num ) {
 			/* Just load the compressed image data now and we can decode it on demand. */
-                buffer = pdf_load_compressed_stream(ctx, doc, pdf_to_num(ctx, dict));
+                // modified by zl
+                // change pdf_to_num(ctx, dict) to num
+                // or may cause crush!!!!
+                buffer = pdf_load_compressed_stream(ctx, doc, num);
                 image = fz_new_image_from_compressed_buffer(ctx, w, h, bpc, colorspace, 96, 96, interpolate, imagemask, decode, use_colorkey ? colorkey : NULL, buffer, mask);
                 image->invert_cmyk_jpeg = 0;
             }

@@ -2617,7 +2617,6 @@ static void presize_unsaved_signature_byteranges(fz_context *ctx, pdf_document *
 	}
 }
 
-static void z_compelete_sign(fz_context *ctx, pdf_document *doc, z_device *device);
 static void complete_signatures(fz_context *ctx, pdf_document *doc, pdf_write_state *opts, const char *filename)
 {
 	pdf_unsaved_sig *usig;
@@ -2627,6 +2626,7 @@ static void complete_signatures(fz_context *ctx, pdf_document *doc, pdf_write_st
 	int last_end;
 	FILE *f;
 
+    doc->freeze_updates = 1;
 	for (s = 0; s < doc->num_incremental_sections; s++)
 	{
 		pdf_xref *xref = &doc->xref_sections[doc->num_incremental_sections - s - 1];
@@ -2715,6 +2715,7 @@ static void complete_signatures(fz_context *ctx, pdf_document *doc, pdf_write_st
 			}
 		}
 	}
+    doc->freeze_updates = 0;
 }
 
 static void sanitize(fz_context *ctx, pdf_document *doc, int ascii)
@@ -3041,8 +3042,9 @@ do_pdf_save_document(fz_context *ctx, pdf_document *doc, pdf_write_state *opts, 
 		objects_dump(ctx, doc, opts);
 #endif
 		finalise_write_state(ctx, opts);
-
-		doc->freeze_updates = 0;
+        /*set freeze_updates to 0 will cause complete_signatures crush
+                     fixed by zl03jsj@163.com */
+//        doc->freeze_updates = 0;
 	}
 	fz_catch(ctx)
 	{
@@ -3088,6 +3090,10 @@ void pdf_write_document(fz_context *ctx, pdf_document *doc, fz_output *out, pdf_
 	opts.out = out;
 
 	do_pdf_save_document(ctx, doc, &opts, in_opts);
+    /* because we cann't set freeze_update to 0, in do_pdf_save_document
+     * so we set here.
+                    fixed by zl03jsj@163.com */
+    doc->freeze_updates = 0;
 }
 
 void pdf_save_document(fz_context *ctx, pdf_document *doc, const char *filename, pdf_write_options *in_opts)
@@ -3128,11 +3134,14 @@ void pdf_save_document(fz_context *ctx, pdf_document *doc, const char *filename,
 	fz_try(ctx)
 	{
 		do_pdf_save_document(ctx, doc, &opts, in_opts);
-
 		complete_signatures(ctx, doc, &opts, filename);
 	}
 	fz_always(ctx)
 	{
+        // because we cann't set freeze_update to 0, in do_pdf_save_document
+        // we set here                  
+        // modified by zl03jsj@163.com
+        doc->freeze_updates = 0;
 		fz_drop_output(ctx, opts.out);
 		opts.out = NULL;
 	}

@@ -56,16 +56,18 @@ ImageType img_recognize(char *filename) {
 	return image_type_unkown;
 }
 
-int pdf_save_incremental_tofile(fz_context *ctx, pdf_document *doc,char *filename) {
+void z_pdf_incremental_save_document(fz_context *ctx, pdf_document *doc, const char *savefile, const char *orignalfile) 
+{
     char *tmpfilename = NULL;
     pdf_write_options opts = {0};
     fz_buffer *buffer = NULL;
+    int tmpfile = 0;
     int saved = 0;
     
     fz_try(ctx) {
-        tmpfilename = new_unique_string(ctx, filename, NULL);
-        if(fz_file_exists(ctx, filename)) {
-            buffer = fz_read_file(ctx, filename);
+        tmpfilename = new_unique_string(ctx, savefile, NULL);
+        if(orignalfile && fz_file_exists(ctx, orignalfile)) {
+            buffer = fz_read_file(ctx, orignalfile);
         }
         else {
             int ofs = fz_tell(ctx, doc->file);
@@ -74,22 +76,28 @@ int pdf_save_incremental_tofile(fz_context *ctx, pdf_document *doc,char *filenam
             fz_seek(ctx, doc->file, ofs, SEEK_SET);
         }
         fz_save_buffer(ctx, buffer, tmpfilename); 
+        tmpfile = 1;
         // opts.do_pretty = 1; // write tightly
         opts.do_incremental = 1;
         pdf_save_document(ctx, doc, tmpfilename, &opts);
         saved = 1;
     }
     fz_always(ctx) {
-        if(buffer) fz_drop_buffer(ctx, buffer);
+        if(buffer) 
+            fz_drop_buffer(ctx, buffer);
+
+        if(saved) 
+            rename(tmpfilename, savefile); 
+
+        if(tmpfilename) 
+        {
+            if(tmpfile) remove(tmpfilename);
+            fz_free(ctx, tmpfilename);
+        }
     }
     fz_catch(ctx){
-        if(tmpfilename) fz_free(ctx, tmpfilename);
         fz_rethrow(ctx);
     }
-
-    if(saved) rename(tmpfilename, filename); 
-
-	return z_okay;
 }
 
 pdf_document * pdf_open_document_with_filename(fz_context * ctx, const char * filename, char * password)
@@ -366,7 +374,7 @@ int pdf_add_image_with_filestream(fz_context *ctx, fz_stream*file, fz_buffer*img
 	}
 	int code = pdf_add_image_with_document(ctx, doc, imgbf, pageno, x, y, w, h);
 	if( !code ) 
-		pdf_save_incremental_tofile(ctx, doc, outfile);
+        z_pdf_incremental_save_document(ctx, doc, outfile, NULL);
 	pdf_drop_document(ctx, doc);
 	return code;
 }
@@ -420,7 +428,7 @@ fz_rect pdf_page_box(fz_context *ctx, pdf_document *doc, int pageno) {
 	return bbox;
 }
 
-int pdf_add_content_Stream(fz_context *ctx, pdf_document *doc, pdf_obj *page,
+int pdf_add_content_stream(fz_context *ctx, pdf_document *doc, pdf_obj *page,
     fz_buffer *buffer)
 {
     if( !page ) return z_error;

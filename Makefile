@@ -294,7 +294,7 @@ $(OUT)/cmapdump.o : include/mupdf/pdf/cmap.h source/fitz/context.c source/fitz/e
 # --- Tools and Apps ---
 MUTOOL := $(OUT)/mutool
 MUTOOL_OBJ := $(addprefix $(OUT)/tools/, mutool.o muconvert.o mudraw.o murun.o)
-MUTOOL_OBJ += $(addprefix $(OUT)/tools/, pdfclean.o pdfcreate.o pdfextract.o pdfinfo.o pdfmerge.o pdfposter.o pdfpages.o pdfshow.o pdfaddimage.o))
+MUTOOL_OBJ += $(addprefix $(OUT)/tools/, pdfclean.o pdfcreate.o pdfextract.o pdfinfo.o pdfmerge.o pdfposter.o pdfpages.o pdfshow.o pdfaddimage.o)
 $(MUTOOL_OBJ): $(FITZ_HDR) $(PDF_HDR)
 MUTOOL_LIB = $(OUT)/libmutools.a
 $(MUTOOL_LIB) : $(MUTOOL_OBJ)
@@ -393,7 +393,8 @@ docdir ?= $(prefix)/share/doc/mupdf
 
 third: $(THIRD_LIB)
 extra: $(CURL_LIB) $(GLFW_LIB)
-libs: $(INSTALL_LIBS) showflags;
+libs: $(INSTALL_LIBS) | showflags
+
 apps: $(INSTALL_APPS)
 
 install: libs apps
@@ -454,14 +455,12 @@ debug:
 	$(MAKE) build=debug 
 	@echo make done!!!!!=====
 
+android: generate
+	$(MAKE) -C platform/android/viewer
+
 showflags:
 	@echo  =================
 	@echo cc=$(CC)
 	@echo cflags=$(CFLAGS)
 	@echo =================
-	$(MAKE) build=debug
-
-android: generate
-	$(MAKE) -C platform/android/viewer
-
 .PHONY: all clean nuke install third libs apps generate

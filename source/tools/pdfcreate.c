@@ -26,14 +26,15 @@ static void usage(void)
 static fz_context *ctx = NULL;
 static pdf_document *doc = NULL;
 
-//#define PDF_ADD_CJKFONT
+#define PDF_ADD_CJKFONT
 
 static void add_font_res(pdf_obj *resources, char *name, char *path)
 {
 	const char *data;
-	int size, index = 0;
+	int size, index;
 	fz_font *font;
 	pdf_obj *subres, *ref;
+
 	// data = fz_lookup_base14_font(ctx, path, &size);
     // "\xBF\xAC\xCC\xE5_GB2312", "simkai,regular",
     // data = fz_lookup_noto_font(ctx, UCDN_SCRIPT_HAN, 0, &size);
@@ -42,13 +43,11 @@ static void add_font_res(pdf_obj *resources, char *name, char *path)
 #else
     data = fz_lookup_base14_font(ctx, path, &size);
 #endif
-    if (data) {
-        font = fz_new_font_from_memory(ctx, name, data, size, index, 0);
-        font->ft_substitute = 1;
-        font->ft_stretch = 0; 
-    }
-    else
-        font = fz_new_font_from_file(ctx, name, path, 0, 0);
+
+	if (data)
+		font = fz_new_font_from_memory(ctx, path, data, size, 0, 0);
+	else
+		font = fz_new_font_from_file(ctx, NULL, path, 0, 0);
 
 	subres = pdf_dict_get(ctx, resources, PDF_NAME_Font);
 	if (!subres)
@@ -61,8 +60,10 @@ static void add_font_res(pdf_obj *resources, char *name, char *path)
 #else
 	ref = pdf_add_simple_font(ctx, doc, font);
 #endif
+	ref = pdf_add_simple_font(ctx, doc, font);
 	pdf_dict_puts(ctx, subres, name, ref);
 	pdf_drop_obj(ctx, ref);
+
 	fz_drop_font(ctx, font);
 }
 
@@ -161,7 +162,7 @@ static void create_page(char *input)
         fz_buffer *tb = fz_new_buffer(ctx, 128);
         fz_buffer_printf(ctx, tb, fmt, n, t);
         pdf_update_stream(ctx, doc, 
-                pdf_dict_get(ctx, page, PDF_OBJ_ENUM_NAME_Contents),
+                pdf_dict_get(ctx, page, PDF_NAME_Contents),
                 tb, 1);
         fz_drop_buffer(ctx, tb);
         fz_free(ctx, t);

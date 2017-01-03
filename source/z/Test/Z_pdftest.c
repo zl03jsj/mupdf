@@ -27,6 +27,7 @@
 #if 1
 void doTestPdfSign(fz_context *ctx, pdf_document *doc, int pageno, fz_rect rect, char *savefile) 
 {
+    printf("dosign test pdf");
     z_device * device = z_openssl_new_device(ctx, RES_PATH"/user/zl.pfx", "111111");
     fz_image * image = fz_new_image_from_file(ctx, RES_Image_file); 
     z_pdf_sign_appearance *app = z_pdf_new_sign_appearance_with_image(ctx, image, rect, NULL);
@@ -38,7 +39,7 @@ void doTestPdfSign(fz_context *ctx, pdf_document *doc, int pageno, fz_rect rect,
     // z_pdf_dosign(ctx, device, doc, pageno, app);
 
     z_drop_device(ctx, device);
-    pdf_save_incremental_tofile(ctx, doc, savefile);
+    z_pdf_incremental_save_document(ctx, doc, savefile, NULL);
 }
 #else
 void doTestsign(fz_context *ctx, pdf_document *doc, char *ofilename, fz_rect r) {
@@ -61,10 +62,7 @@ void doTestAddImage(fz_context *ctx, pdf_document *doc)
     fz_buffer *imgbuffer = fz_read_all(ctx, imgstream, 1024);
     fz_drop_stream(ctx, imgstream);
     pdf_add_image_with_document(ctx, doc,imgbuffer, 0, 100, 700, 100,100);
-    pdf_write_options opton;
-    pdf_save_document(ctx, doc, RES_Pdf_savedfile, NULL);
-    // pdf_save_incremental_tofile(ctx, doc, RES_Pdf_savedfile);
-
+    z_pdf_incremental_save_document(ctx, doc, RES_Pdf_savedfile, NULL);
 #if 0
     pdf_page *page = pdf_load_page(ctx, doc, 0);
     pdf_obj *pageobj = page->me;
@@ -222,6 +220,7 @@ void matrixTest() {
 }
 int main(int argc, char **argv) {
 
+    printf("main is call\n");
     // matrixTest();
     char *infile, *ofile;
     // fz_rect r = {108.77f, 47.03f, 226.77f, 165.03f};

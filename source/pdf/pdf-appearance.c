@@ -2531,11 +2531,10 @@ void z_pdf_set_signature_appearance_with_image(fz_context *ctx, pdf_document *do
 	fz_text *text = NULL;
 	fz_colorspace *cs = NULL;
     fz_matrix pagemtx;
-    fz_rect annotrect;
+    fz_rect annotrect = app->rect;
 
-    pdf_to_rect(ctx, pdf_dict_get(ctx, annot->obj, PDF_NAME_Rect), &annotrect);
     pdf_page_transform(ctx, annot->page, NULL, &pagemtx);
-
+    fz_transform_rect(&annotrect, &pagemtx); 
 
 	fz_var(dlist);
 	fz_var(dev);
@@ -2549,9 +2548,11 @@ void z_pdf_set_signature_appearance_with_image(fz_context *ctx, pdf_document *do
 		dev = fz_new_list_device(ctx, dlist);
 
         // caculate image matrix and fill image
-        fz_pre_translate(&image_ctm, rect.x0, rect.y0);
+        //* before verion1.10a need the next call
+        // fz_pre_translate(&image_ctm, rect.x0, rect.y0);
         fz_pre_scale(&image_ctm, fz_rect_dx(&rect), fz_rect_dy(&rect));
         rect = fz_unit_rect;
+
         fz_transform_rect(&rect, &image_ctm);
 
         /* apply blend group even though we skip the soft mask */
@@ -2583,9 +2584,7 @@ void z_pdf_set_signature_appearance_with_image(fz_context *ctx, pdf_document *do
                 // fz_warn(ctx, "No defualt resource(/DR) tag in AcroForm.");
             }
         }
-
-		pdf_set_annot_appearance(ctx, doc, annot, &annotrect, dlist);
-
+		pdf_set_annot_appearance(ctx, doc, annot, &app->rect, dlist);
 		/* Drop the cached xobject from the annotation structure to
 		 * force a redraw on next pdf_update_page call */
 		pdf_drop_xobject(ctx, annot->ap);
