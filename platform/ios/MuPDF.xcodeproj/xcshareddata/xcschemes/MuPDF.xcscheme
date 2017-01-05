@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "968E1E3C1779A54F0050CEA3"
-               BuildableName = "MxPDF.app"
-               BlueprintName = "MxPDF"
-               ReferencedContainer = "container:MxPDF.xcodeproj">
+               BuildableName = "MuPDF.app"
+               BlueprintName = "MuPDF"
+               ReferencedContainer = "container:MuPDF.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -28,24 +28,14 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
-         <TestableReference
-            skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "68DFA9C71D8694C500AC9FF6"
-               BuildableName = "MxPDFUITests.xctest"
-               BlueprintName = "MxPDFUITests"
-               ReferencedContainer = "container:MxPDF.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "968E1E3C1779A54F0050CEA3"
-            BuildableName = "MxPDF.app"
-            BlueprintName = "MxPDF"
-            ReferencedContainer = "container:MxPDF.xcodeproj">
+            BuildableName = "MuPDF.app"
+            BlueprintName = "MuPDF"
+            ReferencedContainer = "container:MuPDF.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <AdditionalOptions>
@@ -66,9 +56,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "968E1E3C1779A54F0050CEA3"
-            BuildableName = "MxPDF.app"
-            BlueprintName = "MxPDF"
-            ReferencedContainer = "container:MxPDF.xcodeproj">
+            BuildableName = "MuPDF.app"
+            BlueprintName = "MuPDF"
+            ReferencedContainer = "container:MuPDF.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <AdditionalOptions>
@@ -85,9 +75,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "968E1E3C1779A54F0050CEA3"
-            BuildableName = "MxPDF.app"
-            BlueprintName = "MxPDF"
-            ReferencedContainer = "container:MxPDF.xcodeproj">
+            BuildableName = "MuPDF.app"
+            BlueprintName = "MuPDF"
+            ReferencedContainer = "container:MuPDF.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
@@ -107,9 +97,9 @@
                   <BuildableReference
                      BuildableIdentifier = "primary"
                      BlueprintIdentifier = "968E1E3C1779A54F0050CEA3"
-                     BuildableName = "MxPDF.app"
-                     BlueprintName = "MxPDF"
-                     ReferencedContainer = "container:MxPDF.xcodeproj">
+                     BuildableName = "MuPDF.app"
+                     BlueprintName = "MuPDF"
+                     ReferencedContainer = "container:MuPDF.xcodeproj">
                   </BuildableReference>
                </EnvironmentBuildable>
             </ActionContent>

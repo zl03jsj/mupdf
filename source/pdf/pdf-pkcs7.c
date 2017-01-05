@@ -1258,4 +1258,13 @@ int pdf_signatures_supported(fz_context *ctx)
 	return 0;
 }
 
+fz_buffer *z_openssl_pdf_sha1(fz_context *ctx, pdf_document *doc, pdf_obj *byte_range, char *filename) {
+    fz_warn(ctx, "%s, no openssl library", __func__);
+    return NULL;
+}
+
+z_device * z_openssl_new_device(fz_context *ctx, char *pfxfile, char *pfxpassword) {
+#pragma message("Need openssl library and define HAVA_LIBCRYPTO macro")
+    return NULL;
+}
 #endif /* HAVE_LIBCRYPTO */

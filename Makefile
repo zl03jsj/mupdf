@@ -459,8 +459,14 @@ android: generate
 	$(MAKE) -C platform/android/viewer
 
 showflags:
-	@echo  =================
-	@echo cc=$(CC)
-	@echo cflags=$(CFLAGS)
-	@echo =================
+	@echo "____________________________________________________"
+	@echo "|openssl flags                                    |"
+	@echo HAVE_LIBCRYPTO=$(HAVE_LIBCRYPTO)
+	@echo LIBCRYPTO_CFLAGS:$(LIBCRYPTO_CFLAGS)
+	@echo LIBCRYPTO_LIBS:$(LIBCRYPTO_LIBS)
+	@echo "____________________________________________________"
+	@echo "|compile flags                                    |"
+	@echo cflags:$(CFLAGS)
+	@echo "show flags end!!!!----------------------------------"
+
 .PHONY: all clean nuke install third libs apps generate

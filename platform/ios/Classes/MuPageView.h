@@ -22,7 +22,7 @@
 
 -(void) saveSelectionAsMarkup:(int)type;
 -(void) saveInk;
--(void) saveContentStream;
+// -(void) saveContentStream;
 -(void) update;
 
 // add by zl[2016/11/16 17:30]

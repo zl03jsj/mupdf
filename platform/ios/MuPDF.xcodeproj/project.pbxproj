@@ -7,6 +7,76 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		685454F21E1E48370083354B /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 96C8ED001779A88E00A30AF4 /* main.m */; };
+		685454F31E1E48370083354B /* common.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C68C317E8969C0061F586 /* common.m */; };
+		685454FE1E1E48370083354B /* libmupdf.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 96C8ED151779A9AE00A30AF4 /* libmupdf.a */; };
+		685454FF1E1E48370083354B /* libmupdfthird.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 96C8ED141779A9AE00A30AF4 /* libmupdfthird.a */; };
+		685455011E1E48370083354B /* Default-568h@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = E845CC6D1C20C09B00474C19 /* Default-568h@2x.png */; };
+		685455021E1E48370083354B /* ic_annotation.png in Resources */ = {isa = PBXBuildFile; fileRef = DA7AAA3A18E45FA300A577E3 /* ic_annotation.png */; };
+		685455031E1E48370083354B /* ic_print.png in Resources */ = {isa = PBXBuildFile; fileRef = DA32FC7218E33CC7001D7902 /* ic_print.png */; };
+		685455041E1E48370083354B /* MuTextFieldController.xib in Resources */ = {isa = PBXBuildFile; fileRef = DA4C0621187B1EA200755D0D /* MuTextFieldController.xib */; };
+		685455051E1E48370083354B /* MuChoiceFieldController.xib in Resources */ = {isa = PBXBuildFile; fileRef = DAFF997A187C12430081C756 /* MuChoiceFieldController.xib */; };
+		685455061E1E48370083354B /* x_alt_blue.png in Resources */ = {isa = PBXBuildFile; fileRef = 96E1CDEC1779A60700FCF717 /* x_alt_blue.png */; };
+		685455071E1E48370083354B /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7C6152E719DDD6A90095ECAC /* Images.xcassets */; };
+		685455081E1E48370083354B /* x_alt_blue@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 96E1CDED1779A60700FCF717 /* x_alt_blue@2x.png */; };
+		685455091E1E48370083354B /* ic_arrow_left.png in Resources */ = {isa = PBXBuildFile; fileRef = DAB9F4B517F1B24000117D2E /* ic_arrow_left.png */; };
+		6854550A1E1E48370083354B /* ic_arrow_right.png in Resources */ = {isa = PBXBuildFile; fileRef = DAB9F4B617F1B24000117D2E /* ic_arrow_right.png */; };
+		6854550B1E1E48370083354B /* ic_cancel.png in Resources */ = {isa = PBXBuildFile; fileRef = DAB9F4B717F1B24000117D2E /* ic_cancel.png */; };
+		6854550C1E1E48370083354B /* ic_link.png in Resources */ = {isa = PBXBuildFile; fileRef = DAB9F4B817F1B24000117D2E /* ic_link.png */; };
+		6854550D1E1E48370083354B /* ic_list.png in Resources */ = {isa = PBXBuildFile; fileRef = DAB9F4B917F1B24000117D2E /* ic_list.png */; };
+		6854550E1E1E48370083354B /* ic_magnifying_glass.png in Resources */ = {isa = PBXBuildFile; fileRef = DAB9F4BA17F1B24000117D2E /* ic_magnifying_glass.png */; };
+		6854550F1E1E48370083354B /* Launch Screen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 7C6152E919DDF05B0095ECAC /* Launch Screen.xib */; };
+		685455101E1E48370083354B /* ic_reflow.png in Resources */ = {isa = PBXBuildFile; fileRef = DAB9F4C117F1CB6D00117D2E /* ic_reflow.png */; };
+		685455111E1E48370083354B /* ic_more.png in Resources */ = {isa = PBXBuildFile; fileRef = DAD47D291832475C00E173A0 /* ic_more.png */; };
+		685455121E1E48370083354B /* ic_highlight.png in Resources */ = {isa = PBXBuildFile; fileRef = DAD47D2B1832615900E173A0 /* ic_highlight.png */; };
+		685455131E1E48370083354B /* ic_strike.png in Resources */ = {isa = PBXBuildFile; fileRef = DAD47D2C1832615900E173A0 /* ic_strike.png */; };
+		685455141E1E48370083354B /* ic_underline.png in Resources */ = {isa = PBXBuildFile; fileRef = DAD47D2D1832615900E173A0 /* ic_underline.png */; };
+		685455151E1E48370083354B /* ic_check.png in Resources */ = {isa = PBXBuildFile; fileRef = DACD12261833CDA600D4B9C5 /* ic_check.png */; };
+		685455161E1E48370083354B /* ic_pen.png in Resources */ = {isa = PBXBuildFile; fileRef = DA442E2C183B796F008EF49B /* ic_pen.png */; };
+		685455171E1E48370083354B /* ic_trash.png in Resources */ = {isa = PBXBuildFile; fileRef = DAD72803183E6F33005C14FA /* ic_trash.png */; };
+		685455181E1E48370083354B /* ic_share.png in Resources */ = {isa = PBXBuildFile; fileRef = DADF824C1905241900855662 /* ic_share.png */; };
+		6854552D1E1E4B5F0083354B /* MuFileselectViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 685455201E1E4B410083354B /* MuFileselectViewController.m */; };
+		6854552E1E1E4B5F0083354B /* MuHanddrawView.m in Sources */ = {isa = PBXBuildFile; fileRef = 685455231E1E4B410083354B /* MuHanddrawView.m */; };
+		6854552F1E1E4B5F0083354B /* MuPfxPasswordView.m in Sources */ = {isa = PBXBuildFile; fileRef = 685455251E1E4B410083354B /* MuPfxPasswordView.m */; };
+		685455301E1E4B5F0083354B /* MuSignView.m in Sources */ = {isa = PBXBuildFile; fileRef = 685455281E1E4B410083354B /* MuSignView.m */; };
+		685455311E1E4B5F0083354B /* MuLibraryController.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C689917E85E8E0061F586 /* MuLibraryController.m */; };
+		685455321E1E4B5F0083354B /* MuOutlineController.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C689D17E861020061F586 /* MuOutlineController.m */; };
+		685455331E1E4B5F0083354B /* MuHitView.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C689F17E861870061F586 /* MuHitView.m */; };
+		685455341E1E4B5F0083354B /* MuTextSelectView.m in Sources */ = {isa = PBXBuildFile; fileRef = DAD2BA811835064E00E7C49D /* MuTextSelectView.m */; };
+		685455351E1E4B5F0083354B /* MuInkView.m in Sources */ = {isa = PBXBuildFile; fileRef = DA442E2F183B9F13008EF49B /* MuInkView.m */; };
+		685455361E1E4B5F0083354B /* MuAnnotSelectView.m in Sources */ = {isa = PBXBuildFile; fileRef = DAD72801183E53F0005C14FA /* MuAnnotSelectView.m */; };
+		685455371E1E4B5F0083354B /* MuWord.m in Sources */ = {isa = PBXBuildFile; fileRef = DAB067A51831225D00DDA774 /* MuWord.m */; };
+		685455381E1E4B5F0083354B /* MuAnnotation.m in Sources */ = {isa = PBXBuildFile; fileRef = DAD10488183D0A2900960F4C /* MuAnnotation.m */; };
+		685455391E1E4B5F0083354B /* MuPageViewNormal.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C68A517E863C70061F586 /* MuPageViewNormal.m */; };
+		6854553A1E1E4B5F0083354B /* MuDocumentController.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C68A717E864180061F586 /* MuDocumentController.m */; };
+		6854553B1E1E4B5F0083354B /* MuAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C68A917E864CB0061F586 /* MuAppDelegate.m */; };
+		6854553C1E1E4B5F0083354B /* MuDocRef.m in Sources */ = {isa = PBXBuildFile; fileRef = DABDEF5917EC484A00AC35F1 /* MuDocRef.m */; };
+		6854553D1E1E4B5F0083354B /* MuPageViewReflow.m in Sources */ = {isa = PBXBuildFile; fileRef = DAA6E56E17F03AAE002B1E4E /* MuPageViewReflow.m */; };
+		6854553E1E1E4B5F0083354B /* MuTapResult.m in Sources */ = {isa = PBXBuildFile; fileRef = DAAC6A2D17FC6E4A00A0E83A /* MuTapResult.m */; };
+		6854553F1E1E4B5F0083354B /* MuTextFieldController.m in Sources */ = {isa = PBXBuildFile; fileRef = DA4C0620187B1EA200755D0D /* MuTextFieldController.m */; };
+		685455401E1E4B5F0083354B /* MuChoiceFieldController.m in Sources */ = {isa = PBXBuildFile; fileRef = DAFF9979187C12430081C756 /* MuChoiceFieldController.m */; };
+		685455411E1E4B5F0083354B /* MuPrintPageRenderer.m in Sources */ = {isa = PBXBuildFile; fileRef = DA0354EA18FFF48400EE31BA /* MuPrintPageRenderer.m */; };
+		685455461E1E4B600083354B /* MuFileselectViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 685455201E1E4B410083354B /* MuFileselectViewController.m */; };
+		685455471E1E4B600083354B /* MuHanddrawView.m in Sources */ = {isa = PBXBuildFile; fileRef = 685455231E1E4B410083354B /* MuHanddrawView.m */; };
+		685455481E1E4B600083354B /* MuPfxPasswordView.m in Sources */ = {isa = PBXBuildFile; fileRef = 685455251E1E4B410083354B /* MuPfxPasswordView.m */; };
+		685455491E1E4B600083354B /* MuSignView.m in Sources */ = {isa = PBXBuildFile; fileRef = 685455281E1E4B410083354B /* MuSignView.m */; };
+		6854554A1E1E4B600083354B /* MuLibraryController.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C689917E85E8E0061F586 /* MuLibraryController.m */; };
+		6854554B1E1E4B600083354B /* MuOutlineController.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C689D17E861020061F586 /* MuOutlineController.m */; };
+		6854554C1E1E4B600083354B /* MuHitView.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C689F17E861870061F586 /* MuHitView.m */; };
+		6854554D1E1E4B600083354B /* MuTextSelectView.m in Sources */ = {isa = PBXBuildFile; fileRef = DAD2BA811835064E00E7C49D /* MuTextSelectView.m */; };
+		6854554E1E1E4B600083354B /* MuInkView.m in Sources */ = {isa = PBXBuildFile; fileRef = DA442E2F183B9F13008EF49B /* MuInkView.m */; };
+		6854554F1E1E4B600083354B /* MuAnnotSelectView.m in Sources */ = {isa = PBXBuildFile; fileRef = DAD72801183E53F0005C14FA /* MuAnnotSelectView.m */; };
+		685455501E1E4B600083354B /* MuWord.m in Sources */ = {isa = PBXBuildFile; fileRef = DAB067A51831225D00DDA774 /* MuWord.m */; };
+		685455511E1E4B600083354B /* MuAnnotation.m in Sources */ = {isa = PBXBuildFile; fileRef = DAD10488183D0A2900960F4C /* MuAnnotation.m */; };
+		685455521E1E4B600083354B /* MuPageViewNormal.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C68A517E863C70061F586 /* MuPageViewNormal.m */; };
+		685455531E1E4B600083354B /* MuDocumentController.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C68A717E864180061F586 /* MuDocumentController.m */; };
+		685455541E1E4B600083354B /* MuAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C68A917E864CB0061F586 /* MuAppDelegate.m */; };
+		685455551E1E4B600083354B /* MuDocRef.m in Sources */ = {isa = PBXBuildFile; fileRef = DABDEF5917EC484A00AC35F1 /* MuDocRef.m */; };
+		685455561E1E4B600083354B /* MuPageViewReflow.m in Sources */ = {isa = PBXBuildFile; fileRef = DAA6E56E17F03AAE002B1E4E /* MuPageViewReflow.m */; };
+		685455571E1E4B600083354B /* MuTapResult.m in Sources */ = {isa = PBXBuildFile; fileRef = DAAC6A2D17FC6E4A00A0E83A /* MuTapResult.m */; };
+		685455581E1E4B600083354B /* MuTextFieldController.m in Sources */ = {isa = PBXBuildFile; fileRef = DA4C0620187B1EA200755D0D /* MuTextFieldController.m */; };
+		685455591E1E4B600083354B /* MuChoiceFieldController.m in Sources */ = {isa = PBXBuildFile; fileRef = DAFF9979187C12430081C756 /* MuChoiceFieldController.m */; };
+		6854555A1E1E4B600083354B /* MuPrintPageRenderer.m in Sources */ = {isa = PBXBuildFile; fileRef = DA0354EA18FFF48400EE31BA /* MuPrintPageRenderer.m */; };
 		7C6152E819DDD6A90095ECAC /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7C6152E719DDD6A90095ECAC /* Images.xcassets */; };
 		7C6152EA19DDF05B0095ECAC /* Launch Screen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 7C6152E919DDF05B0095ECAC /* Launch Screen.xib */; };
 		96C8ED011779A88E00A30AF4 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 96C8ED001779A88E00A30AF4 /* main.m */; };
@@ -14,23 +84,11 @@
 		96C8ED1C1779A9AF00A30AF4 /* libmupdf.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 96C8ED151779A9AE00A30AF4 /* libmupdf.a */; };
 		96E1CDF31779A60700FCF717 /* x_alt_blue.png in Resources */ = {isa = PBXBuildFile; fileRef = 96E1CDEC1779A60700FCF717 /* x_alt_blue.png */; };
 		96E1CDF41779A60700FCF717 /* x_alt_blue@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 96E1CDED1779A60700FCF717 /* x_alt_blue@2x.png */; };
-		DA0354EB18FFF48400EE31BA /* MuPrintPageRenderer.m in Sources */ = {isa = PBXBuildFile; fileRef = DA0354EA18FFF48400EE31BA /* MuPrintPageRenderer.m */; };
-		DA1C68AB17E86A500061F586 /* MuLibraryController.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C689917E85E8E0061F586 /* MuLibraryController.m */; };
-		DA1C68AD17E86A500061F586 /* MuOutlineController.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C689D17E861020061F586 /* MuOutlineController.m */; };
-		DA1C68AF17E86A500061F586 /* MuHitView.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C689F17E861870061F586 /* MuHitView.m */; };
-		DA1C68B117E86A500061F586 /* MuPageViewNormal.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C68A517E863C70061F586 /* MuPageViewNormal.m */; };
-		DA1C68B317E86A500061F586 /* MuDocumentController.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C68A717E864180061F586 /* MuDocumentController.m */; };
-		DA1C68B517E86A500061F586 /* MuAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C68A917E864CB0061F586 /* MuAppDelegate.m */; };
 		DA1C68C417E8969C0061F586 /* common.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C68C317E8969C0061F586 /* common.m */; };
 		DA442E2D183B796F008EF49B /* ic_pen.png in Resources */ = {isa = PBXBuildFile; fileRef = DA442E2C183B796F008EF49B /* ic_pen.png */; };
-		DA442E30183B9F13008EF49B /* MuInkView.m in Sources */ = {isa = PBXBuildFile; fileRef = DA442E2F183B9F13008EF49B /* MuInkView.m */; };
-		DA4C0622187B1EA200755D0D /* MuTextFieldController.m in Sources */ = {isa = PBXBuildFile; fileRef = DA4C0620187B1EA200755D0D /* MuTextFieldController.m */; };
 		DA4C0623187B1EA200755D0D /* MuTextFieldController.xib in Resources */ = {isa = PBXBuildFile; fileRef = DA4C0621187B1EA200755D0D /* MuTextFieldController.xib */; };
 		DA7AAA3B18E4683600A577E3 /* ic_annotation.png in Resources */ = {isa = PBXBuildFile; fileRef = DA7AAA3A18E45FA300A577E3 /* ic_annotation.png */; };
 		DA7AAA3C18E4683600A577E3 /* ic_print.png in Resources */ = {isa = PBXBuildFile; fileRef = DA32FC7218E33CC7001D7902 /* ic_print.png */; };
-		DAA6E56F17F03F96002B1E4E /* MuPageViewReflow.m in Sources */ = {isa = PBXBuildFile; fileRef = DAA6E56E17F03AAE002B1E4E /* MuPageViewReflow.m */; };
-		DAAC6A2E17FC6E4A00A0E83A /* MuTapResult.m in Sources */ = {isa = PBXBuildFile; fileRef = DAAC6A2D17FC6E4A00A0E83A /* MuTapResult.m */; };
-		DAB067A61831225D00DDA774 /* MuWord.m in Sources */ = {isa = PBXBuildFile; fileRef = DAB067A51831225D00DDA774 /* MuWord.m */; };
 		DAB9F4BB17F1B24000117D2E /* ic_arrow_left.png in Resources */ = {isa = PBXBuildFile; fileRef = DAB9F4B517F1B24000117D2E /* ic_arrow_left.png */; };
 		DAB9F4BC17F1B24000117D2E /* ic_arrow_right.png in Resources */ = {isa = PBXBuildFile; fileRef = DAB9F4B617F1B24000117D2E /* ic_arrow_right.png */; };
 		DAB9F4BD17F1B24000117D2E /* ic_cancel.png in Resources */ = {isa = PBXBuildFile; fileRef = DAB9F4B717F1B24000117D2E /* ic_cancel.png */; };
@@ -38,23 +96,25 @@
 		DAB9F4BF17F1B24000117D2E /* ic_list.png in Resources */ = {isa = PBXBuildFile; fileRef = DAB9F4B917F1B24000117D2E /* ic_list.png */; };
 		DAB9F4C017F1B24000117D2E /* ic_magnifying_glass.png in Resources */ = {isa = PBXBuildFile; fileRef = DAB9F4BA17F1B24000117D2E /* ic_magnifying_glass.png */; };
 		DAB9F4C217F1CB6D00117D2E /* ic_reflow.png in Resources */ = {isa = PBXBuildFile; fileRef = DAB9F4C117F1CB6D00117D2E /* ic_reflow.png */; };
-		DABDEF5A17EC484A00AC35F1 /* MuDocRef.m in Sources */ = {isa = PBXBuildFile; fileRef = DABDEF5917EC484A00AC35F1 /* MuDocRef.m */; };
 		DACD12271833CDA600D4B9C5 /* ic_check.png in Resources */ = {isa = PBXBuildFile; fileRef = DACD12261833CDA600D4B9C5 /* ic_check.png */; };
-		DAD10489183D0A2900960F4C /* MuAnnotation.m in Sources */ = {isa = PBXBuildFile; fileRef = DAD10488183D0A2900960F4C /* MuAnnotation.m */; };
-		DAD2BA821835064E00E7C49D /* MuTextSelectView.m in Sources */ = {isa = PBXBuildFile; fileRef = DAD2BA811835064E00E7C49D /* MuTextSelectView.m */; };
 		DAD47D2A1832475C00E173A0 /* ic_more.png in Resources */ = {isa = PBXBuildFile; fileRef = DAD47D291832475C00E173A0 /* ic_more.png */; };
 		DAD47D2E1832615900E173A0 /* ic_highlight.png in Resources */ = {isa = PBXBuildFile; fileRef = DAD47D2B1832615900E173A0 /* ic_highlight.png */; };
 		DAD47D2F1832615900E173A0 /* ic_strike.png in Resources */ = {isa = PBXBuildFile; fileRef = DAD47D2C1832615900E173A0 /* ic_strike.png */; };
 		DAD47D301832615900E173A0 /* ic_underline.png in Resources */ = {isa = PBXBuildFile; fileRef = DAD47D2D1832615900E173A0 /* ic_underline.png */; };
-		DAD72802183E53F0005C14FA /* MuAnnotSelectView.m in Sources */ = {isa = PBXBuildFile; fileRef = DAD72801183E53F0005C14FA /* MuAnnotSelectView.m */; };
 		DAD72804183E6F33005C14FA /* ic_trash.png in Resources */ = {isa = PBXBuildFile; fileRef = DAD72803183E6F33005C14FA /* ic_trash.png */; };
 		DADF824D1905242800855662 /* ic_share.png in Resources */ = {isa = PBXBuildFile; fileRef = DADF824C1905241900855662 /* ic_share.png */; };
-		DAFF997B187C12430081C756 /* MuChoiceFieldController.m in Sources */ = {isa = PBXBuildFile; fileRef = DAFF9979187C12430081C756 /* MuChoiceFieldController.m */; };
 		DAFF997C187C12430081C756 /* MuChoiceFieldController.xib in Resources */ = {isa = PBXBuildFile; fileRef = DAFF997A187C12430081C756 /* MuChoiceFieldController.xib */; };
 		E845CC6E1C20C09B00474C19 /* Default-568h@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = E845CC6D1C20C09B00474C19 /* Default-568h@2x.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		685454E71E1E48370083354B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 968E1E351779A54F0050CEA3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 963AD8CB17D5FFD9000B0779;
+			remoteInfo = Generate;
+		};
 		963AD8CF17D60084000B0779 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 968E1E351779A54F0050CEA3 /* Project object */;
@@ -65,6 +125,18 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		6854551D1E1E48370083354B /* MuPDF_openssl_sign.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MuPDF_openssl_sign.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6854551E1E1E48370083354B /* MuPDF_openssl_sign-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "MuPDF_openssl_sign-Info.plist"; path = "/Users/zl03jsj/Documents/mupdf/platform/ios/MuPDF_openssl_sign-Info.plist"; sourceTree = "<absolute>"; };
+		6854551F1E1E4B410083354B /* MuFileselectViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MuFileselectViewController.h; path = Classes/MuFileselectViewController.h; sourceTree = "<group>"; };
+		685455201E1E4B410083354B /* MuFileselectViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = MuFileselectViewController.m; path = Classes/MuFileselectViewController.m; sourceTree = "<group>"; };
+		685455211E1E4B410083354B /* MuFileselectViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = MuFileselectViewController.xib; path = Classes/MuFileselectViewController.xib; sourceTree = "<group>"; };
+		685455221E1E4B410083354B /* MuHanddrawView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MuHanddrawView.h; path = Classes/MuHanddrawView.h; sourceTree = "<group>"; };
+		685455231E1E4B410083354B /* MuHanddrawView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = MuHanddrawView.m; path = Classes/MuHanddrawView.m; sourceTree = "<group>"; };
+		685455241E1E4B410083354B /* MuPfxPasswordView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MuPfxPasswordView.h; path = Classes/MuPfxPasswordView.h; sourceTree = "<group>"; };
+		685455251E1E4B410083354B /* MuPfxPasswordView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = MuPfxPasswordView.m; path = Classes/MuPfxPasswordView.m; sourceTree = "<group>"; };
+		685455261E1E4B410083354B /* MuPfxPasswordView.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = MuPfxPasswordView.xib; path = Classes/MuPfxPasswordView.xib; sourceTree = "<group>"; };
+		685455271E1E4B410083354B /* MuSignView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MuSignView.h; path = Classes/MuSignView.h; sourceTree = "<group>"; };
+		685455281E1E4B410083354B /* MuSignView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = MuSignView.m; path = Classes/MuSignView.m; sourceTree = "<group>"; };
 		7C6152E719DDD6A90095ECAC /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = MuPDF/Images.xcassets; sourceTree = "<group>"; };
 		7C6152E919DDF05B0095ECAC /* Launch Screen.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = "Launch Screen.xib"; path = "MuPDF/Launch Screen.xib"; sourceTree = "<group>"; };
 		968E1E3D1779A54F0050CEA3 /* MuPDF.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MuPDF.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -136,6 +208,15 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		685454FD1E1E48370083354B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				685454FE1E1E48370083354B /* libmupdf.a in Frameworks */,
+				685454FF1E1E48370083354B /* libmupdfthird.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		968E1E3A1779A54F0050CEA3 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -159,6 +240,7 @@
 				968E1E461779A54F0050CEA3 /* Resources */,
 				968E1E3F1779A54F0050CEA3 /* Frameworks */,
 				968E1E3E1779A54F0050CEA3 /* Products */,
+				6854551E1E1E48370083354B /* MuPDF_openssl_sign-Info.plist */,
 			);
 			sourceTree = "<group>";
 			usesTabs = 1;
@@ -169,6 +251,7 @@
 				968E1E3D1779A54F0050CEA3 /* MuPDF.app */,
 				96C8ED151779A9AE00A30AF4 /* libmupdf.a */,
 				96C8ED141779A9AE00A30AF4 /* libmupdfthird.a */,
+				6854551D1E1E48370083354B /* MuPDF_openssl_sign.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -212,6 +295,16 @@
 		DA1C689717E85E4A0061F586 /* Classes */ = {
 			isa = PBXGroup;
 			children = (
+				6854551F1E1E4B410083354B /* MuFileselectViewController.h */,
+				685455201E1E4B410083354B /* MuFileselectViewController.m */,
+				685455211E1E4B410083354B /* MuFileselectViewController.xib */,
+				685455221E1E4B410083354B /* MuHanddrawView.h */,
+				685455231E1E4B410083354B /* MuHanddrawView.m */,
+				685455241E1E4B410083354B /* MuPfxPasswordView.h */,
+				685455251E1E4B410083354B /* MuPfxPasswordView.m */,
+				685455261E1E4B410083354B /* MuPfxPasswordView.xib */,
+				685455271E1E4B410083354B /* MuSignView.h */,
+				685455281E1E4B410083354B /* MuSignView.m */,
 				DA1C689817E85E8E0061F586 /* MuLibraryController.h */,
 				DA1C689917E85E8E0061F586 /* MuLibraryController.m */,
 				DA1C689C17E861020061F586 /* MuOutlineController.h */,
@@ -275,6 +368,26 @@
 /* End PBXLegacyTarget section */
 
 /* Begin PBXNativeTarget section */
+		685454E51E1E48370083354B /* MuPDF_openssl_sign */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6854551A1E1E48370083354B /* Build configuration list for PBXNativeTarget "MuPDF_openssl_sign" */;
+			buildPhases = (
+				685454E81E1E48370083354B /* ShellScript */,
+				685454E91E1E48370083354B /* Sources */,
+				685454FD1E1E48370083354B /* Frameworks */,
+				685455001E1E48370083354B /* Resources */,
+				685455191E1E48370083354B /* ShellScript */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				685454E61E1E48370083354B /* PBXTargetDependency */,
+			);
+			name = MuPDF_openssl_sign;
+			productName = MuPDF;
+			productReference = 6854551D1E1E48370083354B /* MuPDF_openssl_sign.app */;
+			productType = "com.apple.product-type.application";
+		};
 		968E1E3C1779A54F0050CEA3 /* MuPDF */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 968E1E5A1779A54F0050CEA3 /* Build configuration list for PBXNativeTarget "MuPDF" */;
@@ -305,8 +418,11 @@
 				LastUpgradeCheck = 0810;
 				ORGANIZATIONNAME = "Artifex Software, Inc";
 				TargetAttributes = {
+					685454E51E1E48370083354B = {
+						DevelopmentTeam = C4W745U45Q;
+					};
 					968E1E3C1779A54F0050CEA3 = {
-						DevelopmentTeam = 7M9658FA5G;
+						DevelopmentTeam = C4W745U45Q;
 					};
 				};
 			};
@@ -324,11 +440,43 @@
 			targets = (
 				963AD8CB17D5FFD9000B0779 /* Generate */,
 				968E1E3C1779A54F0050CEA3 /* MuPDF */,
+				685454E51E1E48370083354B /* MuPDF_openssl_sign */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		685455001E1E48370083354B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				685455011E1E48370083354B /* Default-568h@2x.png in Resources */,
+				685455021E1E48370083354B /* ic_annotation.png in Resources */,
+				685455031E1E48370083354B /* ic_print.png in Resources */,
+				685455041E1E48370083354B /* MuTextFieldController.xib in Resources */,
+				685455051E1E48370083354B /* MuChoiceFieldController.xib in Resources */,
+				685455061E1E48370083354B /* x_alt_blue.png in Resources */,
+				685455071E1E48370083354B /* Images.xcassets in Resources */,
+				685455081E1E48370083354B /* x_alt_blue@2x.png in Resources */,
+				685455091E1E48370083354B /* ic_arrow_left.png in Resources */,
+				6854550A1E1E48370083354B /* ic_arrow_right.png in Resources */,
+				6854550B1E1E48370083354B /* ic_cancel.png in Resources */,
+				6854550C1E1E48370083354B /* ic_link.png in Resources */,
+				6854550D1E1E48370083354B /* ic_list.png in Resources */,
+				6854550E1E1E48370083354B /* ic_magnifying_glass.png in Resources */,
+				6854550F1E1E48370083354B /* Launch Screen.xib in Resources */,
+				685455101E1E48370083354B /* ic_reflow.png in Resources */,
+				685455111E1E48370083354B /* ic_more.png in Resources */,
+				685455121E1E48370083354B /* ic_highlight.png in Resources */,
+				685455131E1E48370083354B /* ic_strike.png in Resources */,
+				685455141E1E48370083354B /* ic_underline.png in Resources */,
+				685455151E1E48370083354B /* ic_check.png in Resources */,
+				685455161E1E48370083354B /* ic_pen.png in Resources */,
+				685455171E1E48370083354B /* ic_trash.png in Resources */,
+				685455181E1E48370083354B /* ic_share.png in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		968E1E3B1779A54F0050CEA3 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -363,6 +511,34 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		685454E81E1E48370083354B /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/libmupdf.a",
+				"$(DERIVED_FILE_DIR)/libmupdfthird.a",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "bash build_libs.sh";
+		};
+		685455191E1E48370083354B /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ \"$COMMAND_LINE_POSTBUILD_SCRIPT\" != \"\" ] ;\nthen\n    exec bash $COMMAND_LINE_POSTBUILD_SCRIPT\nfi\n";
+		};
 		9614D56A1779A81D00F1879E /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -394,35 +570,74 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		685454E91E1E48370083354B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				685455381E1E4B5F0083354B /* MuAnnotation.m in Sources */,
+				685454F21E1E48370083354B /* main.m in Sources */,
+				685455331E1E4B5F0083354B /* MuHitView.m in Sources */,
+				685455351E1E4B5F0083354B /* MuInkView.m in Sources */,
+				685455311E1E4B5F0083354B /* MuLibraryController.m in Sources */,
+				685455371E1E4B5F0083354B /* MuWord.m in Sources */,
+				6854553A1E1E4B5F0083354B /* MuDocumentController.m in Sources */,
+				685455411E1E4B5F0083354B /* MuPrintPageRenderer.m in Sources */,
+				685455341E1E4B5F0083354B /* MuTextSelectView.m in Sources */,
+				6854553F1E1E4B5F0083354B /* MuTextFieldController.m in Sources */,
+				685455391E1E4B5F0083354B /* MuPageViewNormal.m in Sources */,
+				6854552E1E1E4B5F0083354B /* MuHanddrawView.m in Sources */,
+				6854553B1E1E4B5F0083354B /* MuAppDelegate.m in Sources */,
+				685454F31E1E48370083354B /* common.m in Sources */,
+				6854553C1E1E4B5F0083354B /* MuDocRef.m in Sources */,
+				6854552D1E1E4B5F0083354B /* MuFileselectViewController.m in Sources */,
+				6854552F1E1E4B5F0083354B /* MuPfxPasswordView.m in Sources */,
+				685455321E1E4B5F0083354B /* MuOutlineController.m in Sources */,
+				6854553D1E1E4B5F0083354B /* MuPageViewReflow.m in Sources */,
+				685455301E1E4B5F0083354B /* MuSignView.m in Sources */,
+				6854553E1E1E4B5F0083354B /* MuTapResult.m in Sources */,
+				685455361E1E4B5F0083354B /* MuAnnotSelectView.m in Sources */,
+				685455401E1E4B5F0083354B /* MuChoiceFieldController.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		968E1E391779A54F0050CEA3 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DAA6E56F17F03F96002B1E4E /* MuPageViewReflow.m in Sources */,
-				DA1C68AB17E86A500061F586 /* MuLibraryController.m in Sources */,
-				DA1C68AD17E86A500061F586 /* MuOutlineController.m in Sources */,
-				DA1C68AF17E86A500061F586 /* MuHitView.m in Sources */,
-				DA1C68B117E86A500061F586 /* MuPageViewNormal.m in Sources */,
-				DA1C68B317E86A500061F586 /* MuDocumentController.m in Sources */,
-				DA0354EB18FFF48400EE31BA /* MuPrintPageRenderer.m in Sources */,
-				DA1C68B517E86A500061F586 /* MuAppDelegate.m in Sources */,
+				685455511E1E4B600083354B /* MuAnnotation.m in Sources */,
 				96C8ED011779A88E00A30AF4 /* main.m in Sources */,
+				6854554C1E1E4B600083354B /* MuHitView.m in Sources */,
+				6854554E1E1E4B600083354B /* MuInkView.m in Sources */,
+				6854554A1E1E4B600083354B /* MuLibraryController.m in Sources */,
+				685455501E1E4B600083354B /* MuWord.m in Sources */,
+				685455531E1E4B600083354B /* MuDocumentController.m in Sources */,
+				6854555A1E1E4B600083354B /* MuPrintPageRenderer.m in Sources */,
+				6854554D1E1E4B600083354B /* MuTextSelectView.m in Sources */,
+				685455581E1E4B600083354B /* MuTextFieldController.m in Sources */,
+				685455521E1E4B600083354B /* MuPageViewNormal.m in Sources */,
+				685455471E1E4B600083354B /* MuHanddrawView.m in Sources */,
+				685455541E1E4B600083354B /* MuAppDelegate.m in Sources */,
 				DA1C68C417E8969C0061F586 /* common.m in Sources */,
-				DABDEF5A17EC484A00AC35F1 /* MuDocRef.m in Sources */,
-				DAAC6A2E17FC6E4A00A0E83A /* MuTapResult.m in Sources */,
-				DAFF997B187C12430081C756 /* MuChoiceFieldController.m in Sources */,
-				DAB067A61831225D00DDA774 /* MuWord.m in Sources */,
-				DAD2BA821835064E00E7C49D /* MuTextSelectView.m in Sources */,
-				DA442E30183B9F13008EF49B /* MuInkView.m in Sources */,
-				DAD10489183D0A2900960F4C /* MuAnnotation.m in Sources */,
-				DAD72802183E53F0005C14FA /* MuAnnotSelectView.m in Sources */,
-				DA4C0622187B1EA200755D0D /* MuTextFieldController.m in Sources */,
+				685455551E1E4B600083354B /* MuDocRef.m in Sources */,
+				685455461E1E4B600083354B /* MuFileselectViewController.m in Sources */,
+				685455481E1E4B600083354B /* MuPfxPasswordView.m in Sources */,
+				6854554B1E1E4B600083354B /* MuOutlineController.m in Sources */,
+				685455561E1E4B600083354B /* MuPageViewReflow.m in Sources */,
+				685455491E1E4B600083354B /* MuSignView.m in Sources */,
+				685455571E1E4B600083354B /* MuTapResult.m in Sources */,
+				6854554F1E1E4B600083354B /* MuAnnotSelectView.m in Sources */,
+				685455591E1E4B600083354B /* MuChoiceFieldController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		685454E61E1E48370083354B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 963AD8CB17D5FFD9000B0779 /* Generate */;
+			targetProxy = 685454E71E1E48370083354B /* PBXContainerItemProxy */;
+		};
 		963AD8D017D60084000B0779 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 963AD8CB17D5FFD9000B0779 /* Generate */;
@@ -431,6 +646,48 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		6854551B1E1E48370083354B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				DEVELOPMENT_TEAM = C4W745U45Q;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				HAVE_LIBCRYPTO = yes;
+				INFOPLIST_FILE = "$(SRCROOT)/MuPDF_openssl_sign-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.z.mupdf;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				USER_HEADER_SEARCH_PATHS = ../../include;
+			};
+			name = Debug;
+		};
+		6854551C1E1E48370083354B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				DEVELOPMENT_TEAM = C4W745U45Q;
+				GCC_OPTIMIZATION_LEVEL = s;
+				HAVE_LIBCRYPTO = yes;
+				INFOPLIST_FILE = "$(SRCROOT)/MuPDF_openssl_sign-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.z.mupdf;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				USER_HEADER_SEARCH_PATHS = ../../include;
+			};
+			name = Release;
+		};
 		963AD8CC17D5FFD9000B0779 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -522,10 +779,11 @@
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				DEVELOPMENT_TEAM = C4W745U45Q;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.artifex.mupdf;
+				PRODUCT_BUNDLE_IDENTIFIER = com.z.mupdf;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				SDKROOT = iphoneos;
@@ -541,10 +799,11 @@
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				DEVELOPMENT_TEAM = C4W745U45Q;
 				GCC_OPTIMIZATION_LEVEL = s;
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.artifex.mupdf;
+				PRODUCT_BUNDLE_IDENTIFIER = com.z.mupdf;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				SDKROOT = iphoneos;
@@ -556,6 +815,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		6854551A1E1E48370083354B /* Build configuration list for PBXNativeTarget "MuPDF_openssl_sign" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6854551B1E1E48370083354B /* Debug */,
+				6854551C1E1E48370083354B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		963AD8CE17D5FFD9000B0779 /* Build configuration list for PBXLegacyTarget "Generate" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

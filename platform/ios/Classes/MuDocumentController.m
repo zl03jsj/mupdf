@@ -325,7 +325,7 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 
 	// Set up the buttons on the navigation and search bar
 
-	fz_outline *outlineRoot;
+	fz_outline *outlineRoot = NULL;
 	fz_try(ctx)
 		outlineRoot = fz_load_outline(ctx, doc);
 	fz_catch(ctx)
@@ -358,6 +358,11 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 	handsignButton = [self newResourceBasedButton:@"ic_signature" withAction:@selector(onHandsign:)];
 	signButton = [self newResourceBasedButton:@"ic_stamp" withAction:@selector(onSign:)];
 	nextstepButton = [self newResourceBasedButton:@"ic_next" withAction:@selector(onNextstep:)];
+	if( !pdf_signatures_supported(ctx) ) {
+		handsignButton.enabled = NO;
+		signButton.enabled = NO;
+		nextstepButton.enabled = NO;		
+	}
 	
 	searchBar = [[UISearchBar alloc] initWithFrame: CGRectMake(0,0,50,32)];
 	backButton = [self newResourceBasedButton:@"ic_arrow_left" withAction:@selector(onBack:)];
@@ -535,7 +540,7 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 - (void) onShowOutline: (id)sender
 {
 	//  rebuild the outline in case the layout has changed
-	fz_outline *root;
+	fz_outline *root = NULL;
 	fz_try(ctx)
 		root = fz_load_outline(ctx, doc);
 	fz_catch(ctx)

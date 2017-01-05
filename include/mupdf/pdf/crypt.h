@@ -61,7 +61,12 @@ int pdf_check_signature(fz_context *ctx, pdf_document *doc, pdf_widget *widget, 
 */
 void pdf_sign_signature(fz_context *ctx, pdf_document *doc, pdf_widget *widget, const char *sigfile, const char *password);
 
+/* create openssl sign device from pfxfile, authenticate password 
+	need openssl*/
 z_device * z_openssl_new_device(fz_context *ctx, char *pfxfile, char *pfxpassword);
+
+/* caculate file data hash value, specified by bye pdf ByteRange object 
+	need openssl*/
 fz_buffer *z_openssl_pdf_sha1(fz_context *ctx, pdf_document *doc, pdf_obj *byte_range, char *filename);
 
 #endif

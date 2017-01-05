@@ -8,7 +8,7 @@
 #undef MAX
 
 #include "mupdf/fitz.h"
-#include "mupdf/z_/z_pdf.h"
+#include "mupdf/z/z_pdf.h"
 
 extern fz_context *ctx;
 extern dispatch_queue_t queue;

@@ -221,7 +221,7 @@ static void addMarkupAnnot(fz_document *doc, fz_page *page, int type, NSArray *r
 		}
 
 		annot = pdf_create_annot(ctx, (pdf_page *)page, type);
-		pdf_set_annot_quad_points(ctx, annot, rects.count, quadpts);
+		pdf_set_annot_quad_points(ctx, annot, (int)rects.count, quadpts);
 		pdf_set_markup_appearance(ctx, idoc, annot, color, alpha, line_thickness, line_height);
 	}
 	fz_always(ctx)
@@ -612,7 +612,7 @@ static rect_list *updatePage(fz_document *doc, fz_page *page)
 				if (pannot->changed)
 				{
 					rect_list *node = fz_malloc_struct(ctx, rect_list);
-					fz_bound_annot(ctx,  pannot, &node->rect);
+					fz_bound_annot(ctx,  (fz_annot*)pannot, &node->rect);
 					node->next = list;
 					list = node;
 				}
@@ -1366,7 +1366,7 @@ static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
 			signView.frame = frm;
 		
 		if(handsignView)
-			handsignView.f = frm;
+			handsignView.frame = frm;
 
 		if (annotSelectView)
 			annotSelectView.frame = frm;
