@@ -4330,7 +4330,7 @@ JNIEXPORT jboolean JNICALL Java_com_artifex_mupdf_fitz_Document_save
 
     const char *savefile = (*env)->GetStringUTFChars(env, saveto, NULL);
     fz_try(ctx) {
-        pdf_save_incremental_tofile(ctx, doc, (char*)savefile); 
+        z_pdf_incremental_save_document(ctx, doc, savefile, NULL);
     }
     fz_always(ctx) {
         if(savefile) 

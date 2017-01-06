@@ -716,6 +716,22 @@ JNIEXPORT jobject JNICALL Java_com_artifex_mupdf_fitz_Document_toPDFDocument
 JNIEXPORT jstring JNICALL Java_com_artifex_mupdf_fitz_Document_proofNative
   (JNIEnv *, jobject, jstring, jstring, jstring, jint);
 
+/*
+ * Class:     com_artifex_mupdf_fitz_Document
+ * Method:    pdfAddSignature
+ * Signature: (Lcom/artifex/mupdf/fitz/Page;Lcom/z/OpensslSignDevice;Lcom/z/PdfSignAppearance;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_artifex_mupdf_fitz_Document_pdfAddSignature
+  (JNIEnv *, jobject, jobject, jobject, jobject);
+
+/*
+ * Class:     com_artifex_mupdf_fitz_Document
+ * Method:    save
+ * Signature: (Ljava/lang/String;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_artifex_mupdf_fitz_Document_save
+  (JNIEnv *, jobject, jstring);
+
 #ifdef __cplusplus
 }
 #endif

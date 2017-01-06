@@ -461,12 +461,14 @@ android: generate
 showflags:
 	@echo "____________________________________________________"
 	@echo "|openssl flags                                    |"
+	@echo "--------------------------------------------------|"
 	@echo HAVE_LIBCRYPTO=$(HAVE_LIBCRYPTO)
 	@echo LIBCRYPTO_CFLAGS:$(LIBCRYPTO_CFLAGS)
 	@echo LIBCRYPTO_LIBS:$(LIBCRYPTO_LIBS)
 	@echo "____________________________________________________"
 	@echo "|compile flags                                    |"
+	@echo "--------------------------------------------------|"
 	@echo cflags:$(CFLAGS)
-	@echo "show flags end!!!!----------------------------------"
+	@echo "--------------------------------------------------|"
 
 .PHONY: all clean nuke install third libs apps generate

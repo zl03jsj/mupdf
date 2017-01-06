@@ -1,6 +1,5 @@
 #include "mupdf/pdf.h" // TODO: move this file to pdf module
 
-// #define HAVE_LIBCRYPTO
 #ifdef HAVE_LIBCRYPTO
 
 #include "openssl/err.h"
@@ -1264,7 +1263,9 @@ fz_buffer *z_openssl_pdf_sha1(fz_context *ctx, pdf_document *doc, pdf_obj *byte_
 }
 
 z_device * z_openssl_new_device(fz_context *ctx, char *pfxfile, char *pfxpassword) {
-#pragma message("Need openssl library and define HAVA_LIBCRYPTO macro")
+#pragma message("HAVE_LIBCRYPTO not defined, check openssl library.")
+    fz_warn(ctx, "%s, no openssl library", __func__);
     return NULL;
 }
+
 #endif /* HAVE_LIBCRYPTO */

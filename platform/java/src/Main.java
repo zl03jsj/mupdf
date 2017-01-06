@@ -15,7 +15,9 @@ public class Main {
         String imagefile = rootPath + "monkeysmile.JPG";
 
 
-        Document doc = new Document(rootPath + pdffile);
+        System.out.println("main is call!");
+
+        Document doc = new Document(rootPath + "pdffile/" + pdffile);
         int pagecount = doc.countPages();
         Page page = doc.loadPage(0);
 

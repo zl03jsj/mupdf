@@ -30,7 +30,7 @@ public class PageCanvas extends Canvas
 	}
 
 	public static BufferedImage imageFromPage(Page page, Matrix ctm) {
-		Pixmap pixmap = page.toPixmap(ctm, ColorSpace.DeviceBGR);
+		Pixmap pixmap = page.toPixmap(ctm, ColorSpace.DeviceBGR, false);
 		BufferedImage image = imageFromPixmap(pixmap);
 		pixmap.destroy();
 		return image;

@@ -43,6 +43,9 @@ platform/java/.idea
 *.jpeg
 *.pcl
 *.ps
+*.jnilib
+*.so
+*.iml
 
 # Temporary and build files:
 *.class
