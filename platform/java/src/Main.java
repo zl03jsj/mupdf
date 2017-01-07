@@ -14,22 +14,26 @@ public class Main {
         String pfxpassword = "111111";
         String imagefile = rootPath + "monkeysmile.JPG";
 
-
-        System.out.println("main is call!");
-
         Document doc = new Document(rootPath + "pdffile/" + pdffile);
         int pagecount = doc.countPages();
         Page page = doc.loadPage(0);
 
         Rect rect = page.getBounds();
-        System.out.println("page rect" + rect.toString());
+//        System.out.println("page rect" + rect.toString());
 
         rect = new Rect(0, 0, 100, 100);
 
-
-        OpensslSignDevice device = new OpensslSignDevice(pfxfile, pfxpassword);
+        OpensslSignDevice device = OpensslSignDevice.fromPfxfile(pfxfile, pfxpassword);
         PdfSignAppearance appearance = new PdfSignAppearance(imagefile, rect);
-        doc.pdfAddSignature(page, device, appearance);
-        doc.save(rootPath + savefile);
+
+        if( device!=null && appearance!=null ){
+            doc.pdfAddSignature(page, device, appearance);
+            doc.save(rootPath + savefile);
+            System.out.println("save file:" + rootPath+savefile);
+            System.out.println("done!");
+        }
+        else {
+            System.out.println("sign device or appearance is null.");
+        }
     }
 }

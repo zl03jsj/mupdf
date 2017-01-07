@@ -4310,6 +4310,9 @@ FUN(Document_pdfAddSignature) (JNIEnv *env, jobject self, jobject _page, jobject
     z_device *device = from_OpensslSignDevice(env, _dev);
 
     fz_try(ctx) {
+        if(NULL==device) {
+            fz_throw(ctx, FZ_ERROR_GENERIC, "failed,sign device is null");
+        }
         z_pdf_dosign_with_page(ctx, device, doc, page, app);
     }
     fz_catch(ctx) {
@@ -5028,8 +5031,14 @@ JNIEXPORT void JNICALL Java_com_z_OpensslSignDevice_finalize
 
 JNIEXPORT jlong JNICALL Java_com_z_OpensslSignDevice_newNativeWithPfxFile
   (JNIEnv *env, jclass self, jstring pfxfile_, jstring password_)
-{
+{ 
     fz_context *ctx = get_context(env);
+
+    if( 0==pdf_signatures_supported(ctx) ) {
+        fz_warn(ctx, "pdf signature not supported.");
+        return jlong_cast(NULL);
+    }
+
     const char* pfxfile = (*env)->GetStringUTFChars(env, pfxfile_, NULL);
     const char* password = (*env)->GetStringUTFChars(env, password_, NULL);
 
