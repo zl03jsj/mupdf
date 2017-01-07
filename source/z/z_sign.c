@@ -39,7 +39,6 @@ void z_pdf_dosign_with_page(fz_context *ctx, z_device *device, pdf_document *doc
     fz_try(ctx) {
         if(!page)
 			fz_throw(ctx, FZ_ERROR_GENERIC, "invalid page.");
-        fz_rect annotrect;
         signame = new_unique_string(ctx, "ntkosign_", NULL);
         // doc->disallow_new_increments = 1;
         annot = (pdf_annot*)pdf_create_widget(ctx, doc, page,  PDF_WIDGET_TYPE_SIGNATURE, signame); 
