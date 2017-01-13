@@ -16,6 +16,11 @@ public class PdfSignAppearance {
         pointer = newNativeWithImageData(imgdata, rect);
     }
 
+    public void destroy() {
+        pointer = 0;
+        finalize();
+    }
+
     protected native void finalize();
     private static native long newNativeWithImageFile(String imgfile, Rect rect);
     private static native long newNativeWithImageData(byte[] imgdata, Rect rect);

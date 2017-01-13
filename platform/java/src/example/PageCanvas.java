@@ -44,7 +44,10 @@ public class PageCanvas extends Canvas implements MouseListener, MouseMotionList
 	public boolean doSign(Document doc) {
 		OpensslSignDevice device = getOpensslDevice();
 		PdfSignAppearance app = getSignApp();
-		return doc.pdfAddSignature(page, device, app);
+		boolean isok = doc.pdfAddSignature(page, device, app);
+		device.destroy();
+		app.destroy();
+		return isok;
 	}
 
 	public void updatePageImage() {
