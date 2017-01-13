@@ -2,32 +2,19 @@ package example;
 
 import com.artifex.mupdf.fitz.*;
 
-import java.io.File;
+import java.awt.*;
+import java.awt.event.*;
 
-import java.awt.Frame;
-import java.awt.Label;
-import java.awt.Button;
-import java.awt.Panel;
-import java.awt.BorderLayout;
-import java.awt.FlowLayout;
-import java.awt.event.ActionListener;
-import java.awt.event.WindowListener;
-import java.awt.event.WindowEvent;
-import java.awt.event.ActionEvent;
-
-import javax.swing.JFileChooser;
-import javax.swing.filechooser.FileFilter;
-import javax.swing.JOptionPane;
-
-public class Viewer extends Frame implements WindowListener, ActionListener
+public class Viewer extends Frame implements WindowListener,ActionListener
 {
 	protected Document doc;
 	protected Panel toolbar;
 	protected PageCanvas pageCanvas;
 	protected Label pageLabel;
-	protected Button firstButton, prevButton, nextButton, lastButton;
+	protected Button firstButton, prevButton, nextButton, lastButton, saveButton, handsignbutton, signbutton, signnextbutton, signcancelbutton;
 	protected int pageCount;
 	protected int pageNumber;
+	protected Canvas imageCanvas;
 
 	public Viewer(Document doc_) {
 		super("MuPDF");
@@ -37,9 +24,10 @@ public class Viewer extends Frame implements WindowListener, ActionListener
 		pageCount = doc.countPages();
 		pageNumber = 0;
 
-		setSize(600, 900);
+		setSize(600, 800);
 		setTitle("MuPDF: " + doc.getMetaData(Document.META_INFO_TITLE));
 
+        Panel upPanel = new Panel(new BorderLayout(0, 0));
 		toolbar = new Panel();
 		toolbar.setLayout(new FlowLayout(FlowLayout.LEFT));
 		firstButton = new Button("|<");
@@ -50,18 +38,38 @@ public class Viewer extends Frame implements WindowListener, ActionListener
 		nextButton.addActionListener(this);
 		lastButton = new Button(">|");
 		lastButton.addActionListener(this);
+		saveButton = new Button(">|");
+		saveButton.addActionListener(this);
+
 		pageLabel = new Label();
 
 		toolbar.add(firstButton);
 		toolbar.add(prevButton);
 		toolbar.add(nextButton);
 		toolbar.add(lastButton);
+		toolbar.add(saveButton);
 		toolbar.add(pageLabel);
+		upPanel.add(toolbar, BorderLayout.NORTH);
 
-		add(toolbar, BorderLayout.NORTH);
+        Panel signbar = new Panel(new FlowLayout(FlowLayout.LEFT));
+		handsignbutton = new Button("hand sign");
+		handsignbutton.addActionListener(this);
+		signbutton = new Button("sign");
+		signbutton.addActionListener(this);
+		signnextbutton = new Button("next");
+		signnextbutton.addActionListener(this);
+		signcancelbutton = new Button("canncel");
+		signcancelbutton.addActionListener(this);
+		signbar.add(handsignbutton);
+		signbar.add(signbutton);
+        signbar.add(signnextbutton);
+		signbar.add(signcancelbutton);
+		upPanel.add(signbar, BorderLayout.CENTER);
 
+		add(upPanel, BorderLayout.NORTH);
+
+		initSignCammondStatus();
 		addWindowListener(this);
-
 		stuff();
 	}
 
@@ -70,8 +78,37 @@ public class Viewer extends Frame implements WindowListener, ActionListener
 		if (pageCanvas != null)
 			remove(pageCanvas);
 		pageCanvas = new PageCanvas(doc.loadPage(pageNumber));
+
 		add(pageCanvas, BorderLayout.CENTER);
 		validate();
+	}
+
+	public void onHandsign() {
+		handsignbutton.setLabel("cancel");
+	}
+
+	public void onSign() {
+        boolean isok = pageCanvas.beginSign();
+        signbutton.setEnabled(!isok);
+		signnextbutton.setEnabled(isok);
+        signcancelbutton.setEnabled(isok);
+		handsignbutton.setEnabled(!isok);
+	}
+
+	public void signNext() {
+		boolean isok = pageCanvas.doSign(doc);
+		signnextbutton.setEnabled(!isok);
+		signcancelbutton.setEnabled(true);
+		if( isok ){
+			cancelSign(isok);
+		}
+	}
+
+	public void pageCanvaseResize(Rectangle bound) {
+		if(imageCanvas==null)
+			return;
+
+		imageCanvas.setBounds(bound);
 	}
 
 	public void actionPerformed(ActionEvent event) {
@@ -87,14 +124,51 @@ public class Viewer extends Frame implements WindowListener, ActionListener
 			if (pageNumber < 0)
 				pageNumber = 0;
 		}
+
 		if (source == nextButton) {
 			pageNumber = pageNumber + 1;
 			if (pageNumber >= pageCount)
 				pageNumber = pageCount - 1;
 		}
 
+		if(source == saveButton) {
+			// TODO: select save file path
+			// doc.save();
+		}
+
+		if(source == handsignbutton)
+			onHandsign();
+
+		if(source == signbutton)
+			onSign();
+
+        if(source == signnextbutton)
+        	signNext();
+
+		if(source == signnextbutton)
+			cancelSign(false);
+
 		if (pageNumber != oldPageNumber)
 			stuff();
+
+	}
+
+	private void cancelSign(boolean update) {
+		pageCanvas.cancelSign();
+		initSignCammondStatus();
+		if(update) {
+            pageCanvas.updatePageImage();
+//            remove(pageCanvas);
+//			pageCanvas = null;
+//			stuff();
+		}
+	}
+
+	private void initSignCammondStatus() {
+		signbutton.setEnabled(true);
+		handsignbutton.setEnabled(true);
+		signnextbutton.setEnabled(false);
+		signcancelbutton.setEnabled(false);
 	}
 
 	public void windowClosing(WindowEvent event) {
@@ -108,96 +182,20 @@ public class Viewer extends Frame implements WindowListener, ActionListener
 	public void windowOpened(WindowEvent event) { }
 	public void windowClosed(WindowEvent event) { }
 
-	public static void main(String[] args)
-	{
-		JFileChooser fileChooser = new JFileChooser();
-		fileChooser.setDialogTitle("Choose a file to open");
-		fileChooser.setFileFilter(new FileFilter()
-		{
-			public String getDescription()
-			{
-				return "Supported files (*.pdf, *,xps, *.jpg, *.jpeg, *.png, *.epub, *.cbz, *.cbr)";
-			}
-
-			public boolean accept(File f)
-			{
-				if (f.isDirectory())
-					return true;
-
-				String filename = f.getName().toLowerCase();
-				if (filename.endsWith(".pdf"))
-					return true;
-				if (filename.endsWith(".xps"))
-					return true;
-				if (filename.endsWith(".jpg"))
-					return true;
-				if (filename.endsWith(".jpeg"))
-					return true;
-				if (filename.endsWith(".png"))
-					return true;
-				if (filename.endsWith(".epub"))
-					return true;
-				if (filename.endsWith(".cbz"))
-					return true;
-				if (filename.endsWith(".cbr"))
-					return true;
-
-				return false;
-			}
-		});
-
-		while (true)
-		{
-			try
-			{
-				// get a file to open
-				int result = fileChooser.showOpenDialog(null);
-				if (result == JFileChooser.APPROVE_OPTION)
-				{
-					// user selects a file
-					File selectedFile = fileChooser.getSelectedFile();
-					if (selectedFile != null)
-					{
-						Document doc = new Document(selectedFile.getAbsolutePath());
-						if (doc != null)
-						{
-							Viewer app = new Viewer(doc);
-							if (app != null)
-							{
-								app.setVisible(true);
-								return;
-							}
-							else
-							{
-								infoBox("Cannot create Viewer for "+selectedFile.getAbsolutePath(),"Error");
-							}
-						}
-						else
-						{
-							infoBox("Cannot open "+selectedFile.getAbsolutePath(),"Error");
-						}
-					}
-					else
-					{
-						infoBox("Selected file not found.","Error");
-					}
-				}
-				else
-				{
-					infoBox("File selection cancelled.","Error");
-					return;
-				}
-
+	public static void main(String[] args) {
+		while (true) {
+			String filepath = "/Users/zl03jsj/Documents/pdftest/pdffile/PDF32000_2008.PDF";// Helper.fileSelect(imgfilter);
+            if(filepath==null) continue;
+			try {
+				Document doc = new Document(filepath);
+				Viewer app = new Viewer(doc);
+				app.setVisible(true);
+                return;
 			}
 			catch (Exception e)
 			{
-				infoBox("Exception: "+e.getMessage(),"Error");
+				Helper.infoBox("Exception: "+e.getMessage(),"Error");
 			}
 		}
-	}
-
-	private static void infoBox(String infoMessage, String titleBar)
-	{
-		JOptionPane.showMessageDialog(null, infoMessage, "InfoBox: " + titleBar, JOptionPane.INFORMATION_MESSAGE);
 	}
 }

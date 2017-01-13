@@ -58,7 +58,7 @@ $(MUPDF_CORE) :
 endif
 
 JAVA_SRC := ./src/
-JAVA_SRC_DIRS := $(JAVA_SRC)com/artifex/mupdf/fitz/*.java $(JAVA_SRC)com/z/math/*.java $(JAVA_SRC)com/z/*.java $(JAVA_SRC)*.java
+JAVA_SRC_DIRS := $(JAVA_SRC)com/artifex/mupdf/fitz/*.java $(JAVA_SRC)com/z/math/*.java $(JAVA_SRC)com/z/*.java $(JAVA_SRC)*.java $(JAVA_SRC)example/*.java
 LIBRARY_JAVA_SOURCES := $(sort $(wildcard $(JAVA_SRC_DIRS)))
 
 LIBRARY_JAVA_OBJECTS := $(LIBRARY_JAVA_SOURCES:%.java=%.class)
@@ -67,15 +67,19 @@ LIBRARY_JAVA_CLASSES := $(subst $(JAVA_SRC),,$(LIBRARY_JAVA_SOURCES:%.java=%))
 LIBRARY_JAVA_CLASSES := $(subst com/artifex/mupdf/fitz/,com.artifex.mupdf.fitz.,$(LIBRARY_JAVA_CLASSES))
 LIBRARY_JAVA_CLASSES := $(subst com/z/math/,com.z.math.,$(LIBRARY_JAVA_CLASSES))
 LIBRARY_JAVA_CLASSES := $(subst com/z/,com.z.,$(LIBRARY_JAVA_CLASSES))
+LIBRARY_JAVA_CLASSES := $(subst example/,example.,$(LIBRARY_JAVA_CLASSES))
 
 $(LIBRARY_JAVA_OBJECTS) : $(LIBRARY_JAVA_SOURCES)
 	javac -source 1.7 -target 1.7 $^
 
-EXAMPLE_JAVA_SOURCES := $(sort $(wildcard example/*.java))
+EXAMPLE_JAVA_SOURCES := $(sort $(wildcard $(JAVA_SRC)example/*.java))
 EXAMPLE_JAVA_OBJECTS := $(EXAMPLE_JAVA_SOURCES:%.java=%.class)
 
 $(EXAMPLE_JAVA_OBJECTS) : $(EXAMPLE_JAVA_SOURCES)
 	javac -source 1.7 -target 1.7  -classpath .:src $^
+
+example: $(EXAMPLE_JAVA_SOURCES)
+	javac -source 1.7 -target 1.7 -classpath .:src $^
 
 src_lib_dir := $(JAVA_SRC)lib/
 
@@ -108,7 +112,7 @@ clean:
 	rm -f $(JAVA_SRC)com/z/math/*.class
 	rm -f $(JAVA_SRC)com/artifex/mupdf/fitz/*.class
 	rm -f $(JAVA_SRC)lib/*
-	rm -f example/*.class
+	rm -f $(JAVA_SRC)example/*.class
 	rm -f mupdf_native.o
 	rm -f $(MUPDF_JAVA)
 

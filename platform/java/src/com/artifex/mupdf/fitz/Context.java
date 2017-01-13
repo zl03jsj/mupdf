@@ -24,7 +24,7 @@ public class Context
 				e.printStackTrace();
 			}
 			if( !inited ) {
-				String absolutepath = unpackeNativelib();
+				String absolutepath = unpackeNativeMupdflib();
 				System.load(absolutepath);
                 inited = true;
 			}
@@ -86,7 +86,7 @@ public class Context
 		pathinit = true;
 	}
 
-	private static String unpackeNativelib() {
+	private static String unpackeNativeMupdflib() {
 		initPaths();
 		String absolutPath = System.getProperty("user.dir") + "/";
 		String libRealName = libname + libsuffix;
