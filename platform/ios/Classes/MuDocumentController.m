@@ -413,6 +413,7 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 
 	[outline release];
 	if(_app) z_pdf_drop_sign_appreance(ctx, _app);
+	if(_device) z_drop_device(ctx, _device);
 	[key release];
 	[super dealloc];
 }
@@ -456,7 +457,6 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 	}
 
 	[self.navigationController.toolbar setNeedsLayout]; // force layout!
-	
 	// use max_width so we don't clamp the content offset too early during animation
 	canvas.contentSize = CGSizeMake(fz_count_pages(ctx, doc) * max_width, height);
 	canvas.contentOffset = CGPointMake(current * width, 0);
@@ -1074,6 +1074,7 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 				break;
 		}
 	}
+	
 	if (tapHandled) {
 		// Do nothing further
 	} else if (p.x < x0) {
@@ -1192,6 +1193,10 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 
 - (void) gotoPage: (int)number animated: (BOOL)animated
 {
+	// signmode forbid turning page.
+	if(barmode==BARMODE_SIGN || barmode==BARMODE_Handsign)
+		return;
+	
 	if (number < 0)
 		number = 0;
 	if (number >= fz_count_pages(ctx, doc))
@@ -1376,14 +1381,25 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 	return NO;
 }
 
+- (void) deviceCreateFailed {
+	if(barmode==BARMODE_Handsign)
+		[self handsignModeOff];
+	if(barmode==BARMODE_SIGN)
+		[self signModeOff];
+	
+	[self showAnnotationMenu];
+}
+
 - (void) signModeOff {
 	_signstep = SIGN_STEP_NOT_SIGINING;
 	UIView<MuPageView> *view = [self curPageView];
 	[view imageViewModeOff];
 	
-	if(_app) z_pdf_drop_sign_appreance(ctx, _app);
+	if(_app)
+		z_pdf_drop_sign_appreance(ctx, _app);
 	_app = NULL;
-	if(_device) z_drop_device(ctx, _device);
+	if(_device)
+		z_drop_device(ctx, _device);
 	_device = NULL;
 }
 
@@ -1407,6 +1423,13 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 	UIView<MuPageView> *view = [self curPageView];
 	if(!view) return;
 	[view handsignModeOff];
+	
+	if(_app)
+		z_pdf_drop_sign_appreance(ctx, _app);
+	_app = NULL;
+	if(_device)
+		z_drop_device(ctx, _device);
+	_device = NULL;
 }
 
 - (UIView<MuPageView>*) curPageView {

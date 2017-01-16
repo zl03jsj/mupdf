@@ -72,6 +72,18 @@
 #endif
 }
 
+- (void) close {
+	// close all
+	UIViewController *vc = self.presentingViewController;
+	if ( !vc.presentingViewController ) {
+		[self dismissViewControllerAnimated:YES completion:nil];
+		return;
+	}
+	while (vc.presentingViewController)
+		vc = vc.presentingViewController;
+	[vc dismissViewControllerAnimated:YES completion:nil];
+}
+
 - (IBAction)onOkTaped:(id)sender {
 	const char *pfxfile = [_pfxfile cStringUsingEncoding:NSUTF8StringEncoding];
 	const char *pfxpassword = [_pfxfilepassword.text cStringUsingEncoding:NSUTF8StringEncoding];
@@ -79,29 +91,21 @@
 	z_device *device = NULL;
 	fz_try(ctx) {
 		device = z_openssl_new_device(ctx, (char*)pfxfile, (char*)pfxpassword);
-		_remainingTimes--;
-		if(0==_remainingTimes) {
-			[self dismissViewControllerAnimated:YES completion:nil];
-		}
 		if( device ) {
 			if(_deviceokblock) _deviceokblock(device);
 			if(_delegate) [_delegate deviceCreateOk:device];
 			z_drop_device(ctx, device);
 			device = nil;
-			
-			// close all
-			UIViewController *vc = self.presentingViewController;
-			if ( !vc.presentingViewController ) {
-				[self dismissViewControllerAnimated:YES completion:nil];
-				return;
-			}
-			while (vc.presentingViewController)
-				vc = vc.presentingViewController;
-			[vc dismissViewControllerAnimated:YES completion:nil];
+			[self close];
 		}
 	}
 	fz_catch(ctx) {
-		_message.text = [NSString stringWithFormat:@"error: you still have %d time chances of inputing. \nerror detail:%@",_remainingTimes, [NSString stringWithUTF8String:ctx->error->message],nil];
+		if(0==(--_remainingTimes)) {
+			if(_delegate) [_delegate deviceCreateFailed];
+			[self close];
+		}
+		_message.text = [NSString stringWithFormat:@"error: you still have %d time chances of inputing. \nerror detail:%@",
+						 _remainingTimes, [NSString stringWithUTF8String:ctx->error->message],nil];
 	}
 }
 
@@ -114,7 +118,6 @@
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
 }
-
 
 /*
 #pragma mark - Navigation

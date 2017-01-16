@@ -17,21 +17,6 @@ export build=$(echo $CONFIGURATION | tr A-Z a-z)
 
 
 FLAGS="-Wno-unused-function -Wno-empty-body -Wno-implicit-function-declaration"
-if [ "$SIGN_SUPPORTED" = "yes" ]
-then
-    FLAGS="$FLAGS -DSIGN_SUPPORTED"
-
-    if [ "$MTOKEN_KEY_SUPPORTED" = "yes" ]
-    then
-        FLAGS="$FLAGS -DMTOKEN_KEY_SUPPORTED"
-    fi
-
-    if [ "$SIGN_METHOD_ZL_SUPPORT" = "yes" ]
-    then
-        FLAGS="$FLAGS -DZ_pdf_sign_"
-    fi
-
-fi
 
 for A in $ARCHS
 do
@@ -53,7 +38,7 @@ OUT=build/$build-$OS-$(echo $ARCHS | tr ' ' '-')
 
 
 echo Compiling libraries for $ARCHS.
-echo HAVE_OPENSSL=$HAVE_OPENSSL
+echo HAVE_LIBCRYPTO=$HAVE_LIBCRYPTO
 echo make -j4 -C ../.. OUT=$OUT XCFLAGS="$FLAGS" XLDFLAGS="$FLAGS" third libs
 make -j4 -C ../.. OUT=$OUT XCFLAGS="$FLAGS" XLDFLAGS="$FLAGS" third libs || exit 1
 
@@ -62,15 +47,10 @@ mkdir -p "$BUILT_PRODUCTS_DIR"
 cp -f ../../$OUT/lib*.a $BUILT_PRODUCTS_DIR
 ranlib $BUILT_PRODUCTS_DIR/lib*.a
 
-if [ "$HAVE_OPENSSL" = "yes" ] 
+if [ "$HAVE_LIBCRYPTO" = "yes" ] 
 then
 echo copy openssl libs
 cp -f  ../../thirdparty/openssl/ios/lib*.a $BUILT_PRODUCTS_DIR
-fi
-
-if [ "$MTOKEN_KEY_SUPPORTED" = "yes" ]
-then
-cp -f ./z/signdevice/mtoken/Lib/lib*.a $BUILT_PRODUCTS_DIR
 fi
 
 echo Done.

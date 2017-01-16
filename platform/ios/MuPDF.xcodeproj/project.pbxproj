@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		6818B5751E2C9CC3006BFE7D /* ic_next.png in Resources */ = {isa = PBXBuildFile; fileRef = 6818B5711E2C9CBB006BFE7D /* ic_next.png */; };
+		6818B5761E2C9CC3006BFE7D /* ic_signature.png in Resources */ = {isa = PBXBuildFile; fileRef = 6818B5721E2C9CBB006BFE7D /* ic_signature.png */; };
+		6818B5771E2C9CC3006BFE7D /* ic_stamp.png in Resources */ = {isa = PBXBuildFile; fileRef = 6818B5731E2C9CBB006BFE7D /* ic_stamp.png */; };
+		6818B5781E2C9CC3006BFE7D /* ic_stamp.png.bak.png in Resources */ = {isa = PBXBuildFile; fileRef = 6818B5741E2C9CBB006BFE7D /* ic_stamp.png.bak.png */; };
+		6818B5791E2C9EC9006BFE7D /* MuFileselectViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 685455211E1E4B410083354B /* MuFileselectViewController.xib */; };
+		6818B57A1E2C9EC9006BFE7D /* MuFileselectViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 685455211E1E4B410083354B /* MuFileselectViewController.xib */; };
+		6818B57B1E2C9F30006BFE7D /* MuPfxPasswordView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 685455261E1E4B410083354B /* MuPfxPasswordView.xib */; };
+		6818B57C1E2C9F31006BFE7D /* MuPfxPasswordView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 685455261E1E4B410083354B /* MuPfxPasswordView.xib */; };
 		685454F21E1E48370083354B /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 96C8ED001779A88E00A30AF4 /* main.m */; };
 		685454F31E1E48370083354B /* common.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C68C317E8969C0061F586 /* common.m */; };
 		685454FE1E1E48370083354B /* libmupdf.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 96C8ED151779A9AE00A30AF4 /* libmupdf.a */; };
@@ -77,6 +85,8 @@
 		685455581E1E4B600083354B /* MuTextFieldController.m in Sources */ = {isa = PBXBuildFile; fileRef = DA4C0620187B1EA200755D0D /* MuTextFieldController.m */; };
 		685455591E1E4B600083354B /* MuChoiceFieldController.m in Sources */ = {isa = PBXBuildFile; fileRef = DAFF9979187C12430081C756 /* MuChoiceFieldController.m */; };
 		6854555A1E1E4B600083354B /* MuPrintPageRenderer.m in Sources */ = {isa = PBXBuildFile; fileRef = DA0354EA18FFF48400EE31BA /* MuPrintPageRenderer.m */; };
+		68DEB0B81E2C993D003CCD96 /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 68DEB0B61E2C993D003CCD96 /* libcrypto.a */; };
+		68DEB0B91E2C993D003CCD96 /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 68DEB0B71E2C993D003CCD96 /* libssl.a */; };
 		7C6152E819DDD6A90095ECAC /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7C6152E719DDD6A90095ECAC /* Images.xcassets */; };
 		7C6152EA19DDF05B0095ECAC /* Launch Screen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 7C6152E919DDF05B0095ECAC /* Launch Screen.xib */; };
 		96C8ED011779A88E00A30AF4 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 96C8ED001779A88E00A30AF4 /* main.m */; };
@@ -125,6 +135,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		6818B5711E2C9CBB006BFE7D /* ic_next.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ic_next.png; path = resources/ic_next.png; sourceTree = "<group>"; };
+		6818B5721E2C9CBB006BFE7D /* ic_signature.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ic_signature.png; path = resources/ic_signature.png; sourceTree = "<group>"; };
+		6818B5731E2C9CBB006BFE7D /* ic_stamp.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ic_stamp.png; path = resources/ic_stamp.png; sourceTree = "<group>"; };
+		6818B5741E2C9CBB006BFE7D /* ic_stamp.png.bak.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ic_stamp.png.bak.png; path = resources/ic_stamp.png.bak.png; sourceTree = "<group>"; };
 		6854551D1E1E48370083354B /* MuPDF_openssl_sign.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MuPDF_openssl_sign.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6854551E1E1E48370083354B /* MuPDF_openssl_sign-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "MuPDF_openssl_sign-Info.plist"; path = "/Users/zl03jsj/Documents/mupdf/platform/ios/MuPDF_openssl_sign-Info.plist"; sourceTree = "<absolute>"; };
 		6854551F1E1E4B410083354B /* MuFileselectViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MuFileselectViewController.h; path = Classes/MuFileselectViewController.h; sourceTree = "<group>"; };
@@ -137,6 +151,8 @@
 		685455261E1E4B410083354B /* MuPfxPasswordView.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = MuPfxPasswordView.xib; path = Classes/MuPfxPasswordView.xib; sourceTree = "<group>"; };
 		685455271E1E4B410083354B /* MuSignView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MuSignView.h; path = Classes/MuSignView.h; sourceTree = "<group>"; };
 		685455281E1E4B410083354B /* MuSignView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = MuSignView.m; path = Classes/MuSignView.m; sourceTree = "<group>"; };
+		68DEB0B61E2C993D003CCD96 /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = ../../thirdparty/openssl/ios/libcrypto.a; sourceTree = "<group>"; };
+		68DEB0B71E2C993D003CCD96 /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../../thirdparty/openssl/ios/libssl.a; sourceTree = "<group>"; };
 		7C6152E719DDD6A90095ECAC /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = MuPDF/Images.xcassets; sourceTree = "<group>"; };
 		7C6152E919DDF05B0095ECAC /* Launch Screen.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = "Launch Screen.xib"; path = "MuPDF/Launch Screen.xib"; sourceTree = "<group>"; };
 		968E1E3D1779A54F0050CEA3 /* MuPDF.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MuPDF.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -212,6 +228,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				68DEB0B81E2C993D003CCD96 /* libcrypto.a in Frameworks */,
+				68DEB0B91E2C993D003CCD96 /* libssl.a in Frameworks */,
 				685454FE1E1E48370083354B /* libmupdf.a in Frameworks */,
 				685454FF1E1E48370083354B /* libmupdfthird.a in Frameworks */,
 			);
@@ -259,6 +277,8 @@
 		968E1E3F1779A54F0050CEA3 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				68DEB0B61E2C993D003CCD96 /* libcrypto.a */,
+				68DEB0B71E2C993D003CCD96 /* libssl.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -266,6 +286,10 @@
 		968E1E461779A54F0050CEA3 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				6818B5711E2C9CBB006BFE7D /* ic_next.png */,
+				6818B5721E2C9CBB006BFE7D /* ic_signature.png */,
+				6818B5731E2C9CBB006BFE7D /* ic_stamp.png */,
+				6818B5741E2C9CBB006BFE7D /* ic_stamp.png.bak.png */,
 				7C6152E719DDD6A90095ECAC /* Images.xcassets */,
 				7C6152E919DDF05B0095ECAC /* Launch Screen.xib */,
 				DADF824C1905241900855662 /* ic_share.png */,
@@ -450,6 +474,11 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6818B5751E2C9CC3006BFE7D /* ic_next.png in Resources */,
+				6818B5761E2C9CC3006BFE7D /* ic_signature.png in Resources */,
+				6818B5771E2C9CC3006BFE7D /* ic_stamp.png in Resources */,
+				6818B5791E2C9EC9006BFE7D /* MuFileselectViewController.xib in Resources */,
+				6818B5781E2C9CC3006BFE7D /* ic_stamp.png.bak.png in Resources */,
 				685455011E1E48370083354B /* Default-568h@2x.png in Resources */,
 				685455021E1E48370083354B /* ic_annotation.png in Resources */,
 				685455031E1E48370083354B /* ic_print.png in Resources */,
@@ -471,6 +500,7 @@
 				685455131E1E48370083354B /* ic_strike.png in Resources */,
 				685455141E1E48370083354B /* ic_underline.png in Resources */,
 				685455151E1E48370083354B /* ic_check.png in Resources */,
+				6818B57B1E2C9F30006BFE7D /* MuPfxPasswordView.xib in Resources */,
 				685455161E1E48370083354B /* ic_pen.png in Resources */,
 				685455171E1E48370083354B /* ic_trash.png in Resources */,
 				685455181E1E48370083354B /* ic_share.png in Resources */,
@@ -485,6 +515,7 @@
 				DA7AAA3B18E4683600A577E3 /* ic_annotation.png in Resources */,
 				DA7AAA3C18E4683600A577E3 /* ic_print.png in Resources */,
 				DA4C0623187B1EA200755D0D /* MuTextFieldController.xib in Resources */,
+				6818B57C1E2C9F31006BFE7D /* MuPfxPasswordView.xib in Resources */,
 				DAFF997C187C12430081C756 /* MuChoiceFieldController.xib in Resources */,
 				96E1CDF31779A60700FCF717 /* x_alt_blue.png in Resources */,
 				7C6152E819DDD6A90095ECAC /* Images.xcassets in Resources */,
@@ -499,6 +530,7 @@
 				DAB9F4C217F1CB6D00117D2E /* ic_reflow.png in Resources */,
 				DAD47D2A1832475C00E173A0 /* ic_more.png in Resources */,
 				DAD47D2E1832615900E173A0 /* ic_highlight.png in Resources */,
+				6818B57A1E2C9EC9006BFE7D /* MuFileselectViewController.xib in Resources */,
 				DAD47D2F1832615900E173A0 /* ic_strike.png in Resources */,
 				DAD47D301832615900E173A0 /* ic_underline.png in Resources */,
 				DACD12271833CDA600D4B9C5 /* ic_check.png in Resources */,

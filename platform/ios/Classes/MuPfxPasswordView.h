@@ -13,6 +13,7 @@ typedef void(^SignDeviceOkBlock)(z_device*);
 
 @protocol MuPfxPswViewDelegate
 - (BOOL)deviceCreateOk:(z_device *)device;
+- (void)deviceCreateFailed;
 @end
 
 @interface MuPfxPasswordView : UIViewController
