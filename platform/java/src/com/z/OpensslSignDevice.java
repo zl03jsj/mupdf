@@ -15,7 +15,6 @@ public class OpensslSignDevice {
     }
 
     public void destroy() {
-        pointer = 0;
         finalize();
     }
 

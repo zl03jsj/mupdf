@@ -8,7 +8,6 @@ public class Device
 
 	public void destroy() {
 		finalize();
-		pointer = 0;
 	}
 
 	private native long newNative();

@@ -108,8 +108,9 @@ public class Helper {
         return fileChooser;
     }
 
-    private static String fileSelect(Frame owner, String[] filter) {
+    private static String fileSelect(Frame owner, String[] filter, String defaultpath) {
         JFileChooser fileChooser = createFileChooser(filter);
+        fileChooser.setCurrentDirectory(new File(defaultpath));
         while (true) {
             try {
                 int result = fileChooser.showOpenDialog(owner);
@@ -134,16 +135,16 @@ public class Helper {
         return null;
     }
 
-    public static String imageSelect(Frame owner) {
-        return fileSelect(owner, imgfilter);
+    public static String imageSelect(Frame owner, String defpath) {
+        return fileSelect(owner, imgfilter, defpath);
     }
 
-    public static String pfxSelect(Frame owner) {
-        return fileSelect(owner, pfxfilter);
+    public static String pfxSelect(Frame owner, String defpath) {
+        return fileSelect(owner, pfxfilter, defpath);
     }
 
-    public static String pdfSelect(Frame owner) {
-        return fileSelect(owner, pdffilter);
+    public static String pdfSelect(Frame owner, String defpath) {
+        return fileSelect(owner, pdffilter, defpath);
     }
 
 

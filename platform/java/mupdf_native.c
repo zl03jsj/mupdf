@@ -4977,7 +4977,10 @@ JNIEXPORT void JNICALL Java_com_z_PdfSignAppearance_finalize
 (JNIEnv *env, jobject self) {
 	fz_context *ctx = get_context(env);
     z_pdf_sign_appearance *app = from_PdfSignAppearance(env, self);
-    z_pdf_drop_sign_appreance(ctx, app); 
+    if(app) {
+        z_pdf_drop_sign_appreance(ctx, app); 
+        (*env)->SetLongField(env, self, fid_PdfSignAppearance_pointer, 0); 
+    }
 }
 
 JNIEXPORT jlong JNICALL Java_com_z_PdfSignAppearance_newNativeWithImageFile
@@ -5034,7 +5037,10 @@ JNIEXPORT void JNICALL Java_com_z_OpensslSignDevice_finalize
 {
     fz_context *ctx = get_context(env);
     z_device *device = from_OpensslSignDevice(env, self);
-    z_drop_device(ctx, device); 
+    if(device) {
+        z_drop_device(ctx, device); 
+        (*env)->SetLongField(env, self, fid_OpensslSignDevice_pointer, 0); 
+    }
 }
 
 JNIEXPORT jlong JNICALL Java_com_z_OpensslSignDevice_newNativeWithPfxFile

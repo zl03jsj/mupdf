@@ -43,7 +43,10 @@ public class PageCanvas extends Canvas implements MouseListener, MouseMotionList
 
 	public boolean doSign(Document doc) {
 		OpensslSignDevice device = getOpensslDevice();
+		if(null==device) return false;
 		PdfSignAppearance app = getSignApp();
+		if(app==null) return false;
+
 		boolean isok = doc.pdfAddSignature(page, device, app);
 		device.destroy();
 		app.destroy();
@@ -59,8 +62,10 @@ public class PageCanvas extends Canvas implements MouseListener, MouseMotionList
 
 	public void cancelSign() {
 		if(null!=signImage) signImage = null;
+		if(null!=imageFile) imageFile = null;
         viewMode = ViewModeNormal;
 		dragflag = false;
+        repaint();
 	}
 
 	private boolean innerDosign(OpensslSignDevice device, PdfSignAppearance app) {
@@ -69,7 +74,7 @@ public class PageCanvas extends Canvas implements MouseListener, MouseMotionList
 
 	private OpensslSignDevice getOpensslDevice() {
 		Frame owner = (Frame)getParent();
-		String pfxfile = Helper.pfxSelect(owner);
+		String pfxfile = Helper.pfxSelect(owner, "/Users/zl03jsj/Documents/pdftest/ca");
 		if(null!=pfxfile) {
             return Helper.createOpensslDevice(pfxfile, owner);
 		}
@@ -266,7 +271,9 @@ public class PageCanvas extends Canvas implements MouseListener, MouseMotionList
 	}
 
 	public boolean beginSign() {
-		imageFile = "/Users/zl03jsj/Documents/pdftest/monkeysmile.JPG"; // Viewer.fileSelect(Viewer.imgfilter);
+		imageFile =  Helper.imageSelect((Frame)this.getParent(), "/Users/zl03jsj/Documents/pdftest");
+		if(imageFile==null) return false;
+
 		BufferedImage image = null;
 		try {
 			image = ImageIO.read(new File(imageFile));

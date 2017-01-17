@@ -38,7 +38,7 @@ public class Viewer extends Frame implements WindowListener,ActionListener
 		nextButton.addActionListener(this);
 		lastButton = new Button(">|");
 		lastButton.addActionListener(this);
-		saveButton = new Button(">|");
+		saveButton = new Button("save");
 		saveButton.addActionListener(this);
 
 		pageLabel = new Label();
@@ -125,6 +125,10 @@ public class Viewer extends Frame implements WindowListener,ActionListener
 				pageNumber = 0;
 		}
 
+		if (source==saveButton) {
+			doc.save("/Users/zl03jsj/Documents/pdftest/java_saved.pdf");
+		}
+
 		if (source == nextButton) {
 			pageNumber = pageNumber + 1;
 			if (pageNumber >= pageCount)
@@ -145,7 +149,7 @@ public class Viewer extends Frame implements WindowListener,ActionListener
         if(source == signnextbutton)
         	signNext();
 
-		if(source == signnextbutton)
+		if(source == signcancelbutton)
 			cancelSign(false);
 
 		if (pageNumber != oldPageNumber)
@@ -158,9 +162,6 @@ public class Viewer extends Frame implements WindowListener,ActionListener
 		initSignCammondStatus();
 		if(update) {
             pageCanvas.updatePageImage();
-//            remove(pageCanvas);
-//			pageCanvas = null;
-//			stuff();
 		}
 	}
 
@@ -184,7 +185,7 @@ public class Viewer extends Frame implements WindowListener,ActionListener
 
 	public static void main(String[] args) {
 		while (true) {
-			String filepath = "/Users/zl03jsj/Documents/pdftest/pdffile/PDF32000_2008.PDF";// Helper.fileSelect(imgfilter);
+			String filepath = Helper.pdfSelect(null, "/Users/zl03jsj/Documents/pdftest/pdffile");
             if(filepath==null) continue;
 			try {
 				Document doc = new Document(filepath);

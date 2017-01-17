@@ -17,7 +17,6 @@ public class PdfSignAppearance {
     }
 
     public void destroy() {
-        pointer = 0;
         finalize();
     }
 
