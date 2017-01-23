@@ -186,6 +186,15 @@ fz_buffer_extract(fz_context *ctx, fz_buffer *buf, unsigned char **datap)
 	return len;
 }
 
+size_t
+fz_buffer_get_data(fz_context *ctx, fz_buffer *buf, unsigned char **datap)
+{
+	size_t len = buf ? buf->len : 0;
+	*datap = (buf ? buf->data : NULL);
+
+	return len;
+}
+
 void
 fz_append_buffer(fz_context *ctx, fz_buffer *buf, fz_buffer *extra)
 {
