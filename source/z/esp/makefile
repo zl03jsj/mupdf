@@ -1,7 +1,7 @@
 out := ./
 build ?= debug
-include_path := -I../../include
-mupdf_lib_path := ../../build/$(build)
+include_path := -I../../../include
+mupdf_lib_path := ../../../build/$(build)
 flags := $(include_path)
 flags += -Wno-c++11-extensions -fshort-wchar
 
@@ -17,7 +17,7 @@ srcs += $(wildcard ./*.c)
 objects := $(patsubst %.c,%.o,$(patsubst %.cpp,%.o,$(srcs)))
 
 $(mupdf_libs):
-	$(MAKE) -C ../../ build=$(build) 
+	$(MAKE) -C ../../../ build=$(build) 
 
 %.o : %.cpp
 	$(CXX) $(flags) -o $@ -c $<
