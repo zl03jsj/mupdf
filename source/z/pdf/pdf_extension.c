@@ -1,4 +1,4 @@
-#include "../../thirdparty/zlib/zlib.h"
+#include "../../../thirdparty/zlib/zlib.h"
 #include "mupdf/z/z_pdf.h"
 
 const char *ntkoextobjname = "ntkoext";

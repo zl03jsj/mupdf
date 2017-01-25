@@ -7,11 +7,11 @@ os := $(os:Darwin=macos)
 HAVE_LIBCRYPTO ?= yes
 build ?= debug
 
-incpath := -I../../include -I./ 
-libs := -L../../build/$(build) -lmupdf -lmupdfthird
+incpath := -I../../../include -I./ 
+libs := -L../../../build/$(build) -lmupdf -lmupdfthird
 
 ifeq "$(HAVE_LIBCRYPTO)" "yes"
-libs += -L../../thirdparty/openssl/$(os) -lcrypto -lssl
+libs += -L../../../thirdparty/openssl/$(os) -lcrypto -lssl
 endif
 
 sourcedirs := ./Test/
@@ -37,11 +37,11 @@ $(objs): %.o:%.c
 
 
 mupdf:
-	$(MAKE) -C ../.. XCFLAGS=-fPIC build=$(build) HAVE_LIBCRYPTO=$(HAVE_LIBCRYPTO) libs
+	$(MAKE) -C ../../../ XCFLAGS=-fPIC build=$(build) HAVE_LIBCRYPTO=$(HAVE_LIBCRYPTO) libs
 
 clean:
 	rm -f ./Test/*.o
-	rm ../../build/$(build)
+	rm -r -f ../../../build/$(build)
 
 showinfo:
 	@echo flags=$(flags)

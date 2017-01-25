@@ -97,6 +97,7 @@ ALL_DIR += $(OUT)/platform/x11/curl
 ALL_DIR += $(OUT)/platform/gl
 ALL_DIR += $(OUT)/fonts
 ALL_DIR += $(OUT)/z
+ALL_DIR += $(OUT)/z/pdf
 
 FITZ_HDR := include/mupdf/fitz.h $(wildcard include/mupdf/fitz/*.h)
 PDF_HDR := include/mupdf/pdf.h $(wildcard include/mupdf/pdf/*.h)
@@ -111,7 +112,7 @@ SVG_SRC := $(wildcard source/svg/*.c)
 CBZ_SRC := $(wildcard source/cbz/*.c)
 HTML_SRC := $(wildcard source/html/*.c)
 GPRF_SRC := $(wildcard source/gprf/*.c)
-Z_SRC := $(wildcard source/z/*.c)
+Z_SRC := $(wildcard source/z/pdf/*.c)
 
 FITZ_SRC_HDR := $(wildcard source/fitz/*.h)
 PDF_SRC_HDR := $(wildcard source/pdf/*.h) source/pdf/pdf-name-table.h
