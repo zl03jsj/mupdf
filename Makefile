@@ -9,7 +9,18 @@ default: all
 
 # --- Configuration ---
 
-include Makerules
+HAVE_LIBCRYTO ?= no
+include Makerules 
+ifeq "$(HAVE_LIBCRYPTO)" "yes" 
+sub := $(OS:MINGW=mingw)
+sub := $(OS:Windows_NT=windows)
+sub := $(OS:MACOS=macos)
+sub := $(OS:IOS=ios)
+sub := $(OS:LINUX=linux) 
+LIBCRYPTO_LIBS = -L./thirdparty/openssl/$(sub) $(LIBCRYPTO_LIBS) 
+HAVE_OPENSSL_SSL ?= yes
+endif
+
 include Makethird
 
 # Do not specify CFLAGS or LIBS on the make invocation line - specify
@@ -18,26 +29,6 @@ include Makethird
 CFLAGS += $(XCFLAGS) -Iinclude -I$(GEN)
 LIBS += $(XLIBS) -lm
 
-HAVE_LIBCRYPTO ?= no
-ifeq "$(HAVE_LIBCRYPTO)" "yes"
-
-sub := $(OS:MINGW=mingw)
-sub := $(OS:Windows_NT=windows)
-sub := $(OS:MACOS=macos)
-sub := $(OS:IOS=ios)
-sub := $(OS:LINUX=linux) 
-LIBCRYPTO_CFLAGS ?= $(SYS_LIBCRYPTO_CFLAGS)
-LIBCRYPTO_LIBS ?= $(SYS_LIBCRYPTO_LIBS)
-
-ifeq "" "$(LIBCRYPTO_CFLAGS)"
-LIBCRYPTO_CFLAGS = -DHAVE_LIBCRYPTO
-endif
-
-ifeq "" "$(LIBCRYPTO_LIBS)"
-LIBCRYPTO_LIBS = -L./thirdparty/openssl/$(sub) -lcrypto -lssl
-endif 
-
-endif
 
 X11_CFLAGS = $(SYS_X11_CFLAGS)
 X11_LIBS = $(SYS_X11_LIBS)
@@ -111,7 +102,7 @@ FITZ_HDR := include/mupdf/fitz.h $(wildcard include/mupdf/fitz/*.h)
 PDF_HDR := include/mupdf/pdf.h $(wildcard include/mupdf/pdf/*.h)
 SVG_HDR := include/mupdf/svg.h
 HTML_HDR := include/mupdf/html.h
-z_HDR := include/mupdf/z/z_pdf.h
+Z_HDR := include/mupdf/z/z_pdf.h
 
 FITZ_SRC := $(wildcard source/fitz/*.c)
 PDF_SRC := $(wildcard source/pdf/*.c)
@@ -146,7 +137,7 @@ $(SVG_OBJ) : $(FITZ_HDR) $(SVG_HDR) $(SVG_SRC_HDR)
 $(CBZ_OBJ) : $(FITZ_HDR)
 $(HTML_OBJ) : $(FITZ_HDR) $(HTML_HDR) $(HTML_SRC_HDR)
 $(GPRF_OBJ) : $(FITZ_HDR) $(GPRF_HDR) $(GPRF_SRC_HDR)
-$(Z_OBJ) : $(FITZ_HDR) $(z_HDR) $(Z_SRC_HDR)
+$(Z_OBJ) : $(FITZ_HDR) $(Z_HDR) $(Z_SRC_HDR)
 
 # --- Generated embedded font files ---
 
@@ -459,16 +450,13 @@ android: generate
 	$(MAKE) -C platform/android/viewer
 
 showflags:
-	@echo "____________________________________________________"
-	@echo "|openssl flags                                    |"
-	@echo "--------------------------------------------------|"
-	@echo HAVE_LIBCRYPTO=$(HAVE_LIBCRYPTO)
-	@echo LIBCRYPTO_CFLAGS:$(LIBCRYPTO_CFLAGS)
-	@echo LIBCRYPTO_LIBS:$(LIBCRYPTO_LIBS)
-	@echo "____________________________________________________"
-	@echo "|compile flags                                    |"
-	@echo "--------------------------------------------------|"
-	@echo cflags:$(CFLAGS)
-	@echo "--------------------------------------------------|"
+	@echo CURL_SRC:$(CURL_SRC)
+	@echo $(addprefix $(CURL_OUT)/, $(CURL_SRC:%.c=%.o))
 
-.PHONY: all clean nuke install third libs apps generate
+	@echo "______OPENSSL_FLAGS________________________________"
+	@echo HAVE_LIBCRYPTO=$(HAVE_LIBCRYPTO),LIBCRYPTO_CFLAGS:$(LIBCRYPTO_CFLAGS) LIBCRYPTO_LIBS:$(LIBCRYPTO_LIBS)
+	@echo "------CFLAGS--------------------------------------|"
+	@echo CFLAGS:$(CFLAGS)
+	@echo "--------------------------------------------------|" 
+
+
