@@ -1,7 +1,0 @@
-LIBRARY			signSvrHelper.dll
-DESCRIPTION		"NTKO Security signature helper library!"
-
-EXPORTS
-           NtkoDllGetClassObject   @1	PRIVATE
-		   NtkoDllDelClassObject   @2	PRIVATE
-           
