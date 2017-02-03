@@ -9,18 +9,8 @@ default: all
 
 # --- Configuration ---
 
-HAVE_LIBCRYTO ?= no
+HAVE_OPENSSL = yes
 include Makerules 
-ifeq "$(HAVE_LIBCRYPTO)" "yes" 
-sub := $(OS:MINGW=mingw)
-sub := $(OS:Windows_NT=windows)
-sub := $(OS:MACOS=macos)
-sub := $(OS:IOS=ios)
-sub := $(OS:LINUX=linux) 
-LIBCRYPTO_LIBS = -L./thirdparty/openssl/$(sub) $(LIBCRYPTO_LIBS) 
-HAVE_OPENSSL_SSL ?= yes
-endif
-
 include Makethird
 
 # Do not specify CFLAGS or LIBS on the make invocation line - specify
@@ -451,9 +441,6 @@ android: generate
 	$(MAKE) -C platform/android/viewer
 
 showflags:
-	@echo CURL_SRC:$(CURL_SRC)
-	@echo $(addprefix $(CURL_OUT)/, $(CURL_SRC:%.c=%.o))
-
 	@echo "______OPENSSL_FLAGS________________________________"
 	@echo HAVE_LIBCRYPTO=$(HAVE_LIBCRYPTO),LIBCRYPTO_CFLAGS:$(LIBCRYPTO_CFLAGS) LIBCRYPTO_LIBS:$(LIBCRYPTO_LIBS)
 	@echo "------CFLAGS--------------------------------------|"

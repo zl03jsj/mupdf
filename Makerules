@@ -5,8 +5,22 @@ OS := $(OS:MINGW%=MINGW)
 OS := $(OS:Windows_NT=MINGW)
 OS := $(OS:Darwin=MACOS)
 
-HAVE_LIBDL ?= yes
+ifeq "$(HAVE_OPENSSL)" "yes"
+HAVE_LIBCRYPTO := yes
+HAVE_OPENSSL_SSL := yes
+LIBCRYPTO_CFLAGS = -DHAVE_LIBCRYPTO 
+sub := $(OS:MINGW=mingw)
+sub := $(OS:Windows_NT=windows)
+sub := $(OS:MACOS=macos)
+sub := $(OS:IOS=ios) 
+sub := $(OS:LINUX=linux) 
+openssl_dir := ./thirdparty/openssl/$(sub) 
+openssl_libs := -L$(openssl_dir) -lcrypto -lssl 
+LIBCRYPTO_LIBS := $(openssl_libs)
+SSL_LIBS := $(openssl_libs) 
+endif
 
+HAVE_LIBDL ?= yes 
 
 CFLAGS += -Wall
 
@@ -77,13 +91,9 @@ HAVE_X11 ?= yes
 HAVE_PTHREADS ?= yes
 
 # Mac OS X deprecated libcrypto, so the default is to not include it.
-HAVE_LIBCRYPTO ?= yes
+HAVE_LIBCRYPTO ?= no
 SYS_LIBCRYPTO_CFLAGS =
 SYS_LIBCRYPTO_LIBS =
-ifeq "$(HAVE_LIBCRYPTO)" "yes"
-SYS_LIBCRYPTO_CFLAGS = -DHAVE_LIBCRYPTO
-SYS_LIBCRYPTO_LIBS = -lcrypto -lssl
-endif
 
 SYS_CURL_DEPS = -lpthread
 
@@ -108,7 +118,7 @@ else ifeq "$(OS)" "Linux"
 HAVE_PTHREADS ?= yes
 
 ifeq "$(shell pkg-config --exists libcrypto && echo yes)" "yes"
-HAVE_LIBCRYPTO = yes
+HAVE_LIBCRYPTO ?= yes
 SYS_LIBCRYPTO_CFLAGS = -DHAVE_LIBCRYPTO $(shell pkg-config --cflags libcrypto)
 SYS_LIBCRYPTO_LIBS = $(shell pkg-config --libs libcrypto)
 endif
@@ -272,4 +282,4 @@ endif
 ifeq "$(HAVE_PTHREADS)" "yes"
 CFLAGS += -DHAVE_PTHREADS
 LIBS += -lpthread
-endif
+endif 
