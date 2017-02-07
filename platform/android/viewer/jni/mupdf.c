@@ -3013,6 +3013,7 @@ static void drop_page_cache_byno(globals *glo, int page) {
 		}
 	}
 }
+
 // this added by zl03jsj
 // add image to pdf document with specified page number,size,and position
 JNIEXPORT jboolean JNICALL	
@@ -3075,6 +3076,95 @@ JNI_FN(MuPDFCore_addPdfImage)(JNIEnv * env, jobject thiz, int pageno, int x, int
     }
 	fz_catch(ctx) {
 		LOGE("AddPdfImage failed:%s", ctx->error->message);
+		jclass cls = (*env)->FindClass(env, "java/lang/Exception");
+		if (cls != NULL)
+			(*env)->ThrowNew(env, cls, ctx->error->message);
+		(*env)->DeleteLocalRef(env, cls);
+	}
+	return isok;
+}
+
+// this added by zl03jsj
+// add image to pdf document with specified page number,size,and position
+JNIEXPORT jboolean JNICALL	
+JNI_FN(MuPDFCore_addPdfImage_file)(JNIEnv * env, jobject thiz, int pageno, int x, int y,
+	int w, int h, jstring imgfile)
+{
+	globals *glo = get_globals(env, thiz);
+	fz_context *ctx = glo->ctx;
+	pdf_document *doc = pdf_specifics(ctx, glo->doc);
+    if( !doc ) {
+        LOGI("file is not pdf, not support add image.");
+        return JNI_FALSE;
+    }
+
+    pdf_page *page = NULL;
+    page_cache *pc = NULL;
+	for (int i = 0; i < NUM_CACHE; i++) {
+		if (glo->pages[i].page != NULL && glo->pages[i].number ==pageno) {
+			pc = &glo->pages[i];
+            page = (pdf_page*)pc->page;
+            break;
+		}
+    } 
+
+	const char *filename = (*env)->GetStringUTFChars(env, imgfile, NULL);
+	if (filename == NULL)
+	{
+		LOGE("Failed to get filename");
+		free(glo);
+		return 0;
+	}
+
+	fz_stream *imgstm = NULL;
+    fz_buffer *imgbuf = NULL;
+
+	jboolean isok = JNI_FALSE;
+	fz_try(ctx) 
+    {
+        imgstm = fz_open_file(ctx, filename);
+        fz_seek(ctx, imgstm, 0, SEEK_SET);
+        imgbuf = fz_read_all(ctx, imgstm, 256);
+        fz_drop_stream(ctx, imgstm);
+        imgstm = NULL;
+
+        fz_matrix mtx = fz_identity;
+        fz_matrix scale = fz_identity;
+        fz_rect rect = {x, y, x+w, y+h};
+
+        if(!page) pdf_load_page(ctx, doc, pageno);
+        else fz_keep_page(ctx, (fz_page*)page);
+
+        float zoom = glo->resolution / 72;
+        fz_scale(&scale, zoom, zoom);
+        pdf_page_transform(ctx, page, NULL, &mtx);
+        fz_concat(&mtx, &mtx, &scale);
+        fz_invert_matrix(&mtx, &mtx);
+
+        fz_transform_rect(&rect, &mtx);
+
+        x = rect.x0;
+        y = rect.y0;
+        w = fz_rect_dx(&rect); 
+        h = fz_rect_dy(&rect);
+
+		int okay = pdf_add_image_with_document(ctx, doc, imgbuf, pageno, x, y, w, h);
+		if (extension_okay == okay) {
+			drop_page_cache_byno(glo, pageno);
+			isok = JNI_TRUE;
+		}
+	}
+    fz_always(ctx) {
+        if(filename)
+            (*env)->ReleaseStringUTFChars(env, imgfile, filename);
+        filename = NULL;
+
+        if(imgstm) fz_drop_stream(ctx, imgstm);
+        if(imgbuf) fz_drop_buffer(ctx, imgbuf);
+        if(page) fz_drop_page(ctx, (fz_page*)page);
+    }
+	fz_catch(ctx) {
+		LOGE("AddPdfImage failed:%s", fz_caught_message(ctx));
 		jclass cls = (*env)->FindClass(env, "java/lang/Exception");
 		if (cls != NULL)
 			(*env)->ThrowNew(env, cls, ctx->error->message);
