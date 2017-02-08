@@ -14,6 +14,10 @@ public class OpensslSignDevice {
         pointer = devPointer;
     }
 
+    public void destroy() {
+        finalize();
+    }
+
     protected native void finalize();
 
     private static native long newNativeWithPfxFile(String pfxfile, String password);
