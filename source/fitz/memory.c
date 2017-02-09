@@ -61,6 +61,15 @@ fz_malloc(fz_context *ctx, size_t size)
 }
 
 void *
+fz_realloc(fz_context *ctx, void *p, size_t size)
+{
+    void *q = do_scavenging_realloc(ctx, p, size); 
+	if (!q)
+		fz_throw(ctx, FZ_ERROR_OOM, "realloc (" FMT_zu " bytes) failed", size);
+    return q;
+}
+
+void *
 fz_malloc_no_throw(fz_context *ctx, size_t size)
 {
 	return do_scavenging_malloc(ctx, size);

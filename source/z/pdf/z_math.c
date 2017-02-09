@@ -184,7 +184,8 @@ void  z_fpoint_differential_add(fz_context *ctx, z_fpoint_array *a, z_fpoint p) 
     float y_step = (p.p.y - sp.y) / n;
     float w_step = (p.w - sw)	  / n;
 	
-    for( int i=0; i<(n-1); i++ ){
+    int i;
+    for(i=0; i<(n-1); i++ ){
 		sp.x += x_step;
 		sp.y += y_step;
 		sw += w_step;
@@ -255,7 +256,8 @@ float z_insertPoint(fz_context *ctx, z_fpoint_array *arr, fz_point lastpoint, in
 	}
 	
 	// escape the first point
-	for(int i=1; i<points->len; i++) {
+    int i;
+	for(i=1; i<points->len; i++) {
         z_fpoint_add(ctx, arr, points->point[i]);
 	}
 
@@ -273,10 +275,107 @@ void z_insertLastPoint(fz_context *ctx, z_fpoint_array *arr, fz_point e) {
 	
 	z_fpoint ze = { {e.x, e.y}, 0.1};
     z_fpoint_differential_add(ctx, points, ze);
-	for(int i=1; i<points->len; i++) {
+    int i;
+	for(i=1; i<points->len; i++) {
         z_fpoint_add(ctx, arr, points->point[i]);
 	}
 	z_drop_fpoint_array(ctx, points);
+}
+
+z_list *z_list_new(fz_context *ctx, z_list_node_alloc_fun allocfun, z_list_node_drop_fun dropfun)
+{
+    z_list *l = NULL;
+    fz_try(ctx) {
+        l = fz_malloc_struct(ctx, z_list);
+        l->alloc = allocfun;
+        l->drop = dropfun;
+        l->first = l->last = NULL;
+    }
+    fz_catch(ctx)
+        fz_rethrow(ctx);
+    return l;
+}
+
+void *z_list_append_new(fz_context *ctx, z_list *zlist) 
+{
+    z_list_node *node = NULL;
+    void *data = NULL;
+
+    if(!zlist->alloc || !zlist->drop) 
+        return NULL;
+
+    fz_try(ctx) {
+        node = fz_malloc_struct(ctx, z_list_node);
+        node->data = zlist->alloc(ctx); 
+        node->n = NULL;
+        node->p = NULL;
+    }
+    fz_always(ctx){}
+    fz_catch(ctx) {
+        if(node){
+            if(node->data) zlist->drop(ctx, node->data);
+            fz_free(ctx, node);
+            node = NULL; 
+        } 
+    }
+
+    if(node) {
+        if(!zlist->first) {
+            zlist->first = zlist->last = node;
+        }
+        else {
+            node->n = NULL;
+            node->p = zlist->last;
+            zlist->last->n = node; 
+            zlist->last = node;
+        } 
+        data = node->data;
+    }
+
+    return data;
+}
+void *z_list_remove_last(fz_context *ctx, z_list *zlist) 
+{
+    void *data = NULL;
+    z_list_node *tmp = zlist->last;
+    if(zlist->last) {
+        tmp = zlist->last;
+        if(zlist->last==zlist->first){
+            zlist->last = zlist->first = NULL;
+        }
+        else {
+            zlist->last = tmp->p;
+            zlist->last->n = NULL;
+        }
+    }
+
+    if(tmp) {
+        data = tmp->data; 
+        fz_free(ctx, tmp);
+    }
+
+    return data; 
+}
+
+void z_list_clear(fz_context *ctx, z_list *zlist) 
+{
+    fz_try(ctx) {
+        while(zlist->first)
+            zlist->drop(ctx, z_list_remove_last(ctx, zlist));
+    }
+    fz_catch(ctx)
+        fz_rethrow(ctx);
+}
+
+void z_list_free(fz_context *ctx, z_list *zlist) 
+{
+    fz_try(ctx) {
+        z_list_clear(ctx, zlist);
+        fz_free(ctx, zlist);
+    }
+    fz_catch(ctx)
+        fz_rethrow(ctx);
+
 }
 
 /***************this algorathim not used!!!***********************

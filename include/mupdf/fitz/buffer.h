@@ -156,6 +156,10 @@ void fz_md5_buffer(fz_context *ctx, fz_buffer *buffer, unsigned char digest[16])
 	Returns length of stream.
 */
 size_t fz_buffer_extract(fz_context *ctx, fz_buffer *buf, unsigned char **data);
+
 size_t fz_buffer_get_data(fz_context *ctx, fz_buffer *buf, unsigned char **data); 
+//unsigned char* fz_buffer_data(fz_context *ctx, fz_buffer *buf);
+//size_t fz_buffer_capacity(fz_context *ctx, fz_buffer *buf);
+//size_t fz_buffer_size(fz_context *ctx, fz_buffer *buf);
 
 #endif

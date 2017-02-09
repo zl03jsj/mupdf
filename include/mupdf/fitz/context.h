@@ -422,6 +422,7 @@ void *fz_malloc(fz_context *ctx, size_t size);
 */
 void *fz_calloc(fz_context *ctx, size_t count, size_t size);
 
+void *fz_realloc(fz_context *ctx, void *p, size_t size);
 /*
 	fz_malloc_struct: Allocate storage for a structure (with scavenging),
 	clear it, and (in Memento builds) tag the pointer as belonging to a

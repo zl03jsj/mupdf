@@ -48,6 +48,7 @@ int main(int argc, char const *argv[])
    curl_easy_cleanup(curl); 
    printf("\nbuff : %s\n", buff);
 
+  CURLcode res;
    return 0;
 }
 

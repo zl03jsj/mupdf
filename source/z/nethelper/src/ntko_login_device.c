@@ -12,8 +12,9 @@
  */
 
 #include "net_helper.h"
+#include "ntko_helper.h"
 
-typedef int  (*login_fun)(ntko_http_helper *helper, nh_login_device *dev);
+typedef int (*login_fun)(http_helper *helper, nh_login_device *dev, ntko_server_info *svrinfo);
 typedef void (*device_free_fun)(fz_context *ctx, nh_login_device *dev);
 
 // device of login with cert
@@ -31,7 +32,7 @@ struct nh_login_device_s {
     char *url;
     nh_submit_method submittype;
     login_fun login;
-    device_free_fun freeme;
+    device_free_fun free;
 }; 
 
 void nh_drop_login_device(fz_context *ctx, nh_login_device *dev)
@@ -39,8 +40,8 @@ void nh_drop_login_device(fz_context *ctx, nh_login_device *dev)
     if(0!=(--dev->ref)) return;
     fz_free(ctx, dev->url);
     dev->url= null;
-    if(dev->freeme) {
-        dev->freeme(ctx, dev); 
+    if(dev->free) {
+        dev->free(ctx, dev); 
     }
     else
         fz_warn(ctx, "freeme member of login device is null");
@@ -66,49 +67,52 @@ static void psw_login_device_free(fz_context *ctx, nh_login_device *dev)
     fz_free(ctx, psw_dev);
 }
 
-static int psw_login(ntko_http_helper *hp, nh_login_device *dev) 
+static 
+int psw_login(http_helper *helper, nh_login_device *dev, ntko_server_info *svrinfo) 
 {
-    nh_login_device_psw *psw_dev = (nh_login_device_psw*)dev;
-    fz_context *ctx = nh_get_context(hp);
-    http_data *htd = NULL;
-    int status = false;
-
+    fz_context *ctx = nh_get_context(helper);
+    nh_login_device_psw *psw_dev = (nh_login_device_psw*)dev; 
     fz_try(ctx) {
-        if(dev->submittype==get)
-            htd = nh_do_get(hp, dev->url, null/* dev->username&dev->password */);
-        else if(dev->submittype==post)
-            htd = nh_do_post(hp, dev->url, null/* dev->username&dev->password */);
-        else
-            fz_throw(ctx, FZ_NET_ERR_INVALID_PARAMETER, "unkown http submit method");
+        char data[256];
+        char url[256]; 
+        char *postdata = null;
 
-        if(htd) {
-            status = htd->status_code; 
-            if(htd->data) 
-                fz_drop_buffer(ctx, htd->data);
-            fz_free(ctx, htd);
-        }
+        memset(data, 0, sizeof(data));
+        fz_snprintf(data, sizeof(data),
+            "username=%s&password=%s&clientver=%s&lictype=%d",
+            psw_dev->username,
+            psw_dev->password,
+            "1.0",
+            svrinfo->lictype); 
+
+        memset(url, 0, sizeof(url));
+        fz_strlcat(url, dev->url, sizeof(url));
+        if(dev->submittype==http_get)
+            fz_strlcat(url, data, sizeof(url)); 
+        else// http_post
+            postdata = data; 
+
+        nh_do_request(helper, url, postdata);
     }
     fz_catch(ctx) {
         fz_rethrow(ctx);
     }
-    return status;
+    return nh_get_http_code(helper);
 }
 
-int nh_login(ntko_http_helper *helper, nh_login_device *dev) 
+int nh_login(http_helper *helper, nh_login_device *dev, ntko_server_info *svrinfo) 
 {
-    int status = false;
     fz_context *ctx = nh_get_context(helper);
-    if(!helper || !ctx) {
-        printf("invalid login parameter");
-        return status;
-    } 
+    if(!dev || !svrinfo || !dev->login)
+        fz_throw(ctx, FZ_ERROR_GENERIC, "invalid paramater");
+
     fz_try(ctx) {
-        status = dev->login(helper, dev);
+        dev->login(helper, dev, svrinfo);
     }
     fz_catch(ctx)
         fz_rethrow(ctx);
 
-    return status; 
+    return nh_get_http_code(helper); 
 }
 
 nh_login_device *nh_new_login_device_psw(fz_context *ctx, char* url, char *username, char *password) 
@@ -119,9 +123,9 @@ nh_login_device *nh_new_login_device_psw(fz_context *ctx, char* url, char *usern
         psw_dev = fz_malloc_struct(ctx, nh_login_device_psw);
         super = &psw_dev->super;
         super->ref = 1;
-        super->submittype = post;
+        super->submittype = http_post;
         super->url = fz_strdup(ctx, url);
-        super->freeme = psw_login_device_free;
+        super->free = psw_login_device_free;
         super->login = psw_login;
         psw_dev->username = fz_strdup(ctx, username);
         psw_dev->password = fz_strdup(ctx, password);

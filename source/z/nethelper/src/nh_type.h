@@ -16,6 +16,8 @@
  * =====================================================================================
  */
 
+#ifndef nh_type_h__
+#define nh_type_h__
 #include <mupdf/fitz.h>
 
 typedef char* u8string;
@@ -35,11 +37,10 @@ typedef unsigned short bool;
 #define NULL (void*)0
 
 enum { 
-    FZ_NET_ERR_NONE = FZ_ERROR_COUNT + 1,
-    FZ_NET_ERR_UNKOWN,
-    FZ_NET_ERR_INVALID_PARAMETER,
-    FZ_NET_ERR_INVALID_USERNAME,
-    FZ_NET_ERR_INVALID_PASSWORD
+    FZ_NTKO_ERROR_BEGIN = FZ_ERROR_COUNT + 1,
+    FZ_ERROR_HTTP_REQUEST,
+    FZ_ERROR_XML,
+    FZ_NTKO_END
 };
 
-
+#endif

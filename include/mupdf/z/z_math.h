@@ -93,6 +93,32 @@ float z_linewidth(z_ipoint b, z_ipoint e, float w, float step);
 float z_insertPoint(fz_context *ctx, z_fpoint_array *arr, fz_point lastpoint, int64_t lastms, float lastwidth, fz_point point, int64_t ms);
 void  z_insertLastPoint(fz_context *ctx, z_fpoint_array *arr, fz_point e);
 
+
+typedef struct z_list_node_s z_list_node;
+struct z_list_node_s {
+    void *data; 
+    z_list_node *n;
+    z_list_node *p;
+}; 
+typedef void*(*z_list_node_alloc_fun)(fz_context *ctx);
+typedef void(*z_list_node_drop_fun) (fz_context *ctx, void *data);
+
+
+struct z_list_s {
+    z_list_node_alloc_fun alloc;
+    z_list_node_drop_fun  drop;
+    z_list_node *first;
+    z_list_node *last;
+};
+typedef struct z_list_s z_list;
+
+z_list *z_list_new(fz_context *ctx, z_list_node_alloc_fun allocfun, z_list_node_drop_fun dropfun);
+void *z_list_append_new(fz_context *ctx, z_list *zlist);
+void *z_list_remove_last(fz_context *ctx, z_list *zlist);
+void z_list_clear(fz_context *ctx, z_list *zlist);
+void z_list_free(fz_context *ctx, z_list *zlist);
+
+
 #ifdef __cplusplus
 }
 #endif
