@@ -23,6 +23,11 @@
 // #define HAVE_OPENSSL
 // #define Z_pdf_sign_
 
+#if 0
+#define DO_PRAGMA(x) _Pragma (#x)
+#define TODO(x) DO_PRAGMA(message ("TODO - " #x)) 
+TODO(Remember to fix this)
+#endif
 
 #ifdef __cplusplus
 extern "C" {

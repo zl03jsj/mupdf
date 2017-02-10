@@ -30,6 +30,8 @@ ifdef CRYPTO_BUILD
 LOCAL_CFLAGS += -DHAVE_LIBCRYPTO
 endif
 
+LOCAL_CFLAGS += -Wno-unused-variable -std=gnu11 
+
 LOCAL_C_INCLUDES := \
 	$(MY_ROOT)/thirdparty/harfbuzz/src \
 	$(MY_ROOT)/thirdparty/jbig2dec \
@@ -59,6 +61,7 @@ LOCAL_C_INCLUDES += $(MY_ROOT)/thirdparty/openssl/include
 endif
 
 LOCAL_MODULE := mupdfcore
+
 LOCAL_SRC_FILES := \
 	$(wildcard $(MY_ROOT)/source/fitz/*.c) \
 	$(wildcard $(MY_ROOT)/source/pdf/*.c) \
@@ -67,6 +70,7 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(MY_ROOT)/source/cbz/*.c) \
 	$(wildcard $(MY_ROOT)/source/gprf/*.c) \
 	$(wildcard $(MY_ROOT)/source/html/*.c) \
+	$(wildcard $(MY_ROOT)/source/z/*.c) \
 	$(wildcard $(MY_ROOT)/generated/*.c)
 
 ifdef FZ_ENABLE_GPRF

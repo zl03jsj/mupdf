@@ -67,6 +67,8 @@ CFLAGS += $(OPENJPEG_CFLAGS)
 CFLAGS += $(ZLIB_CFLAGS)
 CFLAGS += $(X11_CFLAGS)
 
+CFLAGS += -Wno-unused-function
+#CFLAGS += -Wno-\#pragma-messages 
 
 # --- Commands ---
 
