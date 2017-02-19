@@ -10,7 +10,7 @@
  *   Organization:  
  */
 
-#include "ntko_esp.h"
+#include "mupdf/z/ntko_esp.h"
 #include "keygen.h"
 
 #ifdef STD_STRING_CONVERTOR

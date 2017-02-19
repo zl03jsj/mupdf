@@ -1,7 +1,7 @@
 # Optional thirdparty libraryes
 thirdparty/luratech
 thirdparty/jpegxr
-source/z/nethelper/src/win
+source/z/svrhelper/win
 
 # Generated files:
 build

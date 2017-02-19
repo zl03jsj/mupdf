@@ -158,8 +158,10 @@ void fz_md5_buffer(fz_context *ctx, fz_buffer *buffer, unsigned char digest[16])
 size_t fz_buffer_extract(fz_context *ctx, fz_buffer *buf, unsigned char **data);
 
 size_t fz_buffer_get_data(fz_context *ctx, fz_buffer *buf, unsigned char **data); 
-//unsigned char* fz_buffer_data(fz_context *ctx, fz_buffer *buf);
-//size_t fz_buffer_capacity(fz_context *ctx, fz_buffer *buf);
-//size_t fz_buffer_size(fz_context *ctx, fz_buffer *buf);
 
+// fz_buffer_reset: zero memory the buffer storage,
+// set the buffer length to zero, not change the capacity
+//
+// Note: if storage is shared , throws exeption
+size_t fz_buffer_reset(fz_context *ctx, fz_buffer *buf);
 #endif

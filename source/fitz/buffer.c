@@ -328,6 +328,18 @@ fz_buffer_printf(fz_context *ctx, fz_buffer *buffer, const char *fmt, ...)
 }
 
 size_t
+fz_buffer_reset(fz_context *ctx, fz_buffer *buf)
+{
+    if(buf->shared)
+        fz_throw(ctx, FZ_ERROR_GENERIC, "cannot reset a buffer with shared storage");
+
+    size_t len = buf->len;
+    memset(buf->data, 0, buf->cap);
+    buf->len = 0;
+    return len;
+}
+
+size_t
 fz_buffer_vprintf(fz_context *ctx, fz_buffer *buffer, const char *fmt, va_list old_args)
 {
 	size_t slack;

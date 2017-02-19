@@ -11,7 +11,9 @@
  *   Organization:  
  * =====================================================================================
  */
-#include "ntko_helper.h"
+#include <curl/curl.h>
+#include <curl/easy.h> 
+#include "mupdf/z/ntko_svr.h"
 #include "mupdf/z/z_math.h"
 #include <stdlib.h>
 
@@ -35,7 +37,6 @@ ntko_request nr_get_server_changeinfo = {"getchkservers", nrt_get_server_changei
 
 static const char *nxml_err_fmt_need_tag = "need xml tag:%s";
 static const char *nxml_err_fmt_empty_att = "xml attribute is empty:%s";
-
 // root item
 static const char* nxml_NtkoSecsignResponse = "NtkoSecsignResponse";
 static const char* nxml_ResponseStatus = "ResponseStatus";
@@ -57,18 +58,18 @@ static const char* nxml_att_timeStamp = "timeStamp";
 static const char* nxml_att_licenseUserName = "licenseUserName";
 static const char* nxml_att_licenseCount = "licenseCount";
 
-#if 0
-typedef struct ntko_http_field_s {
-    char *key;
-    char *data;
-    int data_size;
-}ntko_http_field;
+static
+bool is_string_empty(const char *s)
+{
+    int c = !s ? 0: strlen(s);
+    if(!c) return true;
 
-struct ntko_http_fields_list_s {
-  ntko_http_field *cur;  
-  ntko_http_field *next;  
-} ntko_httt_fields_list;
-#endif
+    while(c && *s==' ') {c--; s++;}
+    if(!c) return true;
+
+    while(c && s[c-1]==' ') c--; 
+    return c == 0 ? true : false;
+}
 
 static
 fz_xml *nxml_find_down(fz_context *ctx, fz_xml *xml, const char *name)
@@ -80,36 +81,28 @@ fz_xml *nxml_find_down(fz_context *ctx, fz_xml *xml, const char *name)
 }
 
 static
-const char *nxml_att(fz_context *ctx, fz_xml *xml, const char *att)
+const char *nxml_att(fz_context *ctx, fz_xml *xml, const char *att, bool is_throw_null_error)
 {
     char *v = fz_xml_att(xml, att);
-    if(!v)
-        fz_throw(ctx, FZ_ERROR_XML, nxml_err_fmt_empty_att, att);
+    if( is_string_empty(v) ) {
+        if(is_throw_null_error) {
+            fz_throw(ctx, FZ_ERROR_XML, nxml_err_fmt_empty_att, att);
+        }
+        else {
+            fz_warn(ctx, nxml_err_fmt_empty_att, att);
+        }
+    }
     return v;
 }
 
 static
-char *nxml_att_strdup(fz_context *ctx, fz_xml *xml, const char *att)
+char *nxml_att_strdup(fz_context *ctx, fz_xml *xml, const char *att, bool is_throw_null_error)
 {
     char *v = null;
-    fz_try(ctx) {
-        v = fz_strdup(ctx, nxml_att(ctx, xml, att)); 
-    }
+    fz_try(ctx)
+        v = fz_strdup(ctx, nxml_att(ctx, xml, att, is_throw_null_error));
     fz_catch(ctx)
         fz_rethrow(ctx);
-    return v;
-}
-
-static
-char *nxml_att_strdup_nothrow(fz_context *ctx, fz_xml *xml, const char *att)
-{
-    char *v = null;
-    fz_try(ctx) {
-        const char *t = nxml_att(ctx, xml, att);
-        if(t) v = fz_strdup(ctx, t);
-    }
-    fz_catch(ctx)
-        fz_warn(ctx, "%s", fz_caught_message(ctx));
     return v;
 }
 
@@ -120,14 +113,11 @@ bool nxml_att_bool(fz_context *ctx, fz_xml *xml, const char* att, bool def)
     if(!value) {
         fz_warn(ctx, "null xml attribute:%s, return default value.", att); 
         return def;
-    }
-
-    if(0==memcmp(value, "true", 4))
-        def = true;
-    else if(0==memcpy(value, "false", 5))
-        def = false;
+    } 
+    if(0==memcmp(value, "true", 4)) def = true;
+    else if(0==memcmp(value, "false", 5)) def = false;
     else
-        fz_warn(ctx, "failed to convert xml attribute to bool, attribute:%s, value:%s, use default value", att, value);
+        fz_warn(ctx, "failed to convert xml attribute to bool, att:%s, value:%s, use default value", att, value);
     return def;
 }
 
@@ -140,7 +130,7 @@ int nxml_att_int(fz_context *ctx, fz_xml *xml, const char *att, int def)
         return def;
     }
 
-    if(value[0]<48 &&value[0]>57)
+    if(value[0]<48 || value[0]>57)
         fz_warn(ctx, "failed to convert xml attribute to integer, attribute:%s, value:%s", att, value);
     else {
         def = atoi(value); 
@@ -158,9 +148,8 @@ bool nxml_parse_user_right(fz_context *ctx, fz_xml *xml, ntko_user_rights *right
     xml_svrinfo = fz_xml_find_down(xml, "ThisServerInfo");
     xml_rights = fz_xml_find_down(xml, "UserRights");
 
-    if(!xml_svrinfo || !xml_rights) 
+    if(!xml_rights) 
         return false;
-//        fz_throw(ctx, FZ_ERROR_GENERIC, "invalid xml node"); 
 
     rights->permit_handsign = nxml_att_bool(ctx, xml_rights, "canDoHandSign", false);
     rights->permit_barCode = nxml_att_bool(ctx, xml_rights, "canDoBarcode", false);
@@ -200,7 +189,7 @@ bool nxml_parse_sign_options(fz_context *ctx, fz_xml *xml, ntko_sign_options *op
         option->check_font_change = nxml_att_bool(ctx, subxml, "isCheckFont", false); 
         option->sign_add_hand_draw = nxml_att_bool(ctx, subxml, "isAddSignHand", false); 
         option->sign_add_date = nxml_att_bool(ctx, subxml, "isAddSignDate", false); 
-        option->csp_issure_name = nxml_att_strdup(ctx, subxml, "CSPIssuerName"); 
+        option->csp_issure_name = nxml_att_strdup(ctx, subxml, "CSPIssuerName", false); 
     }
     fz_catch(ctx){
         fz_rethrow(ctx);
@@ -218,9 +207,9 @@ z_list *nxml_parse_espinfo_list(fz_context *ctx, fz_xml *xml)
         while(subxml) {
             if(!l) l = ntko_espinfo_list_new(ctx);
             info = z_list_append_new(ctx, l); 
-            info->signname = nxml_att_strdup_nothrow(ctx, subxml, "signName");
-            info->signuser = nxml_att_strdup_nothrow(ctx, subxml, "signUser");
-            info->filename = nxml_att_strdup_nothrow(ctx, subxml, "signURL"); 
+            info->signname = nxml_att_strdup(ctx, subxml, "signName", false);
+            info->signuser = nxml_att_strdup(ctx, subxml, "signUser", false);
+            info->filename = nxml_att_strdup(ctx, subxml, "signURL", false); 
             subxml = fz_xml_find_next(subxml, "NtkoUserSign"); 
         } 
     }
@@ -229,14 +218,16 @@ z_list *nxml_parse_espinfo_list(fz_context *ctx, fz_xml *xml)
     return l;
 }
 
-static
-void ntko_init_response_status(fz_context *ctx, ntko_http_response_status *status)
-{
-    if(status->failreason)
-        fz_free(ctx, status->failreason);
-    status->failreason = null;
-    status->code = -1;
-}
+//static
+//void ntko_init_response_status(fz_context *ctx, ntko_http_response_status *status)
+//{
+//    status->code = -1;
+//    if(status->fail_reason) {
+//        fz_free(ctx, status->fail_reason);
+//        status->fail_reason = null;
+//    } 
+//    status->user_param = ctx;
+//}
 
 // no matter returned ture or false,
 // parse responsed xml complete, depend on response status code, 
@@ -246,7 +237,6 @@ static
 bool nxml_parse_response_status(fz_context *ctx, fz_xml *xml,  ntko_server_info *svrinfo,
         ntko_http_response_status *status) 
 {
-    ntko_init_response_status(ctx, status);
     if(!fz_xml_is_tag(xml,  "ResponseStatus"))
         fz_throw(ctx, FZ_ERROR_XML, "not ResponseStatus xml tag"); 
 
@@ -265,16 +255,15 @@ bool nxml_parse_response_status(fz_context *ctx, fz_xml *xml,  ntko_server_info 
     if(svrinfo->version) fz_free(ctx, svrinfo->version);
     svrinfo->version = fz_strdup(ctx, tmp); 
 
-    status->code = nxml_att_int(ctx, xml, "errCode", -1); 
+    status->code = nxml_att_int(ctx, xml_status, "errCode", -1); 
 
     bool isok = false;
     if(status->code!=0) {
-        char *reason = fz_xml_att(xml_status, "failReason"); 
-        if(reason)
-            status->failreason = fz_strdup(ctx, reason);
+        if(status->fail_reason) 
+            fz_free(ctx, status->fail_reason);
+        status->fail_reason = nxml_att_strdup(ctx, xml_status, "failReason", false);
     }
-    else
-        isok = true;
+    else isok = true;
 
     return isok;
 }
@@ -290,12 +279,35 @@ char *nxml_parse_server_time(fz_context *ctx, fz_xml *xml)
     char *strtime = null;
     fz_try(ctx){
         fz_xml *subxml = nxml_find_down(ctx, xml, nxml_ServerTime);
-        strtime = nxml_att_strdup(ctx, subxml, nxml_att_timeStamp);
+        strtime = nxml_att_strdup(ctx, subxml, nxml_att_timeStamp, true);
     }
     fz_catch(ctx) 
         fz_rethrow(ctx);
 
     return strtime; 
+}
+
+static
+void ntko_set_root_server_info(fz_context *ctx, ntko_server_info *svrinfo, char *url)
+{
+    fz_try(ctx) {
+        if(url && 0!=strlen(url) ) {
+            if(svrinfo->rooturl) fz_free(ctx, svrinfo->rooturl);
+            svrinfo->rooturl = fz_strdup(ctx, url);
+        }
+        else if(svrinfo->queryurl && 0!=strlen(svrinfo->queryurl)) {
+            if(svrinfo->rooturl) fz_free(ctx,  svrinfo->rooturl);
+            svrinfo->rooturl = fz_strdup(ctx, svrinfo->queryurl); 
+        }
+        else if(svrinfo->rooturl && 0!=strlen(svrinfo->rooturl)) {
+            if(svrinfo->queryurl) fz_free(ctx, svrinfo->queryurl);
+            svrinfo->queryurl = fz_strdup(ctx, svrinfo->rooturl); 
+        }
+        else 
+            fz_throw(ctx, FZ_ERROR_GENERIC, "set sign server url failed"); 
+    }
+    fz_catch(ctx)
+        fz_rethrow(ctx);
 }
 
 static 
@@ -308,13 +320,13 @@ bool nxml_parse_rootsvrinfo(fz_context *ctx, fz_xml*xml, ntko_server_info *svrin
      
     fz_xml *subxml = null; 
     fz_try(ctx) {
-        subxml = nxml_find_down(ctx, xml, nxml_RootServerInfo);
-        svrinfo->rooturl = nxml_att_strdup(ctx, subxml, nxml_att_RserverAppURL);
+        subxml = nxml_find_down(ctx, xml, nxml_RootServerInfo); 
+        ntko_set_root_server_info(ctx, svrinfo, fz_xml_att(subxml, nxml_att_RserverAppURL));
 
         subxml = fz_xml_find_down(xml, nxml_ThisServerInfo); 
         if(subxml) {
             svrinfo->serverid = nxml_att_int(ctx, subxml, nxml_att_serverId, 0);
-            svrinfo->servername = nxml_att_strdup_nothrow(ctx, subxml, nxml_att_serverName);
+            svrinfo->servername = nxml_att_strdup(ctx, subxml, nxml_att_serverName, false);
         }
     }
     fz_catch(ctx) 
@@ -334,13 +346,13 @@ bool nxml_parse_serverinfo(fz_context *ctx, fz_xml *xml, ntko_server_info *svrin
         subxml = nxml_find_down(ctx, xml, nxml_ServerInfo);
 
         if(svrinfo->version) fz_free(ctx, svrinfo->version);
-        svrinfo->version = nxml_att_strdup(ctx, subxml, nxml_att_version);
+        svrinfo->version = nxml_att_strdup(ctx, subxml, nxml_att_version, false);
 
         if(svrinfo->servername) fz_free(ctx, svrinfo->servername);
-        svrinfo->servername = nxml_att_strdup(ctx, subxml, nxml_att_serverName);
+        svrinfo->servername = nxml_att_strdup(ctx, subxml, nxml_att_serverName, false);
 
         if(svrinfo->lic_username) fz_free(ctx, svrinfo->lic_username);
-        svrinfo->lic_username = nxml_att_strdup(ctx, subxml, nxml_att_licenseUserName);
+        svrinfo->lic_username = nxml_att_strdup(ctx, subxml, nxml_att_licenseUserName, false);
 
         svrinfo->lic_count = nxml_att_int(ctx, subxml, nxml_att_licenseCount, 0); 
     }
@@ -365,47 +377,170 @@ fz_xml* nxml_getl(fz_context *ctx, fz_xml *xml, char*first, ...)
 	return xml;
 }
 
+static 
+bool ntko_is_http_inited = false;
+
+void ntko_http_init()
+{
+    if(!ntko_is_http_inited)
+        curl_global_init(CURL_GLOBAL_ALL);
+    ntko_is_http_inited = true; 
+}
+
+static 
+size_t http_response_fun(void* rspdata, size_t size, size_t nmemb, void* userdata)
+{
+    ntko_http_response_status *status = userdata;
+    fz_context *ctx = status->user_param;
+    size_t totalsize = size*nmemb;
+    fz_try(ctx) {
+        if(!status->data) {
+            unsigned char *data = fz_malloc(ctx, totalsize);
+            memcpy(data, rspdata, totalsize);
+            status->data = fz_new_buffer_from_data(ctx, data, totalsize);
+        }
+        else {
+            fz_buffer_reset(ctx, status->data);
+            fz_write_buffer(ctx, status->data, rspdata, size*nmemb);
+        }
+    }
+    fz_catch(ctx) {
+        if(status->data) fz_drop_buffer(ctx, status->data);
+        status->data = null;
+        status->code = -1;
+        fz_warn(ctx, "%s", fz_caught_message(ctx));
+    }
+    return totalsize; 
+}
+
+static 
+size_t http_response_header_fun(void* header, size_t size, size_t nmemb, void *userdata)
+{
+    const char *response_header = "Set-Cookie: JSESSIONID="; 
+    const char *request_header = "Cookie: JSESSIONID="; 
+
+    ntko_http_response_status *status = userdata;
+    char *sessionid = status->sessionid;
+    int cap = sizeof(status->sessionid);
+
+    int tmp = strlen(response_header);
+    if(!memcmp(header, response_header, tmp)) {
+        memset(sessionid, 0, cap);
+
+        tmp = strlen(request_header);
+        memcpy(sessionid, request_header, tmp);
+        sessionid += tmp;
+
+        header += strlen(response_header);
+        tmp = 0;
+
+        while( ((char*)header)[tmp]!=';' ) {
+            sessionid[tmp] = ((char*)header)[tmp];
+            tmp++;
+        }
+    } 
+    return size*nmemb;
+}
+
+static
+int ntko_make_url(char *url, int urlsize, char*base, char*sub, char *fields) 
+{
+    if(!url || !urlsize || !base) return 0;
+    memset(url, 0, urlsize);
+
+    int basesize = strlen(base);
+    if(!basesize) return 0;
+
+    int subsize = sub==null ? 0 :strlen(sub);
+    int fieldssize = fields==null? 0 : strlen(fields);
+
+    int size = basesize + subsize + fieldssize;
+
+    if(subsize) {
+        if(base[basesize-1]!='/') size++;
+        if(fieldssize && sub[subsize-1]=='/') size--;
+    }
+    else
+        if(base[basesize-1]=='/') size--;
+
+    if(urlsize < (size+1)) return 0;
+
+    memcpy(url, base, basesize); 
+    url += basesize;
+
+    if(subsize) {
+        if(*(url-1)!='/') *url++ = '/';
+        memcpy(url, sub, subsize);
+        url += subsize;
+    }
+
+    if(fieldssize) {
+        if(*(url-1)=='/') *(url-1) = '?';
+        else *url++ = '?';
+        memcpy(url, fields, fieldssize);
+    } 
+    *(++url) = '\0';
+
+    return size; 
+}
+
 // if command failed, throw a error, http_helper->code is CURLcode, contain
 // faild reason
 // or command success
 static
-void ntko_do_http_command(http_helper *helper, ntko_request *command, char *baseurl, char *fields)
+void ntko_do_http_command(fz_context *ctx, ntko_request *command,
+         char *baseurl, char *fields,  ntko_http_response_status *status)
 {
-    fz_context *ctx = nh_get_context(helper);
-
-    bool isok = false;
     char url[512];
-    int size = 0;
     char *submit = null;
-    memset(url, 0, sizeof url);
 
-    size = strlen(baseurl);
-    memcpy(url, baseurl, size); 
-
-    int tmpsize = 0;
-    if(command->name) 
-    {
-        strlen(command->name);
-        if(tmpsize && url[size-1]!='/')
-            url[size++] = '/';
-        memcpy(url+size, command->name, tmpsize);
-        size += tmpsize;
-    }
-
-    if(command->type==http_get && fields) 
-    {
-        tmpsize = strlen(fields);
-        url[size++] = '?';
-        memcpy(url+size, fields, tmpsize);
-        size += tmpsize;
-    }
-    else  // http_post
+    CURL *httphandle = null; 
+    if(fields && command->submit==http_post) {
         submit = fields;
+        fields = null;
+    }
+    int size = ntko_make_url(url, sizeof(url), baseurl, command->name, fields); 
+    if(!size)
+        fz_throw(ctx, FZ_ERROR_GENERIC, "make http request url faild"); 
 
-    isok = nh_do_request(helper, url, submit); 
-    if(!isok) 
-        fz_throw(ctx, FZ_ERROR_HTTP_REQUEST, "http command faild:command(%s, %d)",
-                command->name, command->type);
+    status->user_param = ctx;
+
+    ntko_http_init();
+    httphandle = curl_easy_init();
+    curl_easy_setopt(httphandle, CURLOPT_URL, url);
+    if(submit) 
+        curl_easy_setopt(httphandle, CURLOPT_POSTFIELDS, submit);
+
+    curl_easy_setopt(httphandle, CURLOPT_HEADERFUNCTION, http_response_header_fun);
+    curl_easy_setopt(httphandle, CURLOPT_HEADERDATA, status);
+    curl_easy_setopt(httphandle, CURLOPT_WRITEFUNCTION, http_response_fun);
+    curl_easy_setopt(httphandle, CURLOPT_WRITEDATA, status);
+    
+    size = strlen(status->sessionid);
+    struct curl_slist *httphead = null;
+    if(size) { 
+        httphead = curl_slist_append(httphead, status->sessionid);
+        curl_easy_setopt(httphandle, CURLOPT_HTTPHEADER, httphead); 
+    }
+    CURLcode code = curl_easy_perform(httphandle);
+
+    if(httphead) {
+        curl_slist_free_all(httphead);
+        httphead = null;
+    } 
+
+    if(code!=CURLE_OK) {
+        if(status->data) {
+            fz_drop_buffer(ctx, status->data);
+            status->data = null;
+        }
+        status->code = -1;
+
+        fz_throw(ctx, FZ_ERROR_HTTP_REQUEST, 
+                "http request(%s,%d) faild, message:%s", 
+                command->name, command->request,
+                curl_easy_strerror(status->code)); 
+    }
 }
 
 static
@@ -428,37 +563,28 @@ fz_xml* ntko_xml_parse(fz_context *ctx, unsigned char *xmldata, int size)
 }
 
 static 
-bool ntko_http_get_root_svrinfo(http_helper *helper, ntko_server_info *svrinfo, ntko_http_response_status *rps_status)
+bool ntko_http_get_root_svrinfo(fz_context *ctx, ntko_server_info *svrinfo, ntko_http_response_status *status)
 {
     bool isok = false;
 
-    fz_context *ctx = nh_get_context(helper);
-    fz_buffer *xmlbuff = null;
     fz_xml *xml = null;
-
-    ntko_init_response_status(ctx, rps_status);
 
     fz_try(ctx) {
         unsigned char *xmldata = null;
         int size;
         fz_xml *xml_rsp, *xml_rspinfo;
-        ntko_do_http_command(helper, &nr_get_rootserver, svrinfo->queryurl, null);
-        xmlbuff = nh_reset_status(helper, null);
-
-        if(!xmlbuff)
-            fz_throw(ctx, FZ_ERROR_XML, "http command resposne data buffer empty"); 
-        size = fz_buffer_get_data(ctx, xmlbuff, &xmldata);
+        ntko_do_http_command(ctx, &nr_get_rootserver, svrinfo->queryurl, null, status);
+        size = fz_buffer_get_data(ctx, status->data, &xmldata);
         xml = ntko_xml_parse(ctx, xmldata, size);
         
         xml_rsp = fz_xml_find_down(xml, "ResponseStatus"); 
         xml_rspinfo = fz_xml_find_down(xml, "ResponseInfo");
 
-        isok = nxml_parse_response_status(ctx, xml_rsp, svrinfo, rps_status); 
+        isok = nxml_parse_response_status(ctx, xml_rsp, svrinfo, status); 
         if(isok)
             isok = nxml_parse_rootsvrinfo(ctx, xml_rspinfo, svrinfo);
     }
     fz_always(ctx) {
-        if(xmlbuff) fz_drop_buffer(ctx, xmlbuff);
         if(xml) fz_drop_xml(ctx, xml);
     }
     fz_catch(ctx) {
@@ -468,46 +594,41 @@ bool ntko_http_get_root_svrinfo(http_helper *helper, ntko_server_info *svrinfo, 
     return isok; 
 }
 
-bool ntko_http_login(http_helper *helper, char *username, char *password,
-        ntko_http_response_status *rsp_status, ntko_server_info *svrinfo,
+bool ntko_http_login(fz_context *ctx, char *username, char *password,
+        ntko_http_response_status *status, ntko_server_info *svrinfo,
         ntko_user_rights *rights) 
 {
     bool isok = false;
-    fz_context *ctx = nh_get_context(helper);
-    fz_buffer *xmlbuff = null;
     fz_xml *xml = null; 
 
-    const char *fmt = "username=%s&password=%sclientver=%s&lictype=%d";
+    const char *fmt = "username=%s&password=%s&clientver=%s&lictype=%d";
     char fields[512];
     int size = 0;
     unsigned char *xmldata = null; 
     memset(fields, 0, sizeof fields);
 
     fz_try(ctx) {
-        isok = ntko_http_get_root_svrinfo(helper, svrinfo, rsp_status);
+        isok = ntko_http_get_root_svrinfo(ctx, svrinfo, status);
+        if(isok) {
+            size = snprintf(fields, sizeof fields,
+                    fmt, username, password, "1.0", lic_all); 
 
-        size = snprintf(fields, sizeof fields,
-                fmt, username, password, "1.0", lic_all); 
-        ntko_do_http_command(helper, &nr_login, svrinfo->rooturl, fields); 
+            ntko_do_http_command(ctx, &nr_login, svrinfo->rooturl, fields, status); 
+            size = fz_buffer_get_data(ctx, status->data, &xmldata);
 
-        xmlbuff = nh_reset_status(helper, null);
-        if(!xmlbuff)
-            fz_throw(ctx, FZ_ERROR_XML, "xml data buffer is null"); 
+            xml = ntko_xml_parse(ctx, xmldata, size); 
 
-        size = fz_buffer_get_data(ctx, xmlbuff, &xmldata);
+            fz_xml *subxml = null;
+            subxml = nxml_find_down(ctx, xml, "ResponseStatus");
+            isok = nxml_parse_response_status(ctx, subxml, svrinfo, status); 
 
-        xml = ntko_xml_parse(ctx, xmldata, size); 
-
-        fz_xml *rsp=null, *rspinfo =null;
-        rsp = nxml_find_down(ctx, xml, "ResponseStatus");
-        rspinfo = nxml_find_down(ctx, xml, "ResponseInfo"); 
-
-        isok = nxml_parse_response_status(ctx, rsp, svrinfo, rsp_status);
-        if(isok)
-            isok = nxml_parse_user_right(ctx, rspinfo, rights);
+            if(isok) {
+                subxml = nxml_find_down(ctx, xml, "ResponseInfo"); 
+                isok = nxml_parse_user_right(ctx, subxml, rights);
+            }
+        }
     } 
     fz_always(ctx) {
-        if(xmlbuff) fz_drop_buffer(ctx, xmlbuff);
         if(xml) fz_drop_xml(ctx, xml);
     }
     fz_catch(ctx) {
@@ -517,37 +638,31 @@ bool ntko_http_login(http_helper *helper, char *username, char *password,
     return isok;
 } 
 
-bool ntko_http_logoff(http_helper *helper, ntko_server_info *svrinfo)
+bool ntko_http_logoff(fz_context *ctx, ntko_http_response_status *status, ntko_server_info *svrinfo)
 {
-    fz_context *ctx = nh_get_context(helper);
     fz_try(ctx)
-        ntko_do_http_command(helper, &nr_logout, svrinfo->rooturl, null);
+        ntko_do_http_command(ctx, &nr_logout, svrinfo->rooturl, null, status);
     fz_catch(ctx)
         fz_rethrow(ctx);
 
     return true; 
 }
 
-char *ntko_http_get_svrtime(http_helper *helper, ntko_server_info *svrinfo,
+char *ntko_http_get_svrtime(fz_context *ctx, ntko_server_info *svrinfo,
         ntko_http_response_status *status)
 {
-    fz_context *ctx = nh_get_context(helper);
-    fz_buffer *buf = null;
     fz_xml *xml = null;
     char *time = null;
     fz_try(ctx){
         fz_xml *subxml = null;
-        unsigned char *data; 
+        unsigned char *xmldata; 
         int size;
         bool isok = false;
 
-        ntko_init_response_status(ctx, status);
+        ntko_do_http_command(ctx, &nr_get_server_time, svrinfo->rooturl, null, status);
+        size = fz_buffer_get_data(ctx, status->data, &xmldata);
 
-        ntko_do_http_command(helper, &nr_get_server_time, svrinfo->rooturl, null);
-        buf = nh_reset_status(helper, null);
-        size = fz_buffer_get_data(ctx, buf, &data);
-
-        xml = ntko_xml_parse(ctx, data, size);
+        xml = ntko_xml_parse(ctx, xmldata, size);
 
         subxml = nxml_find_down(ctx, xml, nxml_ResponseStatus);
         isok = nxml_parse_response_status(ctx, subxml, svrinfo, status); 
@@ -557,7 +672,6 @@ char *ntko_http_get_svrtime(http_helper *helper, ntko_server_info *svrinfo,
         } 
     }
     fz_always(ctx) {
-        if(buf) fz_drop_buffer(ctx, buf);
         if(xml) fz_drop_xml(ctx, xml);
     }
     fz_catch(ctx){
@@ -567,23 +681,19 @@ char *ntko_http_get_svrtime(http_helper *helper, ntko_server_info *svrinfo,
 }
 
 // used to test server connection
-bool ntko_http_get_svrinfo(http_helper *helper, ntko_server_info *svrinfo, 
+bool ntko_http_get_svrinfo(fz_context *ctx, ntko_server_info *svrinfo,
         ntko_http_response_status *status)
 {
-    fz_context *ctx = nh_get_context(helper);
-    fz_buffer *buf = null;
     fz_xml *xml = null;
     bool isok = false; 
     fz_try(ctx){
         fz_xml *subxml = null;
         unsigned char *data; 
         int size;
-        ntko_init_response_status(ctx, status); 
 
-        ntko_do_http_command(helper, &nr_get_serverinfo, svrinfo->rooturl, null);
+        ntko_do_http_command(ctx, &nr_get_serverinfo, svrinfo->rooturl, null, status);
 
-        buf = nh_reset_status(helper, null);
-        size = fz_buffer_get_data(ctx, buf, &data);
+        size = fz_buffer_get_data(ctx, status->data, &data);
 
         xml = ntko_xml_parse(ctx, data, size); 
 
@@ -595,7 +705,6 @@ bool ntko_http_get_svrinfo(http_helper *helper, ntko_server_info *svrinfo,
         } 
     }
     fz_always(ctx) {
-        if(buf) fz_drop_buffer(ctx, buf);
         if(xml) fz_drop_xml(ctx, xml);
     }
     fz_catch(ctx){
@@ -604,26 +713,18 @@ bool ntko_http_get_svrinfo(http_helper *helper, ntko_server_info *svrinfo,
     return isok; 
 }
 
-z_list *ntko_http_get_signlist(http_helper *helper, 
-        ntko_server_info *svrinfo,
-        ntko_user_rights *rights,
-        ntko_sign_options *options,
-        ntko_http_response_status *status)
+z_list *ntko_http_get_esplist(fz_context *ctx, ntko_server_info *svrinfo,
+        ntko_user_rights *rights, ntko_sign_options *options, ntko_http_response_status *status)
 {
-    fz_context *ctx = nh_get_context(helper);
-    fz_buffer *buf = null;
     fz_xml *xml = null;
     z_list *l = null;
     fz_try(ctx){
         fz_xml *subxml = null;
         unsigned char *data; 
         int size;
-        ntko_init_response_status(ctx, status); 
 
-        ntko_do_http_command(helper, &nr_get_signlist, svrinfo->rooturl, null);
-
-        buf = nh_reset_status(helper, null);
-        size = fz_buffer_get_data(ctx, buf, &data);
+        ntko_do_http_command(ctx, &nr_get_signlist, svrinfo->rooturl, null, status);
+        size = fz_buffer_get_data(ctx, status->data, &data);
 
         xml = ntko_xml_parse(ctx, data, size); 
 
@@ -637,9 +738,10 @@ z_list *ntko_http_get_signlist(http_helper *helper,
             if(isok)
                 l = nxml_parse_espinfo_list(ctx, subxml);
         } 
+        else
+            fz_warn(ctx, "request faild:%s", status->fail_reason);
     }
     fz_always(ctx) {
-        if(buf) fz_drop_buffer(ctx, buf);
         if(xml) fz_drop_xml(ctx, xml);
     }
     fz_catch(ctx){
@@ -648,19 +750,16 @@ z_list *ntko_http_get_signlist(http_helper *helper,
     return l; 
 }
 
-bool ntko_http_get_user_rights(http_helper *helper, ntko_server_info *svrinfo, ntko_user_rights *right, ntko_sign_options *options, ntko_http_response_status *status) 
+bool ntko_http_get_user_rights(fz_context *ctx, ntko_server_info *svrinfo, ntko_user_rights *right, ntko_sign_options *options, ntko_http_response_status *status) 
 {
-    fz_context *ctx = nh_get_context(helper);
-    fz_buffer *xmlbuf = null;
     fz_xml *xml = null;
 
     bool isok = false;
     fz_try(ctx) {
         unsigned char *xmldata = null;
         int size = 0;
-        ntko_do_http_command(helper, &nr_get_rights, svrinfo->rooturl, null);
-        xmlbuf = nh_reset_status(helper, null);
-        size = fz_buffer_get_data(ctx, xmlbuf, &xmldata);
+        ntko_do_http_command(ctx, &nr_get_rights, svrinfo->rooturl, null, status);
+        size = fz_buffer_get_data(ctx, status->data, &xmldata);
 
         xml = ntko_xml_parse(ctx, xmldata, size);
         fz_xml *subxml = nxml_find_down(ctx, xml, nxml_ResponseStatus);
@@ -668,13 +767,13 @@ bool ntko_http_get_user_rights(http_helper *helper, ntko_server_info *svrinfo, n
         isok = nxml_parse_response_status(ctx, subxml, svrinfo, status);
         if(isok) {
             subxml = nxml_find_down(ctx, xml, nxml_ResponseInfo);
+            // TODO: parse this server info
             isok = nxml_parse_user_right(ctx, subxml, right);
             if(isok)
                 isok = nxml_parse_sign_options(ctx, subxml, options); 
         } 
     }
     fz_always(ctx) {
-        if(xmlbuf) fz_drop_buffer(ctx, xmlbuf);
         if(xml) fz_drop_xml(ctx, xml);
     }
     fz_catch(ctx)
@@ -682,20 +781,17 @@ bool ntko_http_get_user_rights(http_helper *helper, ntko_server_info *svrinfo, n
     return isok;
 }
 
-bool ntko_http_dosign_log(http_helper *helper, ntko_server_info *svrinfo, char *log,
+bool ntko_http_dosign_log(fz_context *ctx, ntko_server_info *svrinfo, char *log,
        ntko_user_rights *right, ntko_http_response_status *status) 
 {
-    fz_context *ctx = nh_get_context(helper);
-    fz_buffer *xmlbuf = null;
     fz_xml *xml = null;
 
     bool isok = false;
     fz_try(ctx) {
         unsigned char *xmldata = null;
         int size = 0;
-        ntko_do_http_command(helper, &nr_get_rights, svrinfo->queryurl, log);
-        xmlbuf = nh_reset_status(helper, null);
-        size = fz_buffer_get_data(ctx, xmlbuf, &xmldata);
+        ntko_do_http_command(ctx, &nr_get_rights, svrinfo->queryurl, log, status);
+        size = fz_buffer_get_data(ctx, status->data, &xmldata);
 
         xml = ntko_xml_parse(ctx, xmldata, size);
         fz_xml *subxml = nxml_find_down(ctx, xml, nxml_ResponseStatus);
@@ -706,7 +802,6 @@ bool ntko_http_dosign_log(http_helper *helper, ntko_server_info *svrinfo, char *
         } 
     }
     fz_always(ctx) {
-        if(xmlbuf) fz_drop_buffer(ctx, xmlbuf);
         if(xml) fz_drop_xml(ctx, xml);
     }
     fz_catch(ctx)
@@ -715,21 +810,18 @@ bool ntko_http_dosign_log(http_helper *helper, ntko_server_info *svrinfo, char *
     return isok;
 } 
 
-bool ntko_http_download_esp(http_helper *helper, ntko_server_info *info, ntko_server_espinfo *espinfo, ntko_http_response_status *status)
+bool ntko_http_download_esp(fz_context *ctx, ntko_server_info *info, ntko_server_espinfo *espinfo, ntko_http_response_status *status)
 {
     if(espinfo->data) 
         return true;
 
     bool isok = false;
-    fz_context *ctx = nh_get_context(helper);
     fz_try(ctx) {
         ntko_request req = {espinfo->filename, nrt_get_binary_file, http_get}; 
-        ntko_do_http_command(helper, &req, info->rooturl, null);
-
+        ntko_do_http_command(ctx, &req, info->rooturl, null, status);
         if(espinfo->data)
             fz_drop_buffer(ctx, espinfo->data); 
-
-        espinfo->data = nh_reset_status(helper, null);
+        espinfo->data = fz_keep_buffer(ctx, status->data);
         if(espinfo->data)
             isok = true;
     }
@@ -750,8 +842,8 @@ z_list *nxml_parse_sign_check_server(fz_context *ctx, fz_xml *xml)
             if(!l) l = ntko_sign_check_svrinfo_list_new(ctx);
             info = z_list_append_new(ctx, l); 
             info->serverid = nxml_att_int(ctx, subxml, nxml_att_serverId, 0);
-            info->sign_svr_name = nxml_att_strdup_nothrow(ctx, subxml, nxml_att_serverName);
-            info->server_app_url = nxml_att_strdup_nothrow(ctx, subxml,nxml_att_RserverAppURL); 
+            info->sign_svr_name = nxml_att_strdup(ctx, subxml, nxml_att_serverName, false);
+            info->server_app_url = nxml_att_strdup(ctx, subxml,nxml_att_RserverAppURL, true); 
             info->used_in_this_doc = false;
             info->postdata = null;
 
@@ -764,21 +856,17 @@ z_list *nxml_parse_sign_check_server(fz_context *ctx, fz_xml *xml)
 }
 
 static 
-z_list *ntko_http_get_check_servers(http_helper *helper, ntko_server_info *svrinfo, ntko_http_response_status *status)
+z_list *ntko_http_get_check_servers(fz_context *ctx, ntko_server_info *svrinfo, ntko_http_response_status *status)
 {
-    fz_context *ctx = nh_get_context(helper);
     fz_xml *xml = null;
-    fz_buffer *xmlbuf = null;
     z_list *l = null;
     fz_try(ctx) {
         unsigned char *xmldata = null;
         int size = 0;
         fz_xml *subxml = null;
         bool isok = false;
-        ntko_do_http_command(helper, &nr_get_server_changeinfo, svrinfo->rooturl, null);
-        xmlbuf = nh_reset_status(helper, null);
-
-        size = fz_buffer_get_data(ctx, xmlbuf, &xmldata);
+        ntko_do_http_command(ctx, &nr_get_server_changeinfo, svrinfo->rooturl, null, status);
+        size = fz_buffer_get_data(ctx, status->data, &xmldata);
         xml = ntko_xml_parse(ctx, xmldata, size);
 
         subxml = nxml_find_down(ctx, xml, nxml_ResponseStatus);
@@ -791,7 +879,6 @@ z_list *ntko_http_get_check_servers(http_helper *helper, ntko_server_info *svrin
     }
     fz_always(ctx){
         if(xml) fz_drop_xml(ctx, xml);
-        if(xmlbuf) fz_drop_buffer(ctx, xmlbuf);
     }
     fz_catch(ctx){ 
         if(l) z_list_free(ctx, l);
@@ -872,18 +959,18 @@ bool nxml_parse_sign_check_status(fz_context *ctx, fz_xml *xml, z_list *svrsignl
         subxml = nxml_find_down(ctx, xml, "SignsCheckStatus");
         while(subxml) {
             ntko_server_sign_info *info = z_list_append_new(ctx, svrsignlist);
-            info->sign_unid = nxml_att_strdup_nothrow(ctx, subxml, "signUNID");
+            info->sign_unid = nxml_att_strdup(ctx, subxml, "signUNID", true);
             info->found = nxml_att_bool(ctx, subxml, "found", false);
             if(!info->found)
                 continue;
-            info->signer = nxml_att_strdup_nothrow(ctx, subxml, "signer");
-            info->sign_name = nxml_att_strdup_nothrow(ctx, subxml, "signName");
-            info->sign_user = nxml_att_strdup_nothrow(ctx, subxml, "signUser");
-            info->sign_sn = nxml_att_strdup_nothrow(ctx, subxml, "signSN");
-            info->ekey_sn = nxml_att_strdup_nothrow(ctx, subxml, "ekeySN");
-            info->server_time = nxml_att_strdup_nothrow(ctx, subxml, "serverTime");
-            info->app_name = nxml_att_strdup_nothrow(ctx, subxml, "appName");
-            info->client_ip = nxml_att_strdup_nothrow(ctx, subxml, "clinetIP");
+            info->signer = nxml_att_strdup(ctx, subxml, "signer", false);
+            info->sign_name = nxml_att_strdup(ctx, subxml, "signName", false);
+            info->sign_user = nxml_att_strdup(ctx, subxml, "signUser", false);
+            info->sign_sn = nxml_att_strdup(ctx, subxml, "signSN", false);
+            info->ekey_sn = nxml_att_strdup(ctx, subxml, "ekeySN", false);
+            info->server_time = nxml_att_strdup(ctx, subxml, "serverTime", false);
+            info->app_name = nxml_att_strdup(ctx, subxml, "appName", false);
+            info->client_ip = nxml_att_strdup(ctx, subxml, "clinetIP", false);
 
             subxml = fz_xml_find_next(subxml, "SignsCheckStatus");
         }
@@ -896,22 +983,18 @@ bool nxml_parse_sign_check_status(fz_context *ctx, fz_xml *xml, z_list *svrsignl
 }
         
 
-bool ntko_http_check_sign_one_serverurl(http_helper *helper, ntko_server_info *svrinfo, 
+bool ntko_http_check_sign_one_serverurl(fz_context *ctx, ntko_server_info *svrinfo, 
         ntko_http_response_status *status, ntko_check_sign_svrinfo *checksvrinfo,
         z_list *svrsignlist)
 {
-    fz_context *ctx = nh_get_context(helper);
-
     fz_xml *xml = null;
-    fz_buffer *xmlbuf = null;
     bool isok = false;
     fz_try(ctx) {
         fz_xml *subxml = null;
         unsigned char *xmldata = null;
         int size = 0;
-        ntko_do_http_command(helper, &nr_check_sign, svrinfo->rooturl, checksvrinfo->postdata);
-        xmlbuf = nh_reset_status(helper, null);
-        size = fz_buffer_get_data(ctx, xmlbuf, &xmldata);
+        ntko_do_http_command(ctx, &nr_check_sign, svrinfo->rooturl, checksvrinfo->postdata, status);
+        size = fz_buffer_get_data(ctx, status->data, &xmldata);
 
         xml = ntko_xml_parse(ctx, xmldata, size);
         subxml = nxml_find_down(ctx, xml, nxml_ResponseStatus);
@@ -924,7 +1007,6 @@ bool ntko_http_check_sign_one_serverurl(http_helper *helper, ntko_server_info *s
     }
     fz_always(ctx) {
         if(xml) fz_drop_xml(ctx, xml);
-        if(xmlbuf) fz_drop_buffer(ctx, xmlbuf);
     }
     fz_catch(ctx) {
         fz_rethrow(ctx); 
@@ -932,15 +1014,13 @@ bool ntko_http_check_sign_one_serverurl(http_helper *helper, ntko_server_info *s
     return isok;
 }
 
-z_list *ntko_http_check_signs(http_helper *helper, ntko_server_info *svrinfo, 
+z_list *ntko_http_check_signs(fz_context *ctx, ntko_server_info *svrinfo, 
         ntko_http_response_status *status, z_list *signlist)
 {
-    fz_context *ctx = nh_get_context(helper);
-
     z_list *svrlist = null; 
     z_list *svr_sign_list = null;
     fz_try(ctx) {
-        svrlist = ntko_http_get_check_servers(helper, svrinfo, status);
+        svrlist = ntko_http_get_check_servers(ctx, svrinfo, status);
         init_check_svr_postdata(ctx, svrlist, signlist); 
 
         z_list_node *node = svrlist->first;
@@ -952,7 +1032,7 @@ z_list *ntko_http_check_signs(http_helper *helper, ntko_server_info *svrinfo,
 
             if(!svr_sign_list)
                 svr_sign_list = ntko_svr_signinfo_list_new(ctx);
-            ntko_http_check_sign_one_serverurl(helper, svrinfo, status, info, svr_sign_list); 
+            ntko_http_check_sign_one_serverurl(ctx, svrinfo, status, info, svr_sign_list); 
             node = node->n;
         }
     }

@@ -13,8 +13,30 @@
 #ifndef ntko_helper__
 #define ntko_helper__
 
-#include "net_helper.h"
+#include <mupdf/fitz.h>
 #include "mupdf/z/z_math.h"
+
+typedef unsigned short bool; 
+#define true  (unsigned short)1
+#define false (unsigned short)0
+
+#ifdef null
+#undef null
+#endif
+
+#ifdef NULL
+#undef NULL
+#endif
+
+#define null (void*)0 
+#define NULL (void*)0
+
+enum { 
+    FZ_NTKO_ERROR_BEGIN = FZ_ERROR_COUNT + 1,
+    FZ_ERROR_HTTP_REQUEST,
+    FZ_ERROR_XML,
+    FZ_NTKO_END
+};
 
 typedef enum {
 	nrt_get_root_serverinfo     = 1,	// 1:获取根服务器信息 
@@ -54,12 +76,40 @@ typedef enum {
     lic_web_mobile = 4, lic_pdf_pc = 5, lic_wps = 6, lic_yz = 7
 } ntko_product, ntko_license;
 
+
+typedef enum {
+    http_get = 0,
+    http_post
+} http_submit_type;
+
 struct ntko_request_s {
     char *name;
-    ntko_request_type type;
-    nh_submit_method method; 
+    ntko_request_type request;
+    http_submit_type submit; 
 };
 typedef struct ntko_request_s ntko_request;
+
+// code: status code of custom defined protocol, after an http request,
+// if no exception occur on server, server returned xml formated stream,
+// parse xml, we can get this status code, 
+// 0 : successed, and operation should continue
+// -1: exception occured on server
+// othre value: operation should not continue, detail inormation 
+// to look at fail_reason.
+//
+// data :fz_buffer, http response data from sign server,
+// if the http status code is 200, data is an xml formated
+// buffer, else ignore
+//
+// sessionid: string, session id get from http response header
+struct ntko_http_response_status_s {
+    int  code;
+    fz_buffer *data;
+    char sessionid[64];
+    char *fail_reason;
+    void *user_param;   
+}; 
+typedef struct ntko_http_response_status_s ntko_http_response_status;
 
 struct ntko_server_info_s {
     char *queryurl;
@@ -77,19 +127,6 @@ struct ntko_client_info_s {
     char *protocal_version;
 };
 
-// after do an http request command,
-// if everything is ok, we can get an sign server's response
-// this just means we get an http response
-// weather the operation will continue,
-// depend on response's code (code = 0 ).
-// if code is not 0, detail information stored in failreason
-// function : nxml_parse_response_status checked the "code" member,
-// if code==0 this function return true, or return false
-struct ntko_http_response_status_s {
-    int code;
-    char *failreason;
-};
-typedef struct ntko_http_response_status_s ntko_http_response_status;
 
 struct ntko_user_right_s 
 {
@@ -290,17 +327,15 @@ z_list *ntko_sign_check_svrinfo_list_new(fz_context *ctx);
 
 /*
     ntko_http_login: do login to ntko sign web server,
-    this function throw error, if http request not complete, 
+    this function throws error, if http request not complete, 
     or get an not expected(must be xml formated, and specified xml tag) http response
     
-    helper: http_helper, define in net_helper, for helpeing submit http request
-
     username, password: login acount, and it's password
 
-    rsp_status: if http request complete(submit, and get an http response), 
-    rsp_status was set, if login faild, get fail reason from
-    rsp_status's "failreason" and "code" member.
-    or rsp_status's "failreason" is null, "code" is 0
+    status: if http request complete(submit, and get an http response), 
+    status was set, if login faild, get fail reason from
+    status's "failreason" and "code" member.
+    or status's "failreason" is null, "code" is 0
 
     svrinfo: server information, svrinfo->queryurl must be initalize,
     svrinfo->rooturl will be set
@@ -309,39 +344,71 @@ z_list *ntko_sign_check_svrinfo_list_new(fz_context *ctx);
     rights: user's right,if login success, the user's rights will be set
 
     return: true: login success, false, loign failed, failreason stored
-    in rsp_status
+    in status
 */
-bool ntko_http_login(http_helper *helper, char *username, char *password,
-        ntko_http_response_status *rsp_status, ntko_server_info *svrinfo,
+bool ntko_http_login(fz_context *ctx, char *username, char *password,
+        ntko_http_response_status *status, ntko_server_info *svrinfo,
         ntko_user_rights *rights); 
 
-bool ntko_http_logoff(http_helper *helper, ntko_server_info *svrinfo);
+bool ntko_http_logoff(fz_context *ctx, ntko_http_response_status *status, ntko_server_info *svrinfo);
 
-char *ntko_http_get_svrtime(http_helper *helper, ntko_server_info *svrinfo,
+/* 
+    ntko_http_get_svrtime: get time string from ntko sign server,
+    must be "fz_free" 
+*/
+char *ntko_http_get_svrtime(fz_context *ctx, ntko_server_info *svrinfo,
         ntko_http_response_status *status);
 
-bool ntko_http_get_svrinfo(http_helper *helper, ntko_server_info *svrinfo,
+ 
+/* 
+    ntko_http_get_svrinfo:get ntko sign server information.
+    svrinfo->version, ->servername, ->lic_username, ->lic_count will be set
+*/
+bool ntko_http_get_svrinfo(fz_context *ctx, ntko_server_info *svrinfo,
         ntko_http_response_status *status);
 
-z_list *ntko_http_get_signlist(http_helper *helper, ntko_server_info *svrinfo,
+
+/* 
+    ntko_http_get_signlist: get user rights, esp information list,
+    sign options, from sign server.
+
+    returns a ntko_server_espinfo z_list
+*/
+z_list *ntko_http_get_esplist(fz_context *ctx, ntko_server_info *svrinfo,
         ntko_user_rights *rights, ntko_sign_options *options,
         ntko_http_response_status *status);
 
-bool ntko_http_get_user_rights(http_helper *helper, ntko_server_info *svrinfo,
+bool ntko_http_get_user_rights(fz_context *ctx, ntko_server_info *svrinfo,
         ntko_user_rights *right, ntko_sign_options *options,
         ntko_http_response_status *status);
 
-bool ntko_http_dosign_log(http_helper *helper, ntko_server_info *svrinfo, char *log,
+/* 
+    ntko_http_dosign_log: do sign opration log on sign server
+
+    log: posted form fields Key-Value Pair combined string, formated as:
+        "username=???&password=???&signname=???&signuser=???&"  \
+        "signsn=???&signunid=???&ekeysn=???&servertime=???&"    \
+        "appname=???&cspreleasename=???cspusename=???&"         \
+        "signtype=???&signop=???&docfile=???&docinfo=???signpos=???"
+
+    example of normal sign:
+*/
+bool ntko_http_dosign_log(fz_context *ctx, ntko_server_info *svrinfo, char *log,
        ntko_user_rights *right, ntko_http_response_status *status);
 
-bool ntko_http_download_esp(http_helper *helper, ntko_server_info *info,
+bool ntko_http_download_esp(fz_context *ctx, ntko_server_info *info,
         ntko_server_espinfo *espinfo, ntko_http_response_status *status);
 
-bool ntko_http_check_sign_one_serverurl(http_helper *helper, ntko_server_info *svrinfo, 
+bool ntko_http_check_sign_one_serverurl(fz_context *ctx, ntko_server_info *svrinfo, 
         ntko_http_response_status *status, ntko_check_sign_svrinfo *checksvrinfo,
         z_list *svrsignlist);
 
-z_list *ntko_http_check_signs(http_helper *helper, ntko_server_info *svrinfo, 
+/*  
+    ntko_http_check_signs:
+ 
+    returns ntko_server_sign_info z_list
+*/
+z_list *ntko_http_check_signs(fz_context *ctx, ntko_server_info *svrinfo, 
         ntko_http_response_status *status, z_list *signlist);
 
 extern ntko_request nr_get_rootserver;

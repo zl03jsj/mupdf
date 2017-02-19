@@ -35,7 +35,6 @@ LIBS += $(OPENJPEG_LIBS)
 LIBS += $(ZLIB_LIBS)
 LIBS += $(X11_LIBS)
 
-
 CFLAGS += $(FREETYPE_CFLAGS)
 CFLAGS += $(HARFBUZZ_CFLAGS)
 CFLAGS += $(JBIG2DEC_CFLAGS)
@@ -48,6 +47,8 @@ CFLAGS += $(OPENJPEG_CFLAGS)
 CFLAGS += $(ZLIB_CFLAGS)
 CFLAGS += $(X11_CFLAGS)
 
+CORE_ESP ?= no
+CORE_SVR_HELPER ?= no
 
 # --- Commands ---
 
@@ -89,6 +90,14 @@ ALL_DIR += $(OUT)/fonts
 ALL_DIR += $(OUT)/z
 ALL_DIR += $(OUT)/z/pdf
 
+ifeq "$(CORE_ESP)" "yes"
+ALL_DIR += $(OUT)/z/esp
+endif
+
+ifeq "$(CORE_SVR_HELPER)" "yes"
+ALL_DIR += $(OUT)/z/svrhelper
+endif
+
 FITZ_HDR := include/mupdf/fitz.h $(wildcard include/mupdf/fitz/*.h)
 PDF_HDR := include/mupdf/pdf.h $(wildcard include/mupdf/pdf/*.h)
 SVG_HDR := include/mupdf/svg.h
@@ -102,7 +111,7 @@ SVG_SRC := $(wildcard source/svg/*.c)
 CBZ_SRC := $(wildcard source/cbz/*.c)
 HTML_SRC := $(wildcard source/html/*.c)
 GPRF_SRC := $(wildcard source/gprf/*.c)
-Z_SRC := $(wildcard source/z/pdf/*.c)
+Z_SRC := $(wildcard source/z/pdf/*.c) $(wildcard source/z/esp/*.c) $(wildcard source/z/esp/*.cpp) $(wildcard source/z/svrhelper/*.c)
 
 FITZ_SRC_HDR := $(wildcard source/fitz/*.h)
 PDF_SRC_HDR := $(wildcard source/pdf/*.h) source/pdf/pdf-name-table.h
