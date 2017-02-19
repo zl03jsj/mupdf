@@ -10,8 +10,8 @@
  *   Organization:  ntko.com
  * =====================================================================================
  */
-#ifndef ntko_helper__
-#define ntko_helper__
+#ifndef ntko_svr_h__
+#define ntko_svr_h__
 
 #include <mupdf/fitz.h>
 #include "mupdf/z/z_math.h"

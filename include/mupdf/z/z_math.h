@@ -21,8 +21,8 @@
 //ctags -R --c++-kinds=+p --fields=+ias --extra=+q --language-force=c++ cpp_src 
 //sudo ctags -R --c++-kinds=+p --fields=+ias --extra=+q --language-force=c++ ./
 //================================= */
-#ifndef _Z_ALGORITHM_H_
-#define _Z_ALGORITHM_H_
+#ifndef z_math_h_
+#define z_math_h_
 
 #ifdef __cplusplus
 extern "C" {
