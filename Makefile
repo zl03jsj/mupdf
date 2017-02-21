@@ -90,14 +90,6 @@ ALL_DIR += $(OUT)/fonts
 ALL_DIR += $(OUT)/z
 ALL_DIR += $(OUT)/z/pdf
 
-ifeq "$(CORE_ESP)" "yes"
-ALL_DIR += $(OUT)/z/esp
-endif
-
-ifeq "$(CORE_SVR_HELPER)" "yes"
-ALL_DIR += $(OUT)/z/svrhelper
-endif
-
 FITZ_HDR := include/mupdf/fitz.h $(wildcard include/mupdf/fitz/*.h)
 PDF_HDR := include/mupdf/pdf.h $(wildcard include/mupdf/pdf/*.h)
 SVG_HDR := include/mupdf/svg.h
@@ -111,7 +103,18 @@ SVG_SRC := $(wildcard source/svg/*.c)
 CBZ_SRC := $(wildcard source/cbz/*.c)
 HTML_SRC := $(wildcard source/html/*.c)
 GPRF_SRC := $(wildcard source/gprf/*.c)
-Z_SRC := $(wildcard source/z/pdf/*.c) $(wildcard source/z/esp/*.c) $(wildcard source/z/esp/*.cpp) $(wildcard source/z/svrhelper/*.c)
+Z_SRC := $(wildcard source/z/pdf/*.c)
+
+ifeq "$(CORE_ESP)" "yes"
+ALL_DIR += $(OUT)/z/esp
+Z_SRC += $(wildcard source/z/esp/*.c) $(wildcard source/z/esp/*.cpp)
+endif
+
+ifeq "$(CORE_SVR_HELPER)" "yes"
+CFLAGS += $(CRL_INCLUDE)
+ALL_DIR += $(OUT)/z/svrhelper
+Z_SRC += $(wildcard source/z/svrhelper/*.c)
+endif
 
 FITZ_SRC_HDR := $(wildcard source/fitz/*.h)
 PDF_SRC_HDR := $(wildcard source/pdf/*.h) source/pdf/pdf-name-table.h
@@ -383,7 +386,11 @@ mandir ?= $(prefix)/share/man
 docdir ?= $(prefix)/share/doc/mupdf
 
 third: $(THIRD_LIB)
+
 extra: $(CURL_LIB) $(GLFW_LIB)
+
+curl: $(CURL_LIB)
+
 libs: $(INSTALL_LIBS) | showflags
 
 apps: $(INSTALL_APPS)
@@ -449,11 +456,21 @@ debug:
 android: generate
 	$(MAKE) -C platform/android/viewer
 
+helper:
+	@echo environment variables:
+	@echo "	"HAVE_OPENSSL, HAVE_LIBCRYPTO, HAVE_OPENSSL_SSL, CORE_ESP, CORE_SVR_HELPER
+	@echo ""
+	@echo Note, the following script:
+	@echo "	"export HAVE_OPENSSL=yes
+	@echo "	"will set both HAVE_LIBCRYPTO,HAVE_OPENSSL_SSL, to 'yes'.
+	@echo ""
+	@echo CORE_ESP: build ntko espfile parsing into mupdf lib
+	@echo ""
+	@echo CORE_SVR_HELPER: build ntko sign server http helper into mupdf lib
+	@echo "                                           ntko.com(zl03jsj@163.com)"
+
 showflags:
-	@echo "______OPENSSL_FLAGS________________________________"
 	@echo HAVE_LIBCRYPTO=$(HAVE_LIBCRYPTO),LIBCRYPTO_CFLAGS:$(LIBCRYPTO_CFLAGS) LIBCRYPTO_LIBS:$(LIBCRYPTO_LIBS)
-	@echo "------CFLAGS--------------------------------------|"
 	@echo CFLAGS:$(CFLAGS)
-	@echo "--------------------------------------------------|" 
 
 

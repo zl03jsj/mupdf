@@ -123,11 +123,6 @@ struct ntko_server_info_s {
 }; 
 typedef struct ntko_server_info_s ntko_server_info;
 
-struct ntko_client_info_s { 
-    char *protocal_version;
-};
-
-
 struct ntko_user_right_s 
 {
 	bool permit_handsign;
@@ -228,52 +223,6 @@ struct ntko_sign_options_s {
 }; 
 typedef struct ntko_sign_options_s ntko_sign_options;
 
-#if 0
-// 本地印章相关设定
-typedef struct ntko_sign_settins_s
-{
-	float handsign_scale;				// 手写签名图片缩放比例
-	ntko_handsign_line_mode pressmode;	// 笔模式
-	float pen_width;				    // 笔宽
-	unsigned int pen_color;				// 颜色
-    ntko_sign_comment_horizontal_location comment_horizontal_location;
-    ntko_sign_comment_vertical_location comment_vertical_location;
-    char *comment_fontname;                                // 批注字体
-    ntko_sign_time_veritical_align sign_time_vertical_align;// 日期位置
-    ntko_sign_time_mode sign_time_mode;                     // 日期风格
-    char *sign_time_fontname;                              // 日期字体
-    bool  sign_over_text;        // 签章位于文字上方
-    bool  auto_accept_rivise;    // 自动接收修订再盖章
-    char *cert_issuer_name;      // 数字证书发布者名字
-    int  language_id;            // 语言id 
-    //  use to conform old version
-    bool  lock_sign;             // lock sign after sign added
-    bool  lock_doc;              // lock doc after sign added
-
-	// sign setting:function setting
-	bool  check_doc_changes;            // 检查文档改变
-	bool  hand_draw_sign;               // 签章时手写签名
-	bool  comment_sign;                 // 添加批注	
-	bool  add_time_on_sign;             // 添加日期
-	bool  has_keyboard_sign_border;     // 键盘批注边框
-
-	// sign setting:safety setting
-	ntko_sign_print_mode printmode;		// 打印模式
-	bool  use_cert;		                // 是否使用数字证书
-	bool  fuzzy_sign_image;      		// 印章是否虚化
-	bool  check_font_change;            // 检查字体改变
-	bool  show_ui;       		        // 是否显示UI
-	bool  permit_sign_on_lock;          // 是否允许锁定时盖章(word, excel)
-
-	bool  support_ekey_login;			// 是否使用ekey登录
-	char  *server_url;					// 服务器URL
-	bool  sign_use_default_password;	// 是否使用默认密码
-    char *default_password;
-    bool  remember_username;
-    char *username;
-    int   ekey_type;
-} ntko_sign_settings;
-#endif
 
 // ntko_server_espinfo
 // used to download esp file from server
@@ -324,7 +273,6 @@ z_list *ntko_signinfo_list_new(fz_context *ctx);
 z_list *ntko_svr_signinfo_list_new(fz_context *ctx);
 z_list *ntko_espinfo_list_new(fz_context *ctx);
 z_list *ntko_sign_check_svrinfo_list_new(fz_context *ctx); 
-
 /*
     ntko_http_login: do login to ntko sign web server,
     this function throws error, if http request not complete, 

@@ -12,9 +12,13 @@ then
 fi
 
 export OS=ios
+
 export build=$(echo $CONFIGURATION | tr A-Z a-z)
 
 
+echo "note: export CONFIGURATION to set 'build' setting of makefile..."
+echo "      export SVR_SIGN to make 'esp parsing' and 'ntko server sign helper' to
+build in mupdf core"
 
 FLAGS="-Wno-unused-function -Wno-empty-body -Wno-implicit-function-declaration"
 
@@ -36,11 +40,21 @@ fi
 
 OUT=build/$build-$OS-$(echo $ARCHS | tr ' ' '-')
 
+MUPDF_TARGET="third libs"  
+
+
+BUILD_VAR=
+if [ "$SVR_SIGN" = "yes" ]
+then
+    echo "compile esp and svrhelper into mupdf lib"
+    export CORE_ESP=yes
+    export CORE_SVR_HELPER=yes
+    MUPDF_TARGET="$MUPDF_TARGET curl"
+fi
 
 echo Compiling libraries for $ARCHS.
 echo HAVE_LIBCRYPTO=$HAVE_LIBCRYPTO
-echo make -j4 -C ../.. OUT=$OUT XCFLAGS="$FLAGS" XLDFLAGS="$FLAGS" third libs
-make -j4 -C ../.. OUT=$OUT XCFLAGS="$FLAGS" XLDFLAGS="$FLAGS" third libs || exit 1
+make -j4 -C ../..  OUT=$OUT XCFLAGS="$FLAGS" XLDFLAGS="$FLAGS" $MUPDF_TARGET || exit 1
 
 echo Copying library to $BUILT_PRODUCTS_DIR/.
 mkdir -p "$BUILT_PRODUCTS_DIR"
