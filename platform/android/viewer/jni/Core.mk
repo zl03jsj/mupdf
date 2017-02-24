@@ -11,7 +11,8 @@ include $(CLEAR_VARS)
 
 MY_ROOT := ../../..
 
-LOCAL_CFLAGS += -Wall -Wno-uninitialized
+# -NOCJK: not compile cjk font into mupdf lib
+LOCAL_CFLAGS += -Wall -Wno-uninitialized -DNOCJK
 
 ifeq ($(TARGET_ARCH),arm)
 LOCAL_CFLAGS += -DARCH_ARM -DARCH_THUMB -DARCH_ARM_CAN_LOAD_UNALIGNED
@@ -29,8 +30,6 @@ endif
 ifdef CRYPTO_BUILD
 LOCAL_CFLAGS += -DHAVE_LIBCRYPTO
 endif
-
-LOCAL_CFLAGS += -Wno-unused-variable -std=gnu11 
 
 LOCAL_C_INCLUDES := \
 	$(MY_ROOT)/thirdparty/harfbuzz/src \
@@ -61,7 +60,6 @@ LOCAL_C_INCLUDES += $(MY_ROOT)/thirdparty/openssl/include
 endif
 
 LOCAL_MODULE := mupdfcore
-
 LOCAL_SRC_FILES := \
 	$(wildcard $(MY_ROOT)/source/fitz/*.c) \
 	$(wildcard $(MY_ROOT)/source/pdf/*.c) \
@@ -70,7 +68,6 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(MY_ROOT)/source/cbz/*.c) \
 	$(wildcard $(MY_ROOT)/source/gprf/*.c) \
 	$(wildcard $(MY_ROOT)/source/html/*.c) \
-	$(wildcard $(MY_ROOT)/source/z/*.c) \
 	$(wildcard $(MY_ROOT)/generated/*.c)
 
 ifdef FZ_ENABLE_GPRF
