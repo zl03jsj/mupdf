@@ -3087,7 +3087,7 @@ JNI_FN(MuPDFCore_addPdfImage)(JNIEnv * env, jobject thiz, int pageno, int x, int
 // this added by zl03jsj
 // add image to pdf document with specified page number,size,and position
 JNIEXPORT jboolean JNICALL	
-JNI_FN(MuPDFCore_addPdfImage_file)(JNIEnv * env, jobject thiz, int pageno, int x, int y,
+JNI_FN(MuPDFCore_addPdfImageFile)(JNIEnv * env, jobject thiz, int pageno, int x, int y,
 	int w, int h, jstring imgfile)
 {
 	globals *glo = get_globals(env, thiz);
@@ -3116,18 +3116,9 @@ JNI_FN(MuPDFCore_addPdfImage_file)(JNIEnv * env, jobject thiz, int pageno, int x
 		return 0;
 	}
 
-	fz_stream *imgstm = NULL;
-    fz_buffer *imgbuf = NULL;
-
 	jboolean isok = JNI_FALSE;
 	fz_try(ctx) 
-    {
-        imgstm = fz_open_file(ctx, filename);
-        fz_seek(ctx, imgstm, 0, SEEK_SET);
-        imgbuf = fz_read_all(ctx, imgstm, 256);
-        fz_drop_stream(ctx, imgstm);
-        imgstm = NULL;
-
+    { 
         fz_matrix mtx = fz_identity;
         fz_matrix scale = fz_identity;
         fz_rect rect = {x, y, x+w, y+h};
@@ -3139,8 +3130,7 @@ JNI_FN(MuPDFCore_addPdfImage_file)(JNIEnv * env, jobject thiz, int pageno, int x
         fz_scale(&scale, zoom, zoom);
         pdf_page_transform(ctx, page, NULL, &mtx);
         fz_concat(&mtx, &mtx, &scale);
-        fz_invert_matrix(&mtx, &mtx);
-
+        fz_invert_matrix(&mtx, &mtx); 
         fz_transform_rect(&rect, &mtx);
 
         x = rect.x0;
@@ -3148,7 +3138,7 @@ JNI_FN(MuPDFCore_addPdfImage_file)(JNIEnv * env, jobject thiz, int pageno, int x
         w = fz_rect_dx(&rect); 
         h = fz_rect_dy(&rect);
 
-		int okay = pdf_add_image_with_document(ctx, doc, imgbuf, pageno, x, y, w, h);
+        int okay = pdf_add_imagefile(ctx, doc, filename, pageno, x, y, w, h);
 		if (extension_okay == okay) {
 			drop_page_cache_byno(glo, pageno);
 			isok = JNI_TRUE;
@@ -3157,10 +3147,7 @@ JNI_FN(MuPDFCore_addPdfImage_file)(JNIEnv * env, jobject thiz, int pageno, int x
     fz_always(ctx) {
         if(filename)
             (*env)->ReleaseStringUTFChars(env, imgfile, filename);
-        filename = NULL;
-
-        if(imgstm) fz_drop_stream(ctx, imgstm);
-        if(imgbuf) fz_drop_buffer(ctx, imgbuf);
+        filename = NULL; 
         if(page) fz_drop_page(ctx, (fz_page*)page);
     }
 	fz_catch(ctx) {

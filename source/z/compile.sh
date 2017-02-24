@@ -1,6 +1,6 @@
 cd ../../
 echo compile mupdf lib!!
-make debug HAVE_LIBCRYPTO=yes
+make build=debug HAVE_LIBCRYPTO=yes
 echo mupdf lib done!!!
 
 echo compile test!!!

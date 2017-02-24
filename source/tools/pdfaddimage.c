@@ -43,7 +43,7 @@ int muaddimage_main(int argc, char *argv[])
 	fz_try(ctx) {
 		stderr_tofile("err.log");
 		outfile = new_unique_string(ctx, "./", ".pdf");
-		pdf_add_image_with_filename(ctx, infile, imgfile, outfile, n, x, y, w, h, NULL);
+		pdf_add_image_with_filename(ctx, infile, imgfile, n, x, y, w, h, outfile);
         printf("outfile=%s\n", outfile);
 		fz_free(ctx, outfile);
 	}
@@ -51,6 +51,5 @@ int muaddimage_main(int argc, char *argv[])
 		retcode = 1;
 	}
 	fz_drop_context(ctx);
-	stderr_restore();
 	return retcode;
 } 
