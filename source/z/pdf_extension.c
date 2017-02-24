@@ -251,9 +251,7 @@ pdf_obj *pdf_add_pixmap(fz_context *ctx, pdf_document *doc, fz_pixmap *pixmap)
 	pdf_obj *maskobj = add_image_xobj(ctx, doc, &xi);
 	fz_drop_buffer(ctx, bfCompressed);
 #endif 
-	buffer = fz_pixmap_rgb1(ctx, pixmap); 
-	fz_buffer *buffer2 = fz_pixmap_rgb2(ctx, pixmap);
-
+	buffer = fz_pixmap_rgb(ctx, pixmap); 
 	fz_buffer *bfCompressed = z_deflate_buffer(ctx, buffer);
 
     fz_drop_buffer(ctx, buffer);
