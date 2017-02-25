@@ -55,7 +55,7 @@
 		CGPoint center = parentVc.view.center;
 		pfxpasswordView.view.superview.frame = CGRectMake(0, 0, size.width*3/4, size.height*3/4);
 		pfxpasswordView.view.superview.center = CGPointMake(center.x,  fz_max(0.0f, center.y-50));
-		pfxpasswordView.view.layer.cornerRadius = 5;
+		// pfxpasswordView.view.layer.cornerRadius = 5;
 		pfxpasswordView.view.layer.masksToBounds = YES;
 	}];
 	

@@ -9,6 +9,10 @@
 
 #include "mupdf/fitz.h"
 #include "mupdf/z/z_pdf.h"
+#include "mupdf/z/ntko_svr.h"
+
+#define SVR_SIGN
+
 
 extern fz_context *ctx;
 extern dispatch_queue_t queue;
@@ -28,6 +32,18 @@ float z_cg_distance(CGPoint first, CGPoint second);
 fz_point z_CGPoint2Point(CGPoint point);
 CGPoint z_Point2CGPoint(fz_point point);
 CGRect z_CGRectExpandToPoint(CGRect rect, CGPoint p);
+
+typedef struct ntko_svrsign_context_s {
+	bool logined;
+	ntko_server_info svrinfo;
+	ntko_user_rights rights;
+	ntko_http_response_status status;
+} ntko_svrsign_context;
+
+extern ntko_svrsign_context *_ssCtx;
+
+bool z_init_ssCtx();
+bool z_free_ssCtx();
 
 #endif
 

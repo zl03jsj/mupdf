@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		680623041E616E8800EABD51 /* NTKOViews.xib in Resources */ = {isa = PBXBuildFile; fileRef = 680623031E616E8800EABD51 /* NTKOViews.xib */; };
+		680623051E616E8800EABD51 /* NTKOViews.xib in Resources */ = {isa = PBXBuildFile; fileRef = 680623031E616E8800EABD51 /* NTKOViews.xib */; };
+		680623061E616E8800EABD51 /* NTKOViews.xib in Resources */ = {isa = PBXBuildFile; fileRef = 680623031E616E8800EABD51 /* NTKOViews.xib */; };
 		6818B5751E2C9CC3006BFE7D /* ic_next.png in Resources */ = {isa = PBXBuildFile; fileRef = 6818B5711E2C9CBB006BFE7D /* ic_next.png */; };
 		6818B5761E2C9CC3006BFE7D /* ic_signature.png in Resources */ = {isa = PBXBuildFile; fileRef = 6818B5721E2C9CBB006BFE7D /* ic_signature.png */; };
 		6818B5771E2C9CC3006BFE7D /* ic_stamp.png in Resources */ = {isa = PBXBuildFile; fileRef = 6818B5731E2C9CBB006BFE7D /* ic_stamp.png */; };
@@ -15,6 +18,9 @@
 		6818B57A1E2C9EC9006BFE7D /* MuFileselectViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 685455211E1E4B410083354B /* MuFileselectViewController.xib */; };
 		6818B57B1E2C9F30006BFE7D /* MuPfxPasswordView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 685455261E1E4B410083354B /* MuPfxPasswordView.xib */; };
 		6818B57C1E2C9F31006BFE7D /* MuPfxPasswordView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 685455261E1E4B410083354B /* MuPfxPasswordView.xib */; };
+		68460D6A1E5C330500348BDF /* ic_settings.png in Resources */ = {isa = PBXBuildFile; fileRef = 68460D691E5C32EC00348BDF /* ic_settings.png */; };
+		68460D6B1E5C330600348BDF /* ic_settings.png in Resources */ = {isa = PBXBuildFile; fileRef = 68460D691E5C32EC00348BDF /* ic_settings.png */; };
+		68460D6C1E5C330600348BDF /* ic_settings.png in Resources */ = {isa = PBXBuildFile; fileRef = 68460D691E5C32EC00348BDF /* ic_settings.png */; };
 		685454F21E1E48370083354B /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 96C8ED001779A88E00A30AF4 /* main.m */; };
 		685454F31E1E48370083354B /* common.m in Sources */ = {isa = PBXBuildFile; fileRef = DA1C68C317E8969C0061F586 /* common.m */; };
 		685454FE1E1E48370083354B /* libmupdf.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 96C8ED151779A9AE00A30AF4 /* libmupdf.a */; };
@@ -142,6 +148,11 @@
 		687BED381E5BEB4B00DE551E /* ic_pen.png in Resources */ = {isa = PBXBuildFile; fileRef = DA442E2C183B796F008EF49B /* ic_pen.png */; };
 		687BED391E5BEB4B00DE551E /* ic_trash.png in Resources */ = {isa = PBXBuildFile; fileRef = DAD72803183E6F33005C14FA /* ic_trash.png */; };
 		687BED3A1E5BEB4B00DE551E /* ic_share.png in Resources */ = {isa = PBXBuildFile; fileRef = DADF824C1905241900855662 /* ic_share.png */; };
+		688656C31E5D73E200F5983A /* NTKOViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 688656C11E5D73E200F5983A /* NTKOViewController.m */; };
+		68B150791E60316A00A8C8AD /* NTKOBaseView.m in Sources */ = {isa = PBXBuildFile; fileRef = 68B150781E60316A00A8C8AD /* NTKOBaseView.m */; };
+		68B1507A1E60316A00A8C8AD /* NTKOBaseView.m in Sources */ = {isa = PBXBuildFile; fileRef = 68B150781E60316A00A8C8AD /* NTKOBaseView.m */; };
+		68B1507B1E60316A00A8C8AD /* NTKOBaseView.m in Sources */ = {isa = PBXBuildFile; fileRef = 68B150781E60316A00A8C8AD /* NTKOBaseView.m */; };
+		68CC1A441E5D87AB00297006 /* NTKOSignSvrSettings.m in Sources */ = {isa = PBXBuildFile; fileRef = 68CC1A431E5D87AB00297006 /* NTKOSignSvrSettings.m */; };
 		68DEB0B81E2C993D003CCD96 /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 68DEB0B61E2C993D003CCD96 /* libcrypto.a */; };
 		68DEB0B91E2C993D003CCD96 /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 68DEB0B71E2C993D003CCD96 /* libssl.a */; };
 		7C6152E819DDD6A90095ECAC /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7C6152E719DDD6A90095ECAC /* Images.xcassets */; };
@@ -199,10 +210,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		680623031E616E8800EABD51 /* NTKOViews.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = NTKOViews.xib; sourceTree = "<group>"; };
 		6818B5711E2C9CBB006BFE7D /* ic_next.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ic_next.png; path = resources/ic_next.png; sourceTree = "<group>"; };
 		6818B5721E2C9CBB006BFE7D /* ic_signature.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ic_signature.png; path = resources/ic_signature.png; sourceTree = "<group>"; };
 		6818B5731E2C9CBB006BFE7D /* ic_stamp.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ic_stamp.png; path = resources/ic_stamp.png; sourceTree = "<group>"; };
 		6818B5741E2C9CBB006BFE7D /* ic_stamp.png.bak.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ic_stamp.png.bak.png; path = resources/ic_stamp.png.bak.png; sourceTree = "<group>"; };
+		68460D691E5C32EC00348BDF /* ic_settings.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ic_settings.png; path = resources/ic_settings.png; sourceTree = "<group>"; };
 		6854551D1E1E48370083354B /* MuPDF_openssl_sign.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MuPDF_openssl_sign.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6854551E1E1E48370083354B /* MuPDF_openssl_sign-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "MuPDF_openssl_sign-Info.plist"; path = "/Users/zl03jsj/Documents/mupdf/platform/ios/MuPDF_openssl_sign-Info.plist"; sourceTree = "<absolute>"; };
 		6854551F1E1E4B410083354B /* MuFileselectViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MuFileselectViewController.h; path = Classes/MuFileselectViewController.h; sourceTree = "<group>"; };
@@ -217,6 +230,12 @@
 		685455281E1E4B410083354B /* MuSignView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = MuSignView.m; path = Classes/MuSignView.m; sourceTree = "<group>"; };
 		687BED3F1E5BEB4B00DE551E /* MuPDF_openssl_sign_svr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MuPDF_openssl_sign_svr.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		687BED401E5BEB4C00DE551E /* MuPDF_openssl_sign_svr-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "MuPDF_openssl_sign_svr-Info.plist"; path = "/Users/zl03jsj/Documents/mupdf/platform/ios/MuPDF_openssl_sign_svr-Info.plist"; sourceTree = "<absolute>"; };
+		688656C01E5D73E200F5983A /* NTKOViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NTKOViewController.h; path = Classes/NTKOViewController.h; sourceTree = "<group>"; };
+		688656C11E5D73E200F5983A /* NTKOViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = NTKOViewController.m; path = Classes/NTKOViewController.m; sourceTree = "<group>"; };
+		68B150771E60316A00A8C8AD /* NTKOBaseView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NTKOBaseView.h; sourceTree = "<group>"; };
+		68B150781E60316A00A8C8AD /* NTKOBaseView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NTKOBaseView.m; sourceTree = "<group>"; };
+		68CC1A421E5D87AB00297006 /* NTKOSignSvrSettings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NTKOSignSvrSettings.h; path = Classes/NTKOSignSvrSettings.h; sourceTree = "<group>"; };
+		68CC1A431E5D87AB00297006 /* NTKOSignSvrSettings.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = NTKOSignSvrSettings.m; path = Classes/NTKOSignSvrSettings.m; sourceTree = "<group>"; };
 		68DEB0B61E2C993D003CCD96 /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = ../../thirdparty/openssl/ios/libcrypto.a; sourceTree = "<group>"; };
 		68DEB0B71E2C993D003CCD96 /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../../thirdparty/openssl/ios/libssl.a; sourceTree = "<group>"; };
 		7C6152E719DDD6A90095ECAC /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = MuPDF/Images.xcassets; sourceTree = "<group>"; };
@@ -365,6 +384,7 @@
 		968E1E461779A54F0050CEA3 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				68460D691E5C32EC00348BDF /* ic_settings.png */,
 				6818B5711E2C9CBB006BFE7D /* ic_next.png */,
 				6818B5721E2C9CBB006BFE7D /* ic_signature.png */,
 				6818B5731E2C9CBB006BFE7D /* ic_stamp.png */,
@@ -447,6 +467,13 @@
 				DA012CA218803D1C00E47712 /* MuUpdater.h */,
 				DA0354E918FFF48400EE31BA /* MuPrintPageRenderer.h */,
 				DA0354EA18FFF48400EE31BA /* MuPrintPageRenderer.m */,
+				688656C01E5D73E200F5983A /* NTKOViewController.h */,
+				688656C11E5D73E200F5983A /* NTKOViewController.m */,
+				680623031E616E8800EABD51 /* NTKOViews.xib */,
+				68CC1A421E5D87AB00297006 /* NTKOSignSvrSettings.h */,
+				68CC1A431E5D87AB00297006 /* NTKOSignSvrSettings.m */,
+				68B150771E60316A00A8C8AD /* NTKOBaseView.h */,
+				68B150781E60316A00A8C8AD /* NTKOBaseView.m */,
 			);
 			name = Classes;
 			sourceTree = "<group>";
@@ -538,6 +565,9 @@
 			isa = PBXProject;
 			attributes = {
 				CLASSPREFIX = Mu;
+				KnownAssetTags = (
+					signsvrsettings,
+				);
 				LastUpgradeCheck = 0810;
 				ORGANIZATIONNAME = "Artifex Software, Inc";
 				TargetAttributes = {
@@ -585,6 +615,7 @@
 				685455011E1E48370083354B /* Default-568h@2x.png in Resources */,
 				685455021E1E48370083354B /* ic_annotation.png in Resources */,
 				685455031E1E48370083354B /* ic_print.png in Resources */,
+				680623051E616E8800EABD51 /* NTKOViews.xib in Resources */,
 				685455041E1E48370083354B /* MuTextFieldController.xib in Resources */,
 				685455051E1E48370083354B /* MuChoiceFieldController.xib in Resources */,
 				685455061E1E48370083354B /* x_alt_blue.png in Resources */,
@@ -598,6 +629,7 @@
 				6854550E1E1E48370083354B /* ic_magnifying_glass.png in Resources */,
 				6854550F1E1E48370083354B /* Launch Screen.xib in Resources */,
 				685455101E1E48370083354B /* ic_reflow.png in Resources */,
+				68460D6B1E5C330600348BDF /* ic_settings.png in Resources */,
 				685455111E1E48370083354B /* ic_more.png in Resources */,
 				685455121E1E48370083354B /* ic_highlight.png in Resources */,
 				685455131E1E48370083354B /* ic_strike.png in Resources */,
@@ -622,6 +654,7 @@
 				687BED221E5BEB4B00DE551E /* Default-568h@2x.png in Resources */,
 				687BED231E5BEB4B00DE551E /* ic_annotation.png in Resources */,
 				687BED241E5BEB4B00DE551E /* ic_print.png in Resources */,
+				680623061E616E8800EABD51 /* NTKOViews.xib in Resources */,
 				687BED251E5BEB4B00DE551E /* MuTextFieldController.xib in Resources */,
 				687BED261E5BEB4B00DE551E /* MuChoiceFieldController.xib in Resources */,
 				687BED271E5BEB4B00DE551E /* x_alt_blue.png in Resources */,
@@ -635,6 +668,7 @@
 				687BED2F1E5BEB4B00DE551E /* ic_magnifying_glass.png in Resources */,
 				687BED301E5BEB4B00DE551E /* Launch Screen.xib in Resources */,
 				687BED311E5BEB4B00DE551E /* ic_reflow.png in Resources */,
+				68460D6C1E5C330600348BDF /* ic_settings.png in Resources */,
 				687BED321E5BEB4B00DE551E /* ic_more.png in Resources */,
 				687BED331E5BEB4B00DE551E /* ic_highlight.png in Resources */,
 				687BED341E5BEB4B00DE551E /* ic_strike.png in Resources */,
@@ -667,9 +701,11 @@
 				DAB9F4BF17F1B24000117D2E /* ic_list.png in Resources */,
 				DAB9F4C017F1B24000117D2E /* ic_magnifying_glass.png in Resources */,
 				7C6152EA19DDF05B0095ECAC /* Launch Screen.xib in Resources */,
+				68460D6A1E5C330500348BDF /* ic_settings.png in Resources */,
 				DAB9F4C217F1CB6D00117D2E /* ic_reflow.png in Resources */,
 				DAD47D2A1832475C00E173A0 /* ic_more.png in Resources */,
 				DAD47D2E1832615900E173A0 /* ic_highlight.png in Resources */,
+				680623041E616E8800EABD51 /* NTKOViews.xib in Resources */,
 				6818B57A1E2C9EC9006BFE7D /* MuFileselectViewController.xib in Resources */,
 				DAD47D2F1832615900E173A0 /* ic_strike.png in Resources */,
 				DAD47D301832615900E173A0 /* ic_underline.png in Resources */,
@@ -781,6 +817,7 @@
 				685455311E1E4B5F0083354B /* MuLibraryController.m in Sources */,
 				685455371E1E4B5F0083354B /* MuWord.m in Sources */,
 				6854553A1E1E4B5F0083354B /* MuDocumentController.m in Sources */,
+				68B1507A1E60316A00A8C8AD /* NTKOBaseView.m in Sources */,
 				685455411E1E4B5F0083354B /* MuPrintPageRenderer.m in Sources */,
 				685455341E1E4B5F0083354B /* MuTextSelectView.m in Sources */,
 				6854553F1E1E4B5F0083354B /* MuTextFieldController.m in Sources */,
@@ -805,6 +842,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				687BED001E5BEB4B00DE551E /* MuAnnotation.m in Sources */,
+				68B1507B1E60316A00A8C8AD /* NTKOBaseView.m in Sources */,
+				68CC1A441E5D87AB00297006 /* NTKOSignSvrSettings.m in Sources */,
 				687BED011E5BEB4B00DE551E /* main.m in Sources */,
 				687BED021E5BEB4B00DE551E /* MuHitView.m in Sources */,
 				687BED031E5BEB4B00DE551E /* MuInkView.m in Sources */,
@@ -814,6 +853,7 @@
 				687BED071E5BEB4B00DE551E /* MuPrintPageRenderer.m in Sources */,
 				687BED081E5BEB4B00DE551E /* MuTextSelectView.m in Sources */,
 				687BED091E5BEB4B00DE551E /* MuTextFieldController.m in Sources */,
+				688656C31E5D73E200F5983A /* NTKOViewController.m in Sources */,
 				687BED0A1E5BEB4B00DE551E /* MuPageViewNormal.m in Sources */,
 				687BED0B1E5BEB4B00DE551E /* MuHanddrawView.m in Sources */,
 				687BED0C1E5BEB4B00DE551E /* MuAppDelegate.m in Sources */,
@@ -841,6 +881,7 @@
 				6854554A1E1E4B600083354B /* MuLibraryController.m in Sources */,
 				685455501E1E4B600083354B /* MuWord.m in Sources */,
 				685455531E1E4B600083354B /* MuDocumentController.m in Sources */,
+				68B150791E60316A00A8C8AD /* NTKOBaseView.m in Sources */,
 				6854555A1E1E4B600083354B /* MuPrintPageRenderer.m in Sources */,
 				6854554D1E1E4B600083354B /* MuTextSelectView.m in Sources */,
 				685455581E1E4B600083354B /* MuTextFieldController.m in Sources */,
@@ -941,7 +982,7 @@
 				DEVELOPMENT_TEAM = C4W745U45Q;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
-					"$(COMMAND_LINE_DEFINES)",
+					NTKO_SERVER_SIGN,
 					DEBUG,
 				);
 				HAVE_LIBCRYPTO = yes;
@@ -967,7 +1008,7 @@
 				DEVELOPMENT_TEAM = C4W745U45Q;
 				GCC_OPTIMIZATION_LEVEL = s;
 				GCC_PREPROCESSOR_DEFINITIONS = (
-					"$(COMMAND_LINE_DEFINES)",
+					NTKO_SERVER_SIGN,
 					RELEASE,
 				);
 				HAVE_LIBCRYPTO = yes;

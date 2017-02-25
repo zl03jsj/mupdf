@@ -144,8 +144,39 @@ CGFloat angleBetweenLines(CGPoint line1Start, CGPoint line1End, CGPoint line2Sta
 	return radiansToDegrees(rads);
 }
 
+ntko_svrsign_context *_ssCtx = null;
 
+bool z_init_ssCtx() {
+	if(!ctx) return false;
+	fz_try(ctx)
+		_ssCtx = fz_malloc(ctx, sizeof(ntko_svrsign_context));
+	fz_catch(ctx) {
+		fz_warn(ctx, "%s", fz_caught_message(ctx));
+		return false;
+	}
+	return true;
+}
 
+bool z_free_ssCtx() {
+	if(!ctx) return false;
+	fz_try(ctx) {
+		if(_ssCtx->status.data) fz_drop_buffer(ctx, _ssCtx->status.data);
+		
+		if(_ssCtx->svrinfo.lic_username) fz_free(ctx, _ssCtx->svrinfo.lic_username);
+		if(_ssCtx->svrinfo.rooturl) fz_free(ctx, _ssCtx->svrinfo.rooturl);
+		if(_ssCtx->svrinfo.servername) fz_free(ctx, _ssCtx->svrinfo.servername);
+		if(_ssCtx->svrinfo.settingurl) fz_free(ctx, _ssCtx->svrinfo.settingurl);
+		if(_ssCtx->svrinfo.version) fz_free(ctx, _ssCtx->svrinfo.version);
+		
+		fz_free(ctx, _ssCtx);
+		_ssCtx = NULL;
+	}
+	fz_catch(ctx) {
+		fz_warn(ctx, "%s", fz_caught_message(ctx));
+		return false;
+	}
+	return true;
+}
 
 
 

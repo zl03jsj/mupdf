@@ -7,6 +7,7 @@
 #import "MuChoiceFieldController.h"
 #import "MuFileselectViewController.h"
 #import "MuPrintPageRenderer.h"
+#import "NTKOViewController.h"
 
 #define GAP 20
 #define INDICATOR_Y -44-24
@@ -191,6 +192,8 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 	z_pdf_sign_appearance *_app;
 	z_device *_device;
 	Signstep _signstep;
+	
+	NTKOViewController *_ntkoViewController;
 	/////////////////////////////////////////
 	
 	int barmode;
@@ -222,6 +225,7 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 
 	//  this will be created right before the outline is shown
 	outline = nil;
+	_ntkoViewController = nil;
 	_app = NULL;
 	_device = NULL;
 
@@ -1280,8 +1284,14 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 #pragma mark - pdf signature
 - (void) onSign: (id)sender
 {
+#ifdef SVR_SIGN
+	if(!_ssCtx->logined) {
+		_ntkoViewController = [[NTKOViewController alloc]initWithTarget:self viewIndex:0];
+		[self.navigationController pushViewController:_ntkoViewController animated:YES];
+	}
+#endif
 	barmode = BARMODE_SIGN;
-	[self signModeOn];
+	// [self signModeOn];
 }
 
 - (void) signModeOn {
@@ -1408,6 +1418,13 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 	[self handsignModeOn];
 }
 
+- (void) onSvrSignSettings: (id)sender {
+#if !defined(NTKO_SERVER_SIGN)
+	return;
+#endif
+	
+}
+
 - (void) handsignModeOn {
 	_signstep = SIGN_STEP_HAND_DRAW_APPEARANCE;
 	// [nextstepButton setEnabled:NO];
@@ -1439,5 +1456,9 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 		}
 	}
 	return nil;
+}
+
+- (void) showLoginUI {
+	
 }
 @end

@@ -16,20 +16,23 @@
 #include <mupdf/fitz.h>
 #include "mupdf/z/z_math.h"
 
+
+
+#ifndef bool
+
 typedef unsigned short bool; 
 #define true  (unsigned short)1
 #define false (unsigned short)0
 
-#ifdef null
-#undef null
 #endif
 
-#ifdef NULL
-#undef NULL
+#ifndef null
+#define null (void*)0
 #endif
 
-#define null (void*)0 
+#ifndef NULL
 #define NULL (void*)0
+#endif
 
 enum { 
     FZ_NTKO_ERROR_BEGIN = FZ_ERROR_COUNT + 1,
@@ -112,7 +115,7 @@ struct ntko_http_response_status_s {
 typedef struct ntko_http_response_status_s ntko_http_response_status;
 
 struct ntko_server_info_s {
-    char *queryurl;
+    char *settingurl;
     char *rooturl;      // login server url 
     char *servername;
     char *version; 
@@ -201,9 +204,9 @@ typedef enum ntko_app_type_e
 
 typedef enum ntko_sign_print_mode_e 
 {
-    invisible = 0,
-    normal,
-    gray,
+    print_invisible = 0,
+    print_normal,
+    print_gray,
 } ntko_sign_print_mode;
 
 typedef int ntko_support_ekey_type;
@@ -285,7 +288,7 @@ z_list *ntko_sign_check_svrinfo_list_new(fz_context *ctx);
     status's "failreason" and "code" member.
     or status's "failreason" is null, "code" is 0
 
-    svrinfo: server information, svrinfo->queryurl must be initalize,
+    svrinfo: server information, svrinfo->settingurl must be initalize,
     svrinfo->rooturl will be set
     maybe, not sure:svrinfo->name, svrinfo->serverid will be set by this function
 
@@ -375,5 +378,6 @@ extern ntko_request nr_get_server_changeinfo;
 //extern ntko_request nr_get_server_comments;
 //extern ntko_request nr_set_server_comments;
 //extern ntko_request nr_keep_session;
+
 
 #endif

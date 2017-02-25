@@ -228,19 +228,19 @@ bool dologin(fz_context *ctx, ntko_server_info *svrinfo, ntko_http_response_stat
         printf("login:----------------------\n");
         username = readString(ctx, "username");
         password = readString(ctx, "password");
-        if(svrinfo->queryurl) {
+        if(svrinfo->settingurl) {
             printf("sign server url:%s,to reset or not, input [y/n]:", 
-                    svrinfo->queryurl);
+                    svrinfo->settingurl);
             bool reset = readbool(ctx, reset);
             if(reset) {
-                fz_free(ctx, svrinfo->queryurl);
-                svrinfo->queryurl = null;
+                fz_free(ctx, svrinfo->settingurl);
+                svrinfo->settingurl = null;
             }
         } 
-        if(!svrinfo->queryurl)
-            svrinfo->queryurl = readString(ctx, "sign server"); 
+        if(!svrinfo->settingurl)
+            svrinfo->settingurl = readString(ctx, "sign server"); 
         if(!svrinfo->rooturl) 
-            svrinfo->queryurl = fz_strdup(ctx, svrinfo->queryurl);
+            svrinfo->settingurl = fz_strdup(ctx, svrinfo->settingurl);
         isok = ntko_http_login(ctx, username, password,status, svrinfo, rights); 
     }
     fz_always(ctx) {

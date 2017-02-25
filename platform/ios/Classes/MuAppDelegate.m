@@ -28,6 +28,10 @@
 	ctx = fz_new_context(NULL, NULL, ResourceCacheMaxSize);
 	fz_register_document_handlers(ctx);
 
+#ifdef SVR_SIGN
+	z_init_ssCtx();
+#endif
+	
 #ifdef CRASHLYTICS_ENABLE
 	NSLog(@"Starting Crashlytics");
 	[Fabric with:@[[Crashlytics class]]];
@@ -93,6 +97,10 @@
 - (void)applicationWillTerminate:(UIApplication *)application
 {
 	printf("applicationWillTerminate!\n");
+#ifdef SVR_SIGN
+	z_free_ssCtx();
+#endif
+	fz_drop_context(ctx); ctx = NULL;
 	[[NSUserDefaults standardUserDefaults] synchronize];
 }
 

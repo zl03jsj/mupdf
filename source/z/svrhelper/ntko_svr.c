@@ -295,13 +295,13 @@ void ntko_set_root_server_info(fz_context *ctx, ntko_server_info *svrinfo, char 
             if(svrinfo->rooturl) fz_free(ctx, svrinfo->rooturl);
             svrinfo->rooturl = fz_strdup(ctx, url);
         }
-        else if(svrinfo->queryurl && 0!=strlen(svrinfo->queryurl)) {
+        else if(svrinfo->settingurl && 0!=strlen(svrinfo->settingurl)) {
             if(svrinfo->rooturl) fz_free(ctx,  svrinfo->rooturl);
-            svrinfo->rooturl = fz_strdup(ctx, svrinfo->queryurl); 
+            svrinfo->rooturl = fz_strdup(ctx, svrinfo->settingurl); 
         }
         else if(svrinfo->rooturl && 0!=strlen(svrinfo->rooturl)) {
-            if(svrinfo->queryurl) fz_free(ctx, svrinfo->queryurl);
-            svrinfo->queryurl = fz_strdup(ctx, svrinfo->rooturl); 
+            if(svrinfo->settingurl) fz_free(ctx, svrinfo->settingurl);
+            svrinfo->settingurl = fz_strdup(ctx, svrinfo->rooturl); 
         }
         else 
             fz_throw(ctx, FZ_ERROR_GENERIC, "set sign server url failed"); 
@@ -573,7 +573,7 @@ bool ntko_http_get_root_svrinfo(fz_context *ctx, ntko_server_info *svrinfo, ntko
         unsigned char *xmldata = null;
         int size;
         fz_xml *xml_rsp, *xml_rspinfo;
-        ntko_do_http_command(ctx, &nr_get_rootserver, svrinfo->queryurl, null, status);
+        ntko_do_http_command(ctx, &nr_get_rootserver, svrinfo->settingurl, null, status);
         size = fz_buffer_get_data(ctx, status->data, &xmldata);
         xml = ntko_xml_parse(ctx, xmldata, size);
         
@@ -790,7 +790,7 @@ bool ntko_http_dosign_log(fz_context *ctx, ntko_server_info *svrinfo, char *log,
     fz_try(ctx) {
         unsigned char *xmldata = null;
         int size = 0;
-        ntko_do_http_command(ctx, &nr_get_rights, svrinfo->queryurl, log, status);
+        ntko_do_http_command(ctx, &nr_get_rights, svrinfo->settingurl, log, status);
         size = fz_buffer_get_data(ctx, status->data, &xmldata);
 
         xml = ntko_xml_parse(ctx, xmldata, size);
