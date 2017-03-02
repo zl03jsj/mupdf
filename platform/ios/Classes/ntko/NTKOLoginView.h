@@ -9,6 +9,5 @@
 #import <UIKit/UIKit.h>
 #import "NTKOBaseView.h"
 
-@interface NTKOSignSvrSettings : NTKOBaseView
-@property (nonatomic, copy) NSString *testprop0;
+@interface NTKOLoginView : NTKOBaseView
 @end

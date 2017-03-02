@@ -126,7 +126,33 @@ NTKOEspParser::NTKOEspParser(fz_context *_ctx) {
 }
 
 NTKOEspParser::~NTKOEspParser() {
-    
+    if(espbuffer) fz_drop_buffer(ctx, espbuffer); 
+}
+
+bool NTKOEspParser::open(unsigned char *data, int size, char *password, bool copydata) 
+{
+    fz_buffer *buff = NULL;
+    bool isok = false;
+    fz_try(ctx) {
+        unsigned char *tmpdata = NULL;
+        if(copydata) {
+            tmpdata = (unsigned char*)fz_malloc(ctx, size);
+            memcmp(tmpdata, data, size);
+        }
+        else
+            tmpdata = data;
+
+        buff = fz_new_buffer_from_data(ctx, tmpdata, size);
+        tmpdata = NULL;
+
+        isok = open(buff, password);
+    }
+    fz_always(ctx) {
+        if(buff) fz_drop_buffer(ctx, buff);
+    }
+    fz_catch(ctx)
+        fz_rethrow(ctx);
+    return isok;
 }
 
 bool NTKOEspParser::open(const char *filename, char *password) {
@@ -164,7 +190,6 @@ bool NTKOEspParser::open(fz_buffer *_buffer, char *password) {
             espbuffer = fz_keep_buffer(ctx, _buffer); 
             checkCrcValue();
             if(crcOk) { 
-
                 initEspHeader(); 
                 verifyPassword(password);
                 if(!pswOk) 

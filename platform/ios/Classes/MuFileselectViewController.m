@@ -7,6 +7,7 @@
 //
 
 #import "MuFileselectViewController.h"
+#import "NTKODsNormalFile.h"
 
 BOOL isFileImage(NSString *file);
 BOOL isFilePfx(NSString *file);
@@ -19,83 +20,29 @@ BOOL fileHasSuffixs(NSArray *suffixs, NSString *file);
 @implementation MuFileselectViewController {
 	FileSelectedBlock _fileselblock;
 	id<MuFileSelectViewDelegate> _fileselDelegate;
-	
-	NSArray *_usersection;
-	NSString *_usersectionTitle;
-	NSArray *_paths;
-	NSArray *_suffixs;
-	BOOL _isshowimage;
-	BOOL _closeOnFileSelected;
-	
-	NSString *_selectedfile;
-	NSMutableArray *_files;
-
+	NSArray<id<NTKOTableDs>> *_ds;
+	int _selindex;
 	NSString *_title;
-	
 	IBOutlet UITableView *_table;
-	IBOutlet UINavigationItem *_navigationitem;
 }
 
-- (void)initFiles {
-	if(!_files) _files = [[NSMutableArray alloc]init];
-	else [_files removeAllObjects];
-	
-	NSFileManager *fileman = [NSFileManager defaultManager];
-	NSString *docdir = [NSString stringWithFormat: @"%@/Documents", NSHomeDirectory()];
-	
-	NSDirectoryEnumerator *direnum = [fileman enumeratorAtPath:docdir];
-	NSString *file;
-	BOOL isdir;
-	while ( (file = [direnum nextObject]) ) {
-		
-		NSString *filepath = [docdir stringByAppendingPathComponent:file];
-		
-		if ([fileman fileExistsAtPath:filepath isDirectory:&isdir] && !isdir) {
-			if(fileIsInPath(_paths, file) && fileHasSuffixs(_suffixs, file)) {
-				[_files addObject:filepath];
-			}
-		}
-	}
-}
-
-- (instancetype)initWithChoices:(NSString*)title userSection:(NSArray *)section userSectionTitle:(NSString*)sectionTitle filesuffixs:(NSArray*)suffixs filepaths:(NSArray*)paths isshowimage:(BOOL)isshow fileselectedDelegate:(id<MuFileSelectViewDelegate>)delegate fileselectedblock:(FileSelectedBlock)fileselblock
+- (instancetype) initWithDatasource:(NSArray<id<NTKOTableDs>>*)ds FileSelDelegate:(id<MuFileSelectViewDelegate>)delegate FileSelBlock:(FileSelectedBlock)block
 {
 	self = [super init];
-	// if(fileselblock) _fileselblock = Block_copy(fileselblock);
-	_fileselectedBlock = nil;
-	_fileselDelegate = delegate;
-	
-	_usersection = [section retain];
-	_usersectionTitle = [sectionTitle copy];
-	
-	_title = [title copy];
-	
-	_paths = paths?[paths retain]:nil;
-	_suffixs = suffixs?[suffixs retain]:nil;
-	_isshowimage = isshow;
-	_closeOnFileSelected = NO;
-	
-	_selectedfile = nil;
-	_files = nil;
-	
-	[self initFiles];
+	if(self) {
+		_ds = [ds retain];
+		_fileselDelegate = delegate; // protecting for retain cycle, use assign
+		_fileselblock = Block_copy(block);
+		_backViewController = nil;
+	}
 	return self;
 }
 
 - (void)dealloc {
 	if(_fileselblock) _Block_release(_fileselblock);
-	if(_usersection) [_usersection release];
-	if(_usersectionTitle) [_usersectionTitle release];
-	if(_paths) [_paths release];
-	if(_suffixs) [_suffixs release];
-	if(_selectedfile) [_selectedfile release];
-	if(_files) [_files release];
-	if(_title) [_title release];
-
-	// delegate property is set as assign, should not be release.
+	// delegate is set as assign, should not be release.
 	// if(_delegate) [_delegate release];
 	[_table release];
-	[_navigationitem release];
 	[super dealloc];
 }
 
@@ -115,11 +62,20 @@ BOOL fileHasSuffixs(NSArray *suffixs, NSString *file);
 	
 	// set border style
 	self.view.layer.cornerRadius = 4.0f;
+	self.view.layer.borderWidth = 0.5f;
 	self.view.layer.borderColor = [[UIColor colorWithRed:0.7f green:0.7f blue:0.7f alpha:1.0f]CGColor];
-	self.view.layer.borderWidth = 1.5f;
     // Do any additional setup after loading the view from its nib.
 	
-	_navigationitem.title = _title;
+	self.navigationItem.title = _title;
+	self.navigationItem.leftBarButtonItem = [[[UIBarButtonItem alloc] initWithTitle:@"goback" style:UIBarButtonItemStylePlain target:self action:@selector(onBack:)]autorelease];
+	[super viewDidLoad];
+}
+
+- (void) onBack:(id)sender {
+	if(_backViewController)
+		[self.navigationController popToViewController:_backViewController animated:YES];
+	else
+		[self.navigationController popViewControllerAnimated:YES];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -135,7 +91,7 @@ BOOL fileHasSuffixs(NSArray *suffixs, NSString *file);
 
 - (IBAction)okayTaped:(id)sender {
 	if(_fileselDelegate)
-		[_fileselDelegate fileSelOkay:self selectedfile:_selectedfile];
+		[_fileselDelegate fileSelOkay:self Selected:_ds[_selindex]];
 	[self dismissViewControllerAnimated:YES completion:nil];
 }
 
@@ -150,27 +106,24 @@ BOOL fileHasSuffixs(NSArray *suffixs, NSString *file);
 */
 
 #pragma mark -------- table view delegates and datasource!!!
-- (UITableViewCell*) tableView: (UITableView*)tableView cellForRowAtIndexPath: (NSIndexPath*)indexPath
+-  (UITableViewCell*) tableView: (UITableView*)tableView cellForRowAtIndexPath: (NSIndexPath*)indexPath
 {
-	NSString *filename = nil;//[_files objectAtIndex: row];
-	
-	if(indexPath.section==0) filename = _files[indexPath.row];
-	if(indexPath.section==1) filename = _usersection[indexPath.row];
-	if(!filename) return nil;
-	
+	if(!_ds || indexPath.section!=0 || _ds.count<=indexPath.row)
+		return nil;
+
 	UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier: @"filecell"];
 	if (!cell)
 		cell = [[[UITableViewCell alloc] initWithStyle: UITableViewCellStyleSubtitle reuseIdentifier: @"filecell"] autorelease];
 	
-	[[cell detailTextLabel] setText: [[filename lastPathComponent] stringByDeletingPathExtension]];
-	[[cell detailTextLabel] setTextColor:[UIColor grayColor]];
+    id<NTKOTableDs>ds = _ds[indexPath.row];
 	
-	if(_isshowimage && isFileImage(filename) ) {
-		[cell.imageView setContentMode:UIViewContentModeCenter];
-		cell.imageView.layer.borderColor = [[UIColor colorWithRed:0.95f green:0.95f blue:0.95f alpha:1.0f]CGColor];
-		cell.imageView.layer.borderWidth = 1.0f;
-		UIImage *img = [UIImage imageWithContentsOfFile:filename];
+	cell.textLabel.text = ds.title;
+	cell.detailTextLabel.text = ds.describe;
+	
+	UIImage *img = ds.image;
+	if(img) {
 		CGSize itemSize = CGSizeMake(38, 38);
+		
 		UIGraphicsBeginImageContext(itemSize);
 		CGRect imageRect = CGRectMake(0.0, 0.0, itemSize.width, itemSize.height);
 		[img drawInRect:imageRect];
@@ -184,31 +137,31 @@ BOOL fileHasSuffixs(NSArray *suffixs, NSString *file);
 
 - (void) tableView: (UITableView*)tableView didSelectRowAtIndexPath: (NSIndexPath*)indexPath
 {
-	_selectedfile = [(indexPath.section==0?_files[indexPath.row]:_usersection[indexPath.row])copy];
+	if(indexPath.section>0 || !_ds || indexPath.row>=_ds.count)
+		return;
+	
+	id<NTKOTableDs> ds = _ds[indexPath.row];
+	_selindex = (int)indexPath.row;
+
 	BOOL close = NO;
 	if(_fileselblock)
-		close = _fileselblock(self, _selectedfile, indexPath);
+		close = _fileselblock(self, ds, indexPath);
 	if(_fileselDelegate)
-		close = close || [_fileselDelegate fileSelected:self selectedfile:_selectedfile selectdIndexpath:indexPath];
+		close = close || [_fileselDelegate fileSelected:self Selected:ds selectdIndexpath:indexPath];
+	
+	// for push mode
 	if(close)
-		[self dismissViewControllerAnimated:YES completion:nil];
+		[self.navigationController popToViewController:[self.navigationController.viewControllers objectAtIndex:0] animated:YES];
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-	return section==0?(_files?_files.count:0):(_usersection?_usersection.count:0);
+	return _ds==nil? 0:_ds.count;
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section
 {
-	return section==1 ? _usersectionTitle:nil;
-}
-
-- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView{
-	NSInteger sections = 0;
-	if(_files && _files.count) sections++;
-	if(_usersection && _usersection.count) sections++;
-	return sections;
+	return _title;
 }
 
 - (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section
@@ -216,63 +169,90 @@ BOOL fileHasSuffixs(NSArray *suffixs, NSString *file);
 	return 0==section ? 0 : 25.0f;
 }
 
-+ (void)showDefaultImageSelect: (UIViewController*)parentVC fileselectedDelegate:(id<MuFileSelectViewDelegate>)delegate fileselectedblock:(FileSelectedBlock)fileselblock
++ (instancetype) pushDefaultImageSelect: (UIViewController*)parentVC SelDelegate:(id<MuFileSelectViewDelegate>)delegate SelBlock:(FileSelectedBlock)block {
+
+	MuFileselectViewController *vc = [MuFileselectViewController defaultImageViewController: delegate SelBlock:block];
+	[parentVC.navigationController pushViewController:vc animated:true];
+	return vc;
+}
+
++ (void)showDefaultImageSelect: (UIViewController*)parentVC SelDelegate:(id<MuFileSelectViewDelegate>)delegate SelBlock:(FileSelectedBlock)block
 {
-	NSArray *imagefilesuffixs = [NSArray arrayWithObjects:@".bmp",@".jpeg",@".jpg",@".bmp",@".png", @".gif", nil];
-	NSArray *imagefilepaths = [NSArray arrayWithObjects:@"_imagefiles", nil];
-	NSString *viewtitle = @"image file(*.bmp,*.jpg,*.png,*.gif)";
+	MuFileselectViewController *vc = [MuFileselectViewController defaultImageViewController: delegate SelBlock:block];
 	
-	MuFileselectViewController *vc = [[MuFileselectViewController alloc]initWithChoices:viewtitle userSection:nil userSectionTitle:nil filesuffixs:imagefilesuffixs filepaths:imagefilepaths isshowimage:YES fileselectedDelegate:delegate fileselectedblock:fileselblock];
 	vc.modalPresentationStyle = UIModalPresentationFormSheet;
 	vc.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
 	[parentVC presentViewController:vc animated:NO completion:nil];
+	
 	[vc release];
 }
 
-+ (void)showDefaultPfxSelect: (UIViewController*)parentVC fileselectedDelegate:(id<MuFileSelectViewDelegate>)delegate fileselectedblock:(FileSelectedBlock)fileselblock;
++ (instancetype) pushDefaultPfxSelect: (UIViewController*)parentVC fileselectedDelegate:(id<MuFileSelectViewDelegate>)delegate fileselectedblock:(FileSelectedBlock)block;
 {
-	NSArray *pfxfilepaths = [NSArray arrayWithObjects:@"_pfxfiles", nil];
-	NSArray *pfxfilesuffixs = [NSArray arrayWithObjects:@".pfx", nil];
-	NSArray *pfxsection = [NSArray arrayWithObjects:@"use bluetooth key device", nil];
-	NSString *viewtitle = @"pfx file(*.pfx)";
-	NSString *sectiontitle = @"other sign device";
+	MuFileselectViewController *vc = [MuFileselectViewController defaultPfxViewController:delegate SelBlock:block];
 	
-	MuFileselectViewController *vc = [[MuFileselectViewController alloc]initWithChoices:viewtitle userSection:pfxsection userSectionTitle:sectiontitle filesuffixs:pfxfilesuffixs filepaths:pfxfilepaths isshowimage:NO fileselectedDelegate:delegate fileselectedblock:nil];
+	[parentVC.navigationController pushViewController:vc animated:true];
+	return vc;
+}
 
-	vc.modalPresentationStyle = UIModalPresentationFullScreen;
++ (void)showDefaultPfxSelect: (UIViewController*)parentVC SelDelegate:(id<MuFileSelectViewDelegate>)delegate SelBlock:(FileSelectedBlock)block
+{
+	MuFileselectViewController *vc = [MuFileselectViewController defaultPfxViewController: delegate SelBlock:block];
+	
+	vc.modalPresentationStyle = UIModalPresentationFormSheet;
 	vc.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
 	[parentVC presentViewController:vc animated:NO completion:nil];
+	
+	[vc release];
 }
+
++ (NSArray<id<NTKOTableDs>>*) filesDs:(NSArray *)paths Suffixs:(NSArray*) suffixs  {
+	NSMutableArray<id<NTKOTableDs>> *files = [[NSMutableArray<id<NTKOTableDs>> alloc]initWithCapacity:3];
+	
+	NSFileManager *fileman = [NSFileManager defaultManager];
+	NSString *docdir = [NSString stringWithFormat: @"%@/Documents", NSHomeDirectory()];
+	
+	NSDirectoryEnumerator *direnum = [fileman enumeratorAtPath:docdir];
+	NSString *file;
+	BOOL isdir;
+	id<NTKOTableDs> one = nil;
+	while ( (file = [direnum nextObject]) ) {
+		NSString *filepath = [docdir stringByAppendingPathComponent:file];
+		if ([fileman fileExistsAtPath:filepath isDirectory:&isdir] && !isdir) {
+			if(fileIsInPath(paths, file) && fileHasSuffixs(suffixs, file)) {
+				one = [[NTKODsNormalFile alloc]initWithFile:filepath];
+				if(one) {
+					[files addObject:one];
+					[one release]; one = nil;
+				}
+			}
+		}
+	}
+	return files;
+}
+
++ (instancetype) defaultImageViewController: (id<MuFileSelectViewDelegate>)delegate SelBlock:(FileSelectedBlock)block
+{
+	NSArray *suffixs = [NSArray arrayWithObjects:@".bmp",@".jpeg",@".jpg",@".bmp",@".png", @".gif", nil];
+	NSArray *paths = [NSArray arrayWithObjects:@"_imagefiles", nil];
+	NSArray<id<NTKOTableDs>>* dss = [MuFileselectViewController filesDs:paths Suffixs:suffixs];
+	MuFileselectViewController *vc = [[MuFileselectViewController alloc]initWithDatasource:dss FileSelDelegate:delegate FileSelBlock:block];
+	vc.title = @"image file(*.bmp,*.jpg,*.png,*.gif...)";
+	[dss release];
+	return vc;
+}
+
++ (instancetype) defaultPfxViewController: (id<MuFileSelectViewDelegate>)delegate SelBlock:(FileSelectedBlock)block {
+	NSArray *paths = [NSArray arrayWithObjects:@"_pfxfiles", nil];
+	NSArray *suffixs = [NSArray arrayWithObjects:@".pfx", nil];
+	
+	NSArray<id<NTKOTableDs>>* dss = [MuFileselectViewController filesDs:paths Suffixs:suffixs];
+	MuFileselectViewController *vc = [[MuFileselectViewController alloc]initWithDatasource:dss FileSelDelegate:delegate FileSelBlock:block];
+	vc.title = @"pfx file(*.pfx)";
+	[dss release];
+	return vc;
+}
+
 @end
 
-BOOL isFileImage(NSString *file)
-{
-	NSString const* image_suffix[] = {@".bmp",@".jpeg",@".jpg",@".bmp",@".png", @".gif"};
-	for(int i=0; i<sizeof(image_suffix)/sizeof(NSString*); i++)
-		if([[file lowercaseString] hasSuffix:(NSString*)image_suffix[i]])
-			return YES;
-	return NO;
-}
 
-BOOL isFilePfx(NSString *file)
-{
-	return [[file lowercaseString]hasSuffix:@".pfx"];
-}
-
-BOOL fileIsInPath(NSArray *paths, NSString *file)
-{
-	for(NSString *path in paths) {
-		if([[file lowercaseString ]hasPrefix:[path lowercaseString]])
-			return YES;
-	}
-	return NO;
-}
-
-BOOL fileHasSuffixs(NSArray *suffixs, NSString *file)
-{
-	for(NSString *suffix in suffixs) {
-		if([[file lowercaseString] hasSuffix:[suffix lowercaseString]])
-			return YES;
-	}
-	return NO;
-}

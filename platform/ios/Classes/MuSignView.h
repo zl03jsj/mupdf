@@ -15,9 +15,11 @@
 - (void)imagePositionNotOk;
 @end
 
+@protocol NTKOTableDs;
+
 @interface MuSignView : UIView
 @property (retain, nonatomic) id<MuSignViewDelegate> delegate;
-@property (copy, nonatomic, setter=setimagefile:) NSString* imagefile;
+@property (nonatomic, retain, setter=setSignFile:) id<NTKOTableDs> signfile;
 @property (readonly, nonatomic, getter=getRectOfPage)CGRect rectOfPage;
 -(instancetype) initWithPageSize:(CGSize)pagesize;
 @end

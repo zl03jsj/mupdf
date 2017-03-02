@@ -9,21 +9,28 @@
 #import "NTKOBaseView.h"
 #import "MuDocumentController.h"
 
-@implementation NTKOBaseView {
-	MuDocumentController *_target;
-}
+@implementation NTKOBaseView 
 
 - (instancetype)init {
 	NSLog(@"Please use initWithTarget to init instance");
 	return nil;
 }
 
-- (instancetype) initWithTarget:(id)target {
+- (instancetype) initWithTarget:(id)docVc ViewController:(id)vc
+{
 	self = [super init];
 	if(self) {
-		_target = target;
+		_docVc = docVc;
+		_vc = vc;
 	}
 	return self;
+}
+
+-(void) initNew:(MuDocumentController*)docVc VC:(UIViewController*)vc {
+	// for protecting cycle retain
+	// set as assign!!!
+	_docVc = docVc;
+	_vc = vc;
 }
 
 /*

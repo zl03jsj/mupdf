@@ -13,8 +13,9 @@
 #define ntko_esp_h__ 
 
 #include "mupdf/fitz.h"
+
+#include <iostream> 
 // stdlib c++11 support char16_t 
-#include <iostream>
 
 #define NTKO_ESP_HEADER_FLAG "NTKOESP"
 
@@ -57,6 +58,12 @@ public:
     ~NTKOEspParser(); 
     bool open(const char *file, char *password); 
     bool open(fz_buffer* _espbuffer, char *password);
+    // copydata : if class malloc buffer to store the copy 
+    // of the data, at this situation, you can free data,
+    // after class is create; or class use data directly,
+    // the data will be free when class was destroy.
+    bool open(unsigned char *data, int size, char *password, bool copydata);
+    bool open(unsigned char *data, int size, bool shareddata);
     bool verify(char *password);
     inline bool isValid() {return pswOk;}
     const NTKOEspHeader* getHeader();

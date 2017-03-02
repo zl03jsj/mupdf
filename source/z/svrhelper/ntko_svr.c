@@ -1049,8 +1049,10 @@ static
 void *espinfo_new(fz_context *ctx)
 {
     ntko_server_espinfo *espinfo = NULL;
-    fz_try(ctx)
+    fz_try(ctx) {
         espinfo = fz_malloc_struct(ctx, ntko_server_espinfo);
+        espinfo->ref = 1;
+    }
     fz_catch(ctx)
         fz_rethrow(ctx);
     return espinfo;
@@ -1061,14 +1063,11 @@ void espinfo_drop(fz_context *ctx, void *data)
 {
     ntko_server_espinfo *info = (ntko_server_espinfo*)data;
     fz_try(ctx) {
-        if(info->signname) fz_free(ctx,info->signname);
-        if(info->signuser) fz_free(ctx,info->signuser);
-        if(info->filename) fz_free(ctx,info->filename);
-        if(info->data) fz_drop_buffer(ctx, info->data);
-        fz_free(ctx, info); 
+        ntko_drop_server_espinfo(ctx, info);
     }
-    fz_catch(ctx)
+    fz_catch(ctx) {
         fz_rethrow(ctx);
+    }
 }
 
 z_list *ntko_espinfo_list_new(fz_context *ctx) 
@@ -1194,3 +1193,18 @@ z_list *ntko_svr_signinfo_list_new(fz_context *ctx)
 }
 
 
+void ntko_drop_server_espinfo(fz_context *ctx, ntko_server_espinfo *espinfo) {
+    espinfo->ref--;
+    if(espinfo->ref <=0 ) {
+        if(espinfo->filename) fz_free(ctx, espinfo->filename);
+        if(espinfo->signuser) fz_free(ctx, espinfo->signuser);
+        if(espinfo->signname) fz_free(ctx, espinfo->signname);
+        if(espinfo->data) fz_drop_buffer(ctx, espinfo->data);
+
+        fz_free(ctx, espinfo);
+    }
+}
+ntko_server_espinfo *ntko_keep_server_espinfo(fz_context *ctx, ntko_server_espinfo *espinfo) {
+    espinfo->ref++;
+    return espinfo;
+}

@@ -3,6 +3,8 @@
 #import "MuSignView.h"
 #import "MuHanddrawView.h"
 
+@protocol NTKOTableDs;
+
 @protocol MuPageView
 @property (NS_NONATOMIC_IOSONLY, readonly) int number;
 -(void) willRotate;
@@ -28,7 +30,7 @@
 // add by zl[2016/11/16 17:30]
 // for add signature
 @optional
--(void) imageViewModeOn:(NSString*) imagefile;
+-(void) imageViewModeOn:(id<NTKOTableDs>)ds;
 -(void) imageViewModeOff;
 @property (nonatomic,readonly, retain) MuSignView* signView;
 

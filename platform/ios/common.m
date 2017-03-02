@@ -70,7 +70,16 @@ CGImageRef CreateCGImageWithPixmap(fz_pixmap *pix, CGDataProviderRef cgdata)
 	CGImageRef cgimage = CGImageCreate(w, h, 8, 32, 4 * w, cgcolor, kCGBitmapByteOrderDefault,
 									   cgdata, NULL, NO, kCGRenderingIntentDefault);
 	CGColorSpaceRelease(cgcolor);
+	
 	return cgimage;
+}
+
+UIImage *newImageWithPixmap(fz_pixmap *pix, CGDataProviderRef cgdata, float scale)
+{
+	CGImageRef cgimage = CreateCGImageWithPixmap(pix, cgdata);
+	UIImage *image = [[UIImage alloc] initWithCGImage: cgimage scale: scale orientation: UIImageOrientationUp];
+	CGImageRelease(cgimage);
+	return image;
 }
 
 fz_point z_CGPoint2Point(CGPoint point) {
@@ -160,6 +169,9 @@ bool z_init_ssCtx() {
 bool z_free_ssCtx() {
 	if(!ctx) return false;
 	fz_try(ctx) {
+		if(_ssCtx->username) fz_free(ctx, _ssCtx->username);
+		if(_ssCtx->password) fz_free(ctx, _ssCtx->password);
+		
 		if(_ssCtx->status.data) fz_drop_buffer(ctx, _ssCtx->status.data);
 		
 		if(_ssCtx->svrinfo.lic_username) fz_free(ctx, _ssCtx->svrinfo.lic_username);
@@ -178,7 +190,72 @@ bool z_free_ssCtx() {
 	return true;
 }
 
+// static NSString* imagefilesuffixs[] = {@".bmp", @".jpeg",@".jpg",@".bmp",@".png", @".gif"};
 
+BOOL isFileImage(NSString *file)
+{
+	// NSString const* image_suffix[] = {@".bmp",@".jpeg",@".jpg",@".bmp",@".png", @".gif"};
+	NSArray *image_suffixs = @[@".bmp",@".jpeg",@".jpg",@".bmp",@".png", @".gif"];
+	return fileHasSuffixs(image_suffixs, file);
+}
+
+BOOL isFilePfx(NSString *file)
+{
+	return [[file lowercaseString]hasSuffix:@".pfx"];
+}
+
+BOOL fileIsInPath(NSArray *paths, NSString *file)
+{
+	for(NSString *path in paths) {
+		if([[file lowercaseString ]hasPrefix:[path lowercaseString]])
+			return YES;
+	}
+	return NO;
+}
+
+BOOL fileHasSuffixs(NSArray *suffixs, NSString *file)
+{
+	for(NSString *suffix in suffixs) {
+		if([[file lowercaseString] hasSuffix:[suffix lowercaseString]])
+			return YES;
+	}
+	return NO;
+}
+
+#ifdef SVR_SIGN
+#pragma message("SVR_SIGN is defined!!!!")
+NSString * getLoginuser() {
+
+		if(_ssCtx->logined && _ssCtx->username) {
+			return [NSString stringWithUTF8String:_ssCtx->username];
+		}
+		else return nil;
+}
+
+bool download_server_esp(ntko_server_espinfo *espinfo) {
+	if(!_ssCtx || !_ssCtx->logined)
+		return false;
+	return ntko_http_download_esp(ctx, &_ssCtx->svrinfo, espinfo, &_ssCtx->status);
+}
+
+#else
+
+NSString * getLoginuser() {
+	NSLog(@"not defined SVR_SIGN macro");
+	return nil;
+}
+
+bool download_server_esp(ntko_server_espinfo *espinfo) {
+	NSLog(@"not defined SVR_SIGN macro");
+	return false;
+}
+
+BOOL ntko_dologin() {
+	NSLog(@"not defined SVR_SIGN macro");
+	return NO;
+}
+
+#endif
 
 
 

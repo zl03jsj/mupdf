@@ -10,45 +10,49 @@
     </dependencies>
     <objects>
         <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner"/>
-        <view clearsContextBeforeDrawing="NO" contentMode="scaleToFill" id="ue0-KO-Pag" userLabel="NTKOSignSvrSettingsView" customClass="NTKOSignSvrSettings">
+        <view clearsContextBeforeDrawing="NO" contentMode="scaleToFill" id="ue0-KO-Pag" userLabel="NTKOLoginView" customClass="NTKOLoginView">
             <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
             <subviews>
-                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="sign server url:" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Vb1-DB-sW5">
-                    <rect key="frame" x="16" y="134" width="113" height="21"/>
+                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="server url:" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Vb1-DB-sW5">
+                    <rect key="frame" x="16" y="134" width="85" height="21"/>
                     <fontDescription key="fontDescription" type="system" pointSize="17"/>
                     <nil key="textColor"/>
                     <nil key="highlightedColor"/>
                 </label>
-                <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="ntko sign server url" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="uKz-5O-t6o" userLabel="txt_serverurl">
-                    <rect key="frame" x="139" y="125" width="220" height="30"/>
+                <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="ntko sign server url" textAlignment="natural" minimumFontSize="8" clearButtonMode="unlessEditing" translatesAutoresizingMaskIntoConstraints="NO" id="uKz-5O-t6o" userLabel="txt_serverurl">
+                    <rect key="frame" x="111" y="125" width="248" height="30"/>
+                    <accessibility key="accessibilityConfiguration">
+                        <accessibilityTraits key="traits" notEnabled="YES"/>
+                        <bool key="isElement" value="YES"/>
+                    </accessibility>
                     <nil key="textColor"/>
                     <fontDescription key="fontDescription" type="system" pointSize="14"/>
-                    <textInputTraits key="textInputTraits"/>
+                    <textInputTraits key="textInputTraits" autocorrectionType="no" spellCheckingType="no" enablesReturnKeyAutomatically="YES"/>
                 </textField>
                 <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="user name:" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="fGK-rG-FXR">
-                    <rect key="frame" x="16" y="170" width="113" height="21"/>
+                    <rect key="frame" x="16" y="170" width="85" height="21"/>
                     <fontDescription key="fontDescription" type="system" pointSize="17"/>
                     <nil key="textColor"/>
                     <nil key="highlightedColor"/>
                 </label>
-                <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="user name" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="uNh-1S-Qux" userLabel="txt_username">
-                    <rect key="frame" x="139" y="161" width="220" height="30"/>
+                <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="user name" textAlignment="natural" minimumFontSize="12" translatesAutoresizingMaskIntoConstraints="NO" id="uNh-1S-Qux" userLabel="txt_username">
+                    <rect key="frame" x="111" y="161" width="248" height="30"/>
                     <nil key="textColor"/>
                     <fontDescription key="fontDescription" type="system" pointSize="14"/>
-                    <textInputTraits key="textInputTraits"/>
+                    <textInputTraits key="textInputTraits" autocorrectionType="no" spellCheckingType="no"/>
                 </textField>
                 <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="password:" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="FD1-uN-7Rc">
-                    <rect key="frame" x="16" y="206" width="113" height="21"/>
+                    <rect key="frame" x="16" y="206" width="85" height="21"/>
                     <fontDescription key="fontDescription" type="system" pointSize="17"/>
                     <nil key="textColor"/>
                     <nil key="highlightedColor"/>
                 </label>
-                <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="Input password" textAlignment="natural" clearsOnBeginEditing="YES" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="gfw-Ea-sMd" userLabel="txt_password">
-                    <rect key="frame" x="139" y="197" width="220" height="30"/>
+                <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="Input password" textAlignment="natural" clearsOnBeginEditing="YES" minimumFontSize="12" clearButtonMode="unlessEditing" translatesAutoresizingMaskIntoConstraints="NO" id="gfw-Ea-sMd" userLabel="txt_password">
+                    <rect key="frame" x="111" y="197" width="248" height="30"/>
                     <nil key="textColor"/>
                     <fontDescription key="fontDescription" type="system" pointSize="14"/>
-                    <textInputTraits key="textInputTraits" secureTextEntry="YES"/>
+                    <textInputTraits key="textInputTraits" autocorrectionType="no" spellCheckingType="no" secureTextEntry="YES"/>
                 </textField>
                 <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="kpM-do-A7Q" userLabel="bt_comfirm">
                     <rect key="frame" x="100" y="237" width="175" height="30"/>
@@ -71,15 +75,15 @@
                         <constraint firstAttribute="height" constant="20" id="BNO-IF-Z8v"/>
                     </constraints>
                 </activityIndicatorView>
-                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="sign server settings" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="ZYn-Vd-mZJ">
+                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Sign server settings" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="ZYn-Vd-mZJ">
                     <rect key="frame" x="40" y="80" width="295" height="29"/>
                     <fontDescription key="fontDescription" type="system" pointSize="24"/>
                     <nil key="textColor"/>
                     <nil key="highlightedColor"/>
                 </label>
-                <label hidden="YES" opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="message:" textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="z97-uV-clU">
-                    <rect key="frame" x="16" y="272" width="343" height="21"/>
-                    <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                <label hidden="YES" opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="message:" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="z97-uV-clU">
+                    <rect key="frame" x="16" y="277" width="343" height="14.5"/>
+                    <fontDescription key="fontDescription" type="system" pointSize="12"/>
                     <color key="textColor" red="1" green="0.1960784314" blue="0.1960784314" alpha="1" colorSpace="calibratedRGB"/>
                     <nil key="highlightedColor"/>
                 </label>
@@ -98,7 +102,7 @@
                 <constraint firstItem="ZYn-Vd-mZJ" firstAttribute="leading" secondItem="ue0-KO-Pag" secondAttribute="leading" constant="40" id="Fsx-km-9e7"/>
                 <constraint firstAttribute="trailing" secondItem="uKz-5O-t6o" secondAttribute="trailing" constant="16" id="Hfy-fi-M6E"/>
                 <constraint firstAttribute="trailing" secondItem="z97-uV-clU" secondAttribute="trailing" constant="16" id="Izl-kA-xTR"/>
-                <constraint firstItem="z97-uV-clU" firstAttribute="top" secondItem="kpM-do-A7Q" secondAttribute="bottom" constant="5" id="Jr0-8y-4uS"/>
+                <constraint firstItem="z97-uV-clU" firstAttribute="top" secondItem="kpM-do-A7Q" secondAttribute="bottom" constant="10" id="Jr0-8y-4uS"/>
                 <constraint firstItem="Vb1-DB-sW5" firstAttribute="leading" secondItem="ue0-KO-Pag" secondAttribute="leading" constant="16" id="KQN-Bt-Zaq"/>
                 <constraint firstItem="TVS-Tm-RnI" firstAttribute="width" secondItem="1Ht-F0-zr3" secondAttribute="width" id="Ls8-EL-3Dp"/>
                 <constraint firstItem="gfw-Ea-sMd" firstAttribute="leading" secondItem="FD1-uN-7Rc" secondAttribute="trailing" constant="10" id="NsK-IS-USR"/>
@@ -133,8 +137,69 @@
                 <outlet property="_txt_serverurl" destination="uKz-5O-t6o" id="cFD-NS-5VR"/>
                 <outlet property="_txt_username" destination="uNh-1S-Qux" id="BKI-pi-iUn"/>
             </connections>
-            <point key="canvasLocation" x="-282" y="-265"/>
+            <point key="canvasLocation" x="-4441" y="-418"/>
         </view>
         <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <view clearsContextBeforeDrawing="NO" contentMode="scaleToFill" id="oTc-Vg-Pfp" userLabel="NTKOFileOpenView">
+            <rect key="frame" x="0.0" y="0.0" width="444" height="259"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <navigationBar contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="IYG-c4-yvG">
+                    <rect key="frame" x="0.0" y="0.0" width="444" height="44"/>
+                    <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMaxY="YES"/>
+                    <items>
+                        <navigationItem title="PFX file password:" id="a41-aZ-QqY">
+                            <barButtonItem key="leftBarButtonItem" image="ic_cancel.png" id="tZB-p3-P2O"/>
+                            <barButtonItem key="rightBarButtonItem" image="ic_check.png" id="qYE-RZ-uUL"/>
+                        </navigationItem>
+                    </items>
+                </navigationBar>
+                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="password:" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="xh4-M5-DKE">
+                    <rect key="frame" x="20" y="101" width="79" height="21"/>
+                    <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                    <nil key="textColor"/>
+                    <nil key="highlightedColor"/>
+                </label>
+                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="PFX file name" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="JYj-FR-dww">
+                    <rect key="frame" x="20" y="60" width="404" height="21"/>
+                    <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                    <nil key="textColor"/>
+                    <nil key="highlightedColor"/>
+                </label>
+                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="8v9-5u-2g4">
+                    <rect key="frame" x="20" y="249" width="404" height="0.0"/>
+                    <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                    <color key="textColor" red="1" green="0.29299587669999999" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
+                    <nil key="highlightedColor"/>
+                </label>
+                <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="Input PFX file's password" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="ADK-mN-wtX">
+                    <rect key="frame" x="107" y="92" width="317" height="30"/>
+                    <nil key="textColor"/>
+                    <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                    <textInputTraits key="textInputTraits"/>
+                </textField>
+            </subviews>
+            <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <constraints>
+                <constraint firstItem="8v9-5u-2g4" firstAttribute="trailing" secondItem="ADK-mN-wtX" secondAttribute="trailing" id="16g-qU-EHg"/>
+                <constraint firstAttribute="bottom" secondItem="8v9-5u-2g4" secondAttribute="bottom" constant="10" id="Agh-gb-Cc8"/>
+                <constraint firstAttribute="trailing" secondItem="JYj-FR-dww" secondAttribute="trailing" constant="20" id="EOH-3b-8o5"/>
+                <constraint firstItem="xh4-M5-DKE" firstAttribute="top" secondItem="JYj-FR-dww" secondAttribute="bottom" constant="20" id="Fs1-8Q-L5D"/>
+                <constraint firstItem="xh4-M5-DKE" firstAttribute="leading" secondItem="JYj-FR-dww" secondAttribute="leading" id="OgG-0y-brj"/>
+                <constraint firstItem="8v9-5u-2g4" firstAttribute="leading" secondItem="xh4-M5-DKE" secondAttribute="leading" id="TVk-jI-CLE"/>
+                <constraint firstItem="ADK-mN-wtX" firstAttribute="bottom" secondItem="xh4-M5-DKE" secondAttribute="bottom" id="bjj-gn-IMl"/>
+                <constraint firstItem="ADK-mN-wtX" firstAttribute="leading" secondItem="xh4-M5-DKE" secondAttribute="trailing" constant="8" id="oxL-b1-E5c"/>
+                <constraint firstItem="ADK-mN-wtX" firstAttribute="trailing" secondItem="JYj-FR-dww" secondAttribute="trailing" id="pGr-A7-5VT"/>
+                <constraint firstItem="JYj-FR-dww" firstAttribute="leading" secondItem="oTc-Vg-Pfp" secondAttribute="leading" constant="20" id="tPB-jg-ygw"/>
+                <constraint firstItem="JYj-FR-dww" firstAttribute="top" secondItem="oTc-Vg-Pfp" secondAttribute="top" constant="60" id="v0S-9A-eVU"/>
+            </constraints>
+            <nil key="simulatedStatusBarMetrics"/>
+            <freeformSimulatedSizeMetrics key="simulatedDestinationMetrics"/>
+            <point key="canvasLocation" x="11" y="-138"/>
+        </view>
     </objects>
+    <resources>
+        <image name="ic_cancel.png" width="24" height="24"/>
+        <image name="ic_check.png" width="24" height="19"/>
+    </resources>
 </document>

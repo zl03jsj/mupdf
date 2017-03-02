@@ -7,23 +7,38 @@
 //
 
 #import <UIKit/UIKit.h>
-@class MuFileselectViewController;
 
-typedef BOOL(^FileSelectedBlock)(MuFileselectViewController *vc, NSString *selectedfile, NSIndexPath *inexpath);
+@class MuFileselectViewController;
+@protocol NTKOTableDs;
+
+typedef BOOL(^FileSelectedBlock)(MuFileselectViewController *vc, id<NTKOTableDs> ds, NSIndexPath *inexpath);
 
 @protocol MuFileSelectViewDelegate
 @optional
-- (BOOL)fileSelected:(MuFileselectViewController*)fileselectViewController selectedfile:(NSString*)file selectdIndexpath:(NSIndexPath*)indexpath;
-- (void)fileSelCancel:(MuFileselectViewController*)fileselectViewController;
-- (void)fileSelOkay:(MuFileselectViewController*)fileselectViewController selectedfile:(NSString*)file;
+- (BOOL)fileSelected:(MuFileselectViewController*)vc Selected:(id<NTKOTableDs>)selDs selectdIndexpath:(NSIndexPath*)indexpath;
+- (void)fileSelCancel:(MuFileselectViewController*)vc;
+- (void)fileSelOkay:(MuFileselectViewController*)vc Selected:(id<NTKOTableDs>)selds;
 @end
 
 @interface MuFileselectViewController : UIViewController
+
 @property (nonatomic, assign) id<MuFileSelectViewDelegate> fileselDelegate;
 @property (nonatomic, copy) FileSelectedBlock fileselectedBlock;
-- (instancetype)initWithChoices:(NSString*)title userSection:(NSArray *)section userSectionTitle:(NSString*)sectionTitle filesuffixs:(NSArray*)suffixs filepaths:(NSArray*)paths isshowimage:(BOOL)isshow fileselectedDelegate:(id<MuFileSelectViewDelegate>)delegate fileselectedblock:(FileSelectedBlock)fileselblock;
+@property (nonatomic, assign) id backViewController;
 
-+ (void)showDefaultPfxSelect: (UIViewController*)parentVC fileselectedDelegate:(id<MuFileSelectViewDelegate>)delegate fileselectedblock:(FileSelectedBlock)fileselblock;
-+ (void)showDefaultImageSelect: (UIViewController*)parentVC fileselectedDelegate:(id<MuFileSelectViewDelegate>)delegate fileselectedblock:(FileSelectedBlock)fileselblock;
+- (instancetype) initWithDatasource:(NSArray<id<NTKOTableDs>>*)ds FileSelDelegate:(id<MuFileSelectViewDelegate>)delegate FileSelBlock:(FileSelectedBlock)block;
+
++ (instancetype) pushDefaultImageSelect: (UIViewController*)parentVC SelDelegate:(id<MuFileSelectViewDelegate>)delegate SelBlock:(FileSelectedBlock)block;
+
++ (void)showDefaultImageSelect: (UIViewController*)parentVC SelDelegate:(id<MuFileSelectViewDelegate>)delegate SelBlock:(FileSelectedBlock)block;
+
++ (instancetype) pushDefaultPfxSelect: (UIViewController*)parentVC fileselectedDelegate:(id<MuFileSelectViewDelegate>)delegate fileselectedblock:(FileSelectedBlock)block;
+
++ (void)showDefaultPfxSelect: (UIViewController*)parentVC SelDelegate:(id<MuFileSelectViewDelegate>)delegate SelBlock:(FileSelectedBlock)block;
+
++ (instancetype) defaultImageViewController: (id<MuFileSelectViewDelegate>)delegate SelBlock:(FileSelectedBlock)block;
+
++ (instancetype) defaultPfxViewController: (id<MuFileSelectViewDelegate>)delegate SelBlock:(FileSelectedBlock)block;
+
 
 @end

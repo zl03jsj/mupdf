@@ -7,7 +7,7 @@
 //
 
 #import "NTKOViewController.h"
-#import "NTKOSignSvrSettings.h"
+#import "NTKOLoginView.h"
 #import "MuDocumentController.h"
 
 @interface NTKOViewController ()
@@ -33,6 +33,7 @@
 	NSArray *nib = [[NSBundle mainBundle] loadNibNamed:@"NTKOViews" owner:nil options:nil];
 	if(nib.count>_viewindex) {
 		NTKOBaseView *baseView = [nib objectAtIndex:_viewindex];
+		[baseView initNew:_target VC:self];
 		self.view = baseView;
 	}
 }

@@ -5,19 +5,12 @@
 #import "MuAnnotation.h"
 
 #import "MuPageViewNormal.h"
+#import "ntko/NTKOTableDs.h"
 
 #define STRIKE_HEIGHT (0.375f)
 #define UNDERLINE_HEIGHT (0.075f)
 #define LINE_THICKNESS (0.07f)
 #define INK_THICKNESS (4.0f)
-
-static UIImage *newImageWithPixmap(fz_pixmap *pix, CGDataProviderRef cgdata)
-{
-	CGImageRef cgimage = CreateCGImageWithPixmap(pix, cgdata);
-	UIImage *image = [[UIImage alloc] initWithCGImage: cgimage scale: screenScale orientation: UIImageOrientationUp];
-	CGImageRelease(cgimage);
-	return image;
-}
 
 static NSArray *enumerateWidgetRects(fz_document *doc, fz_page *page)
 {
@@ -1129,7 +1122,7 @@ static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
 	image_pix = renderPixmap(doc, page_list, annot_list, pageSize, self.bounds.size, rect, 1.0);
 	CGDataProviderRelease(imageData);
 	imageData = CreateWrappedPixmap(image_pix);
-	UIImage *image = newImageWithPixmap(image_pix, imageData);
+	UIImage *image = newImageWithPixmap(image_pix, imageData, screenScale);
 	widgetRects = enumerateWidgetRects(doc, page);
 	[self loadAnnotations];
 	dispatch_async(dispatch_get_main_queue(), ^{
@@ -1285,7 +1278,7 @@ static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
 		tile_pix = renderPixmap(doc, page_list, annot_list, pageSize, screenSize, viewFrame, scale);
 		CGDataProviderRelease(tileData);
 		tileData = CreateWrappedPixmap(tile_pix);
-		UIImage *image = newImageWithPixmap(tile_pix, tileData);
+		UIImage *image = newImageWithPixmap(tile_pix, tileData, screenScale);
 
 		dispatch_async(dispatch_get_main_queue(), ^{
 			isValid = CGRectEqualToRect(frame, tileFrame) && scale == tileScale;
@@ -1395,7 +1388,7 @@ static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
 	if (tile_pix)
 	{
 		updatePixmap(doc, page_list, annot_list, tile_pix, rlist, pageSize, self.bounds.size, vframe, tscale);
-		UIImage *timage = newImageWithPixmap(tile_pix, tileData);
+		UIImage *timage = newImageWithPixmap(tile_pix, tileData, screenScale);
 		dispatch_async(dispatch_get_main_queue(), ^{
 			BOOL isValid = CGRectEqualToRect(tframe, tileFrame) && tscale == tileScale;
 			if (isValid)
@@ -1609,15 +1602,17 @@ static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
 }
 
 #pragma mark - pdf signature
-- (void) imageViewModeOn: (NSString*) imagefile {
+- (void) imageViewModeOn:(id<NTKOTableDs>)dsfile {
 	if(signView) {
-		if([imagefile isEqualToString:signView.imagefile]) return;
+		if([dsfile.title isEqualToString:signView.signfile.title]) return;
+		
 		[signView removeFromSuperview];
 		[signView release];
 	}
 	
 	signView = [[MuSignView alloc]initWithPageSize:pageSize];
-	signView.imagefile = imagefile;
+	signView.signfile = dsfile;
+
 	signView.frame = imageView.frame;
 	[self addSubview:signView];
 }

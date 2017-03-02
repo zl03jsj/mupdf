@@ -16,7 +16,7 @@
 #import "MuHanddrawView.h"
 #import "MuAnnotSelectView.h"
 #import "MuUpdater.h"
-#import "MuPfxPasswordView.h"
+#import "NTKOPswCheckViewController.h"
 
 @interface MuPageViewNormal : UIScrollView <UIScrollViewDelegate,MuPageView>
 - (instancetype) initWithFrame: (CGRect)frame dialogCreator:(id<MuDialogCreator>)dia updater:(id<MuUpdater>)upd document: (MuDocRef *)aDoc page: (int)aNumber;

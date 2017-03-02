@@ -16,22 +16,22 @@
 #include <mupdf/fitz.h>
 #include "mupdf/z/z_math.h"
 
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef bool
-
-typedef unsigned short bool; 
-#define true  (unsigned short)1
-#define false (unsigned short)0
-
+typedef signed char bool;
+#define true  (signed char)1
+#define false (signed char)0
 #endif
 
 #ifndef null
-#define null (void*)0
+	#define null (void*)0
 #endif
 
 #ifndef NULL
-#define NULL (void*)0
+	#define NULL (void*)0
 #endif
 
 enum { 
@@ -230,12 +230,15 @@ typedef struct ntko_sign_options_s ntko_sign_options;
 // ntko_server_espinfo
 // used to download esp file from server
 struct ntko_server_espinfo_s {
+    int ref;
     char *signname;
     char *signuser;    
     char *filename;
     fz_buffer *data;
 };
 typedef struct ntko_server_espinfo_s ntko_server_espinfo;
+void ntko_drop_server_espinfo(fz_context *ctx, ntko_server_espinfo *espinfo);
+ntko_server_espinfo *ntko_keep_server_espinfo(fz_context *ctx, ntko_server_espinfo *espinfo);
 
 struct ntko_check_sign_svrinfo_s {
 	int serverid;
@@ -261,12 +264,38 @@ typedef struct ntko_server_sign_info_s
 	int server_id;
 } ntko_server_sign_info;
 
+// ntko signature information
+//
+// sign_sn: stored in esp file, for unique NTKO esp sign file, 
+// if not esp signature, this member equals to sign_unid.
+//
+// sign_unid: unid of signature, for unique signature, which was 
+// added to document(ex:pdf, html, word, excel...)
+// successfully.
+//
+// sign_name: stored in esp file, if not esp signature,
+// this value depend on the appearance of signature. 
+// if appearance is drawned by signer, this value could be
+// "Hand sign", and appearance was selected image file, which 
+// would be "image sign". in short, this member can be custom.
+//
+// sign_user: stored in esp file,  this member can be custom
+// if not esp signature.
+// for server sign,this member can be the user who logined, 
+// or if we add signture used certificate, can be set to
+// user of certificate
+//
+// signer: this member was custom setting value,
+// refer to sign_user.
+//
+// signtype: signature type, hand sign, image sign...
 struct ntko_sign_info_s {
+    char *sign_sn;
     char *sign_unid;
     char *sign_name;
     char *sign_user;
-    char *sign_sn;
     char *signer;
+    ntko_sign_print_mode printmode;
     int serverid;
     int signtype;
 };
@@ -379,5 +408,8 @@ extern ntko_request nr_get_server_changeinfo;
 //extern ntko_request nr_set_server_comments;
 //extern ntko_request nr_keep_session;
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

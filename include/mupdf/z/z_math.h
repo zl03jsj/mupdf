@@ -24,10 +24,11 @@
 #ifndef z_math_h_
 #define z_math_h_
 
+#include "mupdf/fitz.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "mupdf/fitz.h"
 	
 typedef fz_point z_point;
 typedef struct z_fpoint_s z_fpoint;

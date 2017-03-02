@@ -8,6 +8,7 @@
 
 #include "common.h"
 #import "MuSignView.h"
+#import "ntko/NTKOTableDs.h"
 
 @implementation MuSignView
 {
@@ -138,15 +139,15 @@
 	[self setNeedsDisplay];
 }
 
-- (void)setimagefile:(NSString *)imagefile {
-	if(imagefile==_imagefile)
+- (void)setSignFile:(id<NTKOTableDs>)signfile {
+	if([_signfile.title isEqualToString:_signfile.title])
 		return;
-	if(_imagefile) [_imagefile release];
-	_imagefile = [imagefile copy];
-
-	if(_image) [_image release];
+	if(_signfile) [_signfile release];
+	_signfile = [signfile retain];
 	
-	_image = [[UIImage alloc]initWithContentsOfFile:_imagefile];
+	if(_image) [_image release];
+	_image = _signfile.image;
+	
 	if(!_firstLayoutsubview)
 		[self refreshImageRect];
 }
@@ -188,7 +189,7 @@
 }
 
 -(void) dealloc {
-	[_imagefile release];
+	[_signfile release];
 	[_image release];
 	[_color release];
 	[super dealloc];

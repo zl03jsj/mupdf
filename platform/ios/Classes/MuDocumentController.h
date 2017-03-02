@@ -11,7 +11,7 @@
 #import "MuDialogCreator.h"
 #import "MuUpdater.h"
 #import "MuFileselectViewController.h"
-#import "MuPfxPasswordView.h"
+#import "NTKOPswCheckViewController.h"
 
 enum
 {
@@ -39,7 +39,7 @@ typedef enum Signstep_s {
 	SIGN_STEP_SAVE_SIGNATURE
 } Signstep;
 
-@interface MuDocumentController : UIViewController <UIScrollViewDelegate, UIGestureRecognizerDelegate, UISearchBarDelegate, MuDialogCreator, MuUpdater, MuFileSelectViewDelegate, MuPfxPswViewDelegate>
+@interface MuDocumentController : UIViewController <UIScrollViewDelegate, UIGestureRecognizerDelegate, UISearchBarDelegate, MuDialogCreator, MuUpdater, MuFileSelectViewDelegate, NTKOPswCheckViewDelegate>
 - (instancetype) initWithFilename: (NSString*)nsfilename path:(NSString *)path document:(MuDocRef *)aDoc;
 - (void) createPageView: (int)number;
 - (void) gotoPage: (int)number animated: (BOOL)animated;
