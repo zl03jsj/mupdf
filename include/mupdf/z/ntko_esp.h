@@ -83,8 +83,8 @@ private:
     fz_context *ctx = NULL;
     fz_buffer *espbuffer = NULL;
     NTKOEspHeader espHeader;
-    char16_t signname[NTKO_MAX_SIGNNAME];
-    char16_t signuser[NTKO_MAX_SIGNUSER];
+    char16_t signname[NTKO_MAX_SIGNNAME] = {0};
+    char16_t signuser[NTKO_MAX_SIGNUSER] = {0};
     bool pswOk = false;
     bool crcOk = false;
 

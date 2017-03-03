@@ -16,6 +16,7 @@ typedef void(^PswCheckBlock)(z_device*);
 
 @protocol NTKOPswCheckViewDelegate
 - (BOOL) onPswCheck:(NTKOPswCheckViewController*)checkVc Ds:(id<NTKOTableDs>)ds Password:(NSString*)psw;
+- (void) onPswViewClose:(int)remainChances;
 @end
 
 @interface NTKOPswCheckViewController : UIViewController

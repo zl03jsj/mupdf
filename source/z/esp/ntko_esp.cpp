@@ -122,11 +122,15 @@ NTKOEspParser::NTKOEspParser(fz_context *_ctx) {
     ctx = _ctx;
     espbuffer = NULL;
     pswOk = false;
-    memset(&espHeader, 0, sizeof(NTKOEspParser));
+    crcOk = false; 
+    memset(signname, 0, sizeof(signname));
+    memset(signuser, 0, sizeof(signname));
+    memset(&espHeader, 0, sizeof(NTKOEspHeader)); 
 }
 
 NTKOEspParser::~NTKOEspParser() {
-    if(espbuffer) fz_drop_buffer(ctx, espbuffer); 
+    if(espbuffer)
+        fz_drop_buffer(ctx, espbuffer); 
 }
 
 bool NTKOEspParser::open(unsigned char *data, int size, char *password, bool copydata) 
@@ -187,16 +191,16 @@ bool NTKOEspParser::open(fz_buffer *_buffer, char *password) {
                 espbuffer = NULL;
             } 
             pswOk = false;
-            espbuffer = fz_keep_buffer(ctx, _buffer); 
-            checkCrcValue();
-            if(crcOk) { 
-                initEspHeader(); 
+            espbuffer = fz_keep_buffer(ctx, _buffer);
+			checkCrcValue();
+            if(crcOk) {
+                initEspHeader();
                 verifyPassword(password);
                 if(!pswOk) 
                     fz_warn(ctx, "wrong password."); 
-            } 
-            else 
-                fz_warn(ctx, "Invalid esp file.");
+            }
+            else
+                fz_warn(ctx, "check CrcCode failed.");
         }
         else 
             fz_warn(ctx, "Invalid esp file.");
@@ -204,6 +208,7 @@ bool NTKOEspParser::open(fz_buffer *_buffer, char *password) {
     fz_catch(ctx) {
         printf("open esp file error:%s\n", ctx->error->message);
     } 
+
     return pswOk&&crcOk;
 }
 
@@ -232,19 +237,24 @@ fz_image *NTKOEspParser::getImage() {
 fz_buffer *NTKOEspParser::getImagedata() {
     if(!pswOk || !crcOk) return NULL;
 
-    fz_buffer *imgbuff = NULL; 
+    fz_buffer *imgbuff = NULL;
+	unsigned char *imagedata = NULL;
+	int imageSize = 0;
     fz_try(ctx)
     {
-        unsigned char *espdata, *imagedata;
-        int totalSize, imageSize;
-        totalSize = fz_buffer_get_data(ctx, espbuffer, &espdata);
-        imageSize = totalSize - NTKOEspFileHeaderSize; 
+		unsigned char *espdata;
+        int totalSize = fz_buffer_get_data(ctx, espbuffer, &espdata);
+		
+        imageSize = totalSize - NTKOEspFileHeaderSize;
+		
         imagedata = (unsigned char*)fz_malloc(ctx, imageSize);
+		
         memcpy(imagedata, espdata+NTKOEspFileHeaderSize, imageSize);
 
         imgbuff = fz_new_buffer_from_data(ctx, imagedata, imageSize); 
     }
     fz_catch(ctx) {
+		if(imagedata) fz_free(ctx, imagedata);
         fz_rethrow(ctx); 
     }
 
@@ -260,13 +270,17 @@ void NTKOEspParser::initEspHeader() {
     unsigned int size = 0; 
     fz_stream *stm = NULL;
 
+    bool encoded = false;
     fz_try(ctx) {
         size = fz_buffer_get_data(ctx, espbuffer, (unsigned char**)&data); 
         data += CRC_OFS;
         size -= CRC_OFS;
-        encodeData((unsigned char*)data, size);
 
-        stm = fz_open_buffer(ctx, espbuffer); 
+        encodeData((unsigned char*)data, size);
+        encoded = true;
+
+        stm = fz_open_buffer(ctx, espbuffer);
+
         fz_seek(ctx, stm, 0, SEEK_SET);
 
         fz_read(ctx, stm, (unsigned char*)espHeader.flag, 8);
@@ -300,6 +314,7 @@ void NTKOEspParser::initEspHeader() {
         // stirng in esp file, use little-endain utf16(ucs2) string
         tmpsize = z_ucs2_change_endain(signname);
         data = z_ucs2be_to_utf8(ctx, (unsigned char*)signname, tmpsize*sizeof(char16_t)); 
+
         memcpy(espHeader.signname, data, strlen(data));
         fz_free(ctx, data);
         z_ucs2_change_endain(signname);
@@ -310,15 +325,21 @@ void NTKOEspParser::initEspHeader() {
         fz_free(ctx, data);
         z_ucs2_change_endain(signuser);
 #endif
-
-
+		
         fz_read(ctx, stm, (byte*)espHeader.md5Val,   NTKO_MAX_MD5VAL); 
         fz_read(ctx, stm, (byte*)espHeader.signSN,   NTKO_MAX_SIGNSN); 
-        fz_read(ctx, stm, (byte*)espHeader.reserved, NTKO_MAX_RESERVED); 
+        fz_read(ctx, stm, (byte*)espHeader.reserved, NTKO_MAX_RESERVED);
     }
-    fz_catch(ctx) {
+    fz_always(ctx) {
+		if(encoded)
+		{
+			size = fz_buffer_get_data(ctx, espbuffer, (unsigned char**)&data);
+			encodeData((unsigned char*)data, size);
+		}
+    }
+    fz_catch(ctx)
         fz_rethrow(ctx);
-    }
+
     return;
 }
 
@@ -331,6 +352,10 @@ bool NTKOEspParser::checkCrcValue()
         totalSize = fz_buffer_get_data(ctx, espbuffer, &data);
         size = totalSize - CRC_OFS;
         data += CRC_OFS; 
+
+        unsigned int oldi = *(unsigned int*)(data-4);
+        unsigned int newi = GetCRC32(data, size);
+        printf("oldcrc = %d, newcrc = %d\n", oldi, newi);
 
         crcOk = *(unsigned int*)(data-4)==GetCRC32(data, size);
     }
@@ -395,7 +420,7 @@ NTKOEspParser* NTKOEspParser::create(fz_context *ctx) {
 }
 
 void NTKOEspParser::encodeData(unsigned char *data, unsigned int size) 
-{ 
+{
 	while(size--) {
 		*data ^= CRC32Table[(size & 0xFF)];
 		data++;

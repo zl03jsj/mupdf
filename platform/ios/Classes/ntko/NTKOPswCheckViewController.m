@@ -23,6 +23,7 @@
 	id<NTKOPswCheckViewDelegate> _delegate;
 	PswCheckBlock _block;
 	id<NTKOTableDs> _nfile;
+	IBOutlet UIButton *_btOkay;
 	
 	UIActivityIndicatorView* _checkingView;
 }
@@ -156,8 +157,11 @@
 - (void)onPswFailed {
 	dispatch_async(dispatch_get_main_queue(), ^(void) {
 		_remainingTimes--;
-		if(0==_remainingTimes)
+		if(0==_remainingTimes) {
+			if(_delegate)
+				[_delegate onPswViewClose:_remainingTimes];
 			[self.navigationController popViewControllerAnimated:YES];
+		}
 		else
 			_message.text = [NSString stringWithFormat:@"open file failed, still have %d chances.",_remainingTimes];
 	});
@@ -167,6 +171,10 @@
     [super viewDidLoad];
 	self.navigationItem.title = [NSString stringWithFormat:@"%@ Password", _nfile.title];
 	_pfxfilename.text = _nfile.title;
+	
+	_btOkay.layer.borderColor = [[UIColor grayColor] CGColor];
+	_btOkay.layer.borderWidth = 0.5f;
+	_btOkay.layer.cornerRadius = 4;
 }
 
 - (void)didReceiveMemoryWarning {
@@ -190,6 +198,7 @@
 	[_pfxfilepassword release];
 	[(id)_nfile release];
 	[_message release];
+	[_btOkay release];
 	[super dealloc];
 }
 @end

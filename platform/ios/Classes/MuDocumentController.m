@@ -198,6 +198,7 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 	NTKOViewController *_loginVc;
 	MuFileselectViewController *_svrsepSelVc;
 	NTKODsSvrSignFile *_svrSignFile;
+	UIActivityIndicatorView *_holdingView;
 	/////////////////////////////////////////
 	
 	int barmode;
@@ -1309,19 +1310,38 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 {
 #ifdef SVR_SIGN
 	barmode = BARMODE_SIGN;
-	_signstep = SIGN_STEP_CHOOSE_IMAGEFILE;
+	_signstep = SIGN_STEP_SVR_LOGIN;
 	BOOL isok = [self svrLogin];
 	if(!isok) return;
-#endif
+	[self showSvrEspSel];
+#else
 	[self signModeOn];
+#endif
+}
+
+- (void) showSvrEspSel {
+	dispatch_async(queue, ^(void) {
+		[self startAnimatingInMq];
+		NSArray<NTKODsSvrSignFile*> *esplist = [[NTKODsSvrSignFile svrEsplist]autorelease];
+		// [self stopAnimationInMq];
+		dispatch_async(dispatch_get_main_queue(), ^(void) {
+			[self stopAnimating];
+			MuFileselectViewController *vc = [[[MuFileselectViewController alloc]initWithDatasource:esplist FileSelDelegate:self FileSelBlock:nil]autorelease];
+			vc.backViewController = self;
+			[self.navigationController pushViewController:vc animated:YES];
+		});
+	});
 }
 
 - (void) signModeOn {
 	barmode = BARMODE_SIGN;
 	_signstep = SIGN_STEP_CHOOSE_IMAGEFILE;
-	MuFileselectViewController *vc = [MuFileselectViewController defaultImageViewController:self SelBlock:nil];
+#ifdef SVR_SIGN
+	MuFileselectViewController *vc = [[MuFileselectViewController defaultImageViewController:self SelBlock:nil]autorelease];
+#else
+	
+#endif
 	[self.navigationController pushViewController:vc animated:YES];
-	[vc release];
 }
 
 - (void) onNextstep: (id)sender {
@@ -1360,19 +1380,22 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 #pragma mark - delegate of MuFileSelectView
 - (BOOL) fileSelected:(MuFileselectViewController *)vc Selected:(id<NTKOTableDs>)selDs selectdIndexpath:(NSIndexPath *)indexpath
 {
-		if(_signstep==SIGN_STEP_CHOOSE_IMAGEFILE) {
-			_signstep = SIGN_STEP_GET_SIGN_POSITION;
-			if([selDs isKindOfClass:[NTKODsNormalFile class]]) {
-				UIView<MuPageView>* view = [self curPageView];
-				NTKODsNormalFile *dsfile = (NTKODsNormalFile*)selDs;
-				[view imageViewModeOn:dsfile];
-				return YES;
-			}
-			
-			if([selDs isKindOfClass:[NTKODsSvrSignFile class]]) {
-				NTKOPswCheckViewController *pswVc = [[[NTKOPswCheckViewController alloc]initWithNtkoFile:selDs Delegate:self CheckBlock:nil]autorelease];
-				[self.navigationController pushViewController:pswVc animated:YES];
-			}
+	if(barmode==BARMODE_SIGN && ( _signstep==SIGN_STEP_SVR_LOGIN || _signstep==SIGN_STEP_OPEN_ESP ) ) {
+		if([selDs isKindOfClass:[NTKODsSvrSignFile class]]) {
+			_signstep = SIGN_STEP_OPEN_ESP;
+			NTKOPswCheckViewController *pswVc = [[[NTKOPswCheckViewController alloc]initWithNtkoFile:selDs Delegate:self CheckBlock:nil]autorelease];
+			[self.navigationController pushViewController:pswVc animated:YES];
+		}
+	}
+	
+	if(_signstep==SIGN_STEP_CHOOSE_IMAGEFILE) {
+		_signstep = SIGN_STEP_GET_SIGN_POSITION;
+		if([selDs isKindOfClass:[NTKODsNormalFile class]]) {
+			UIView<MuPageView>* view = [self curPageView];
+			NTKODsNormalFile *dsfile = (NTKODsNormalFile*)selDs;
+			[view imageViewModeOn:dsfile];
+			return YES;
+		}
 	}
 	
 	if(_signstep==SIGN_STEP_GET_SIGN_DEVICE) {
@@ -1407,16 +1430,19 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 }
 
 - (void) onSvrSignOpened:(NTKODsSvrSignFile*)espfile {
-	dispatch_queue_t main = dispatch_get_main_queue();
-	dispatch_async(main, ^{
+	if(BARMODE_SIGN!=barmode || _signstep!=SIGN_STEP_OPEN_ESP)
+		return;
+	dispatch_async(dispatch_get_main_queue(), ^{
+		_signstep = SIGN_STEP_GET_SIGN_POSITION;
+		if(_svrSignFile)
+			[_svrSignFile release];
+		
 		_svrSignFile = [espfile retain];
-		[self.navigationController popToRootViewControllerAnimated:YES];
+		[self.navigationController popToViewController:self animated:YES];
 		UIView<MuPageView>* view = [self curPageView];
 		[view imageViewModeOn:_svrSignFile];
 		
 	});
-	
-	
 }
 
 #pragma mark - delegate of pfx passwrod verify view
@@ -1425,11 +1451,18 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 	if([ds isKindOfClass:[NTKODsSvrSignFile class]]) {
 		NTKODsSvrSignFile *signfile = (NTKODsSvrSignFile*)ds;
 		opened = [signfile open:psw];
-		if(opened) {
+		if(opened || YES) {
 			[self onSvrSignOpened:signfile];
 		}
 	}
 	return opened;
+}
+
+- (void) onPswViewClose:(int)remainChances {
+	
+	if(barmode==BARMODE_SIGN && _signstep==SIGN_STEP_OPEN_ESP) {
+	}
+	
 }
 
 - (BOOL) deviceCreateOk:(z_device *)device
@@ -1521,6 +1554,33 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 	}
 	return nil;
 }
+
+- (void) startAnimatingInMq {
+	dispatch_async(dispatch_get_main_queue(), ^{
+		[self startAnimating];
+	});
+}
+- (void) startAnimating {
+	if(!_holdingView)
+		[[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
+	[_holdingView startAnimating];
+	[self.view addSubview: _holdingView];
+}
+
+-(void)stopAnimationInMq {
+	dispatch_async(dispatch_get_main_queue(), ^{
+		[self stopAnimating];
+	});
+}
+
+- (void) stopAnimating {
+	if(_holdingView) {
+		[_holdingView stopAnimating];
+		[_holdingView removeFromSuperview];
+	}
+}
+
+
 
 - (void) showLoginUI {
 	

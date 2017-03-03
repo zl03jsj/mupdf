@@ -1611,7 +1611,7 @@ static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
 	}
 	
 	signView = [[MuSignView alloc]initWithPageSize:pageSize];
-	signView.signfile = dsfile;
+	signView.signfile = [dsfile retain];
 
 	signView.frame = imageView.frame;
 	[self addSubview:signView];

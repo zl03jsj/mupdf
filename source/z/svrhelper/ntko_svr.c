@@ -394,15 +394,9 @@ size_t http_response_fun(void* rspdata, size_t size, size_t nmemb, void* userdat
     fz_context *ctx = status->user_param;
     size_t totalsize = size*nmemb;
     fz_try(ctx) {
-        if(!status->data) {
-            unsigned char *data = fz_malloc(ctx, totalsize);
-            memcpy(data, rspdata, totalsize);
-            status->data = fz_new_buffer_from_data(ctx, data, totalsize);
-        }
-        else {
-            fz_buffer_reset(ctx, status->data);
-            fz_write_buffer(ctx, status->data, rspdata, size*nmemb);
-        }
+        if(!status->data)
+            status->data = fz_new_buffer(ctx, totalsize);
+        fz_write_buffer(ctx, status->data, rspdata, totalsize);
     }
     fz_catch(ctx) {
         if(status->data) fz_drop_buffer(ctx, status->data);
@@ -522,6 +516,9 @@ void ntko_do_http_command(fz_context *ctx, ntko_request *command,
         httphead = curl_slist_append(httphead, status->sessionid);
         curl_easy_setopt(httphandle, CURLOPT_HTTPHEADER, httphead); 
     }
+
+    if(status->data)
+        fz_buffer_reset(ctx, status->data);
     CURLcode code = curl_easy_perform(httphandle);
 
     if(httphead) {
@@ -818,12 +815,19 @@ bool ntko_http_download_esp(fz_context *ctx, ntko_server_info *info, ntko_server
     bool isok = false;
     fz_try(ctx) {
         ntko_request req = {espinfo->filename, nrt_get_binary_file, http_get}; 
+        fz_buffer_reset(ctx, status->data);
         ntko_do_http_command(ctx, &req, info->rooturl, null, status);
+        unsigned char *d = null;
+        int size = fz_buffer_get_data(ctx, status->data, &d);
+
         if(espinfo->data)
-            fz_drop_buffer(ctx, espinfo->data); 
-        espinfo->data = fz_keep_buffer(ctx, status->data);
-        if(espinfo->data)
-            isok = true;
+            fz_buffer_reset(ctx, espinfo->data);
+        else
+            espinfo->data = fz_new_buffer(ctx, size); 
+
+        fz_write_buffer(ctx, espinfo->data, d, size);
+
+        isok = true;
     }
     fz_catch(ctx){
         fz_rethrow(ctx);

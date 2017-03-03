@@ -20,9 +20,7 @@
 	
 	NTKOEspParser *parser = NULL;
 	bool isok = false;
-	
 	fz_image *image = NULL;
-	
 	fz_try(ctx) {
 		parser = NTKOEspParser::create(ctx);
 		isok = parser->open(_svrespinfo->data, (char*)[password UTF8String]);
@@ -113,7 +111,7 @@
 	z_list *esplist = NULL;
 	NSMutableArray *array = nil;
 	fz_try(ctx) {
-		ntko_server_espinfo *espinfo = NULL;
+		// ntko_server_espinfo *espinfo = NULL;
 		NTKODsSvrSignFile *ds = nil;
 		z_list_node *node = NULL;
 		
@@ -124,9 +122,7 @@
 		if(node)
 			array = [[NSMutableArray alloc]initWithCapacity:2];
 		while(node) {
-			espinfo = (ntko_server_espinfo*)node->data;
-			
-			ds = [[NTKODsSvrSignFile alloc]initWithSvrEspInfo:espinfo];
+			ds = [[NTKODsSvrSignFile alloc]initWithSvrEspInfo:(ntko_server_espinfo*)node->data];
 			[array addObject:ds];
 			
 			node = node->n;

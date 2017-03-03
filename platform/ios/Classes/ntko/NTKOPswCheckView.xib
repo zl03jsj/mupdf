@@ -11,6 +11,7 @@
     <objects>
         <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="NTKOPswCheckViewController">
             <connections>
+                <outlet property="_btOkay" destination="7fy-37-aGY" id="8bM-OY-tim"/>
                 <outlet property="message" destination="pAk-nK-O1e" id="HdR-vS-ZFL"/>
                 <outlet property="pfxfilename" destination="hMm-ac-QVJ" id="WLV-Qn-ldE"/>
                 <outlet property="pfxfilepassword" destination="TsM-MU-gje" id="PxZ-57-m7b"/>
@@ -22,24 +23,6 @@
             <rect key="frame" x="0.0" y="0.0" width="444" height="259"/>
             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
             <subviews>
-                <navigationBar contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="R2U-6l-cdY">
-                    <rect key="frame" x="0.0" y="0.0" width="444" height="44"/>
-                    <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMaxY="YES"/>
-                    <items>
-                        <navigationItem title="PFX file password:" id="BpR-sa-cya">
-                            <barButtonItem key="leftBarButtonItem" image="ic_cancel.png" id="c1q-Se-Xlr">
-                                <connections>
-                                    <action selector="onCloseTaped:" destination="-1" id="DJl-bR-b0u"/>
-                                </connections>
-                            </barButtonItem>
-                            <barButtonItem key="rightBarButtonItem" image="ic_check.png" id="ocZ-2q-BH6">
-                                <connections>
-                                    <action selector="onOkTaped:" destination="-1" id="yw7-i1-SdW"/>
-                                </connections>
-                            </barButtonItem>
-                        </navigationItem>
-                    </items>
-                </navigationBar>
                 <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="password:" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="iu9-oG-Oed">
                     <rect key="frame" x="20" y="101" width="79" height="21"/>
                     <fontDescription key="fontDescription" type="system" pointSize="17"/>
@@ -64,14 +47,25 @@
                     <fontDescription key="fontDescription" type="system" pointSize="14"/>
                     <textInputTraits key="textInputTraits"/>
                 </textField>
-                <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" style="gray" translatesAutoresizingMaskIntoConstraints="NO" id="GPp-zb-zNG">
-                    <rect key="frame" x="212" y="130" width="20" height="20"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                </activityIndicatorView>
+                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="7fy-37-aGY">
+                    <rect key="frame" x="154" y="136" width="136" height="30"/>
+                    <state key="normal" title="Okay"/>
+                    <userDefinedRuntimeAttributes>
+                        <userDefinedRuntimeAttribute type="number" keyPath="layer.borderWidth">
+                            <real key="value" value="0.5"/>
+                        </userDefinedRuntimeAttribute>
+                    </userDefinedRuntimeAttributes>
+                    <connections>
+                        <action selector="onOkTaped:" destination="-1" eventType="touchUpInside" id="etq-ki-WNu"/>
+                    </connections>
+                </button>
             </subviews>
             <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
             <constraints>
+                <constraint firstItem="7fy-37-aGY" firstAttribute="top" secondItem="TsM-MU-gje" secondAttribute="bottom" constant="14" id="1hE-q3-KIZ"/>
                 <constraint firstItem="pAk-nK-O1e" firstAttribute="leading" secondItem="iu9-oG-Oed" secondAttribute="leading" id="4e2-36-SLc"/>
+                <constraint firstAttribute="trailing" secondItem="7fy-37-aGY" secondAttribute="trailing" constant="154" id="6ef-If-jzv"/>
+                <constraint firstItem="7fy-37-aGY" firstAttribute="leading" secondItem="i5M-Pr-FkT" secondAttribute="leading" constant="154" id="9JO-qe-zbB"/>
                 <constraint firstItem="iu9-oG-Oed" firstAttribute="leading" secondItem="hMm-ac-QVJ" secondAttribute="leading" id="K7w-G6-CvC"/>
                 <constraint firstItem="iu9-oG-Oed" firstAttribute="top" secondItem="hMm-ac-QVJ" secondAttribute="bottom" constant="20" id="KGo-tD-ZgG"/>
                 <constraint firstAttribute="trailing" secondItem="hMm-ac-QVJ" secondAttribute="trailing" constant="20" id="PPb-lR-9gb"/>
@@ -85,11 +79,7 @@
             </constraints>
             <nil key="simulatedStatusBarMetrics"/>
             <freeformSimulatedSizeMetrics key="simulatedDestinationMetrics"/>
-            <point key="canvasLocation" x="11" y="-138"/>
+            <point key="canvasLocation" x="11" y="-138.5"/>
         </view>
     </objects>
-    <resources>
-        <image name="ic_cancel.png" width="24" height="24"/>
-        <image name="ic_check.png" width="24" height="19"/>
-    </resources>
 </document>

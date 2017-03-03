@@ -132,12 +132,14 @@ void display_options(fz_context *ctx, ntko_sign_options *options)
     printf("%-24s%-8s\n", "csp_issure_name", options->csp_issure_name) ;
 }
 
+z_list *signlist = null;
+
 static
 bool list_server_signs(fz_context *ctx, ntko_server_info *svrinfo, ntko_user_rights *rights, ntko_sign_options *options, ntko_http_response_status *status)
 {
-    z_list *signlist = null;
     bool isok = false;
     fz_try(ctx) {
+        if(signlist) z_list_free(ctx, signlist);
         signlist = ntko_http_get_esplist(ctx, svrinfo, rights, options, status);
         if(status->code==0) {
             display_esp_infolist(ctx, signlist); 
@@ -147,7 +149,7 @@ bool list_server_signs(fz_context *ctx, ntko_server_info *svrinfo, ntko_user_rig
         }
     }
     fz_always(ctx) {
-        if(signlist) z_list_free(ctx, signlist); 
+        // if(signlist) z_list_free(ctx, signlist); 
     }
     fz_catch(ctx) {
         if(signlist) z_list_free(ctx, signlist); 
@@ -212,9 +214,38 @@ bool getsvrtime(fz_context *ctx, ntko_server_info *svrinfo, ntko_user_rights *ri
     return true;
 }
 
+static
+bool download(fz_context *ctx, ntko_server_info *svrinfo, ntko_user_rights *rights, ntko_sign_options *options, ntko_http_response_status *status) {
+    if(!signlist) printf("get esp list first!");
+
+    char *fileurl = null;
+    fz_try(ctx) {
+        printf("input number to set witch esp to download:\n");
+        int i = readint(ctx, 0);
+        z_list_node *tmp = signlist->first;
+        ntko_server_espinfo *espinfo = null;
+        while(tmp) {
+            if(i==0) {
+                espinfo = tmp->data;
+                break;
+            }
+            tmp = tmp->n; i--;
+        }
+        ntko_http_download_esp(ctx, svrinfo, espinfo, status);
+
+        char *d = null;
+        int size = fz_buffer_get_data(ctx, espinfo->data, (unsigned char**)&d);
+        printf("get signdata: size=%d, content=%s\n", size, d);
+    }
+    fz_catch(ctx) {
+        fz_rethrow(ctx);
+    }
+}
+
 ntko_op ops[] =  {
     {"listesp", list_server_signs, op_check_listesp},
     {"getsvrtime", getsvrtime, op_check_getsvrtime},
+    {"download", download, null},
     {"exit", op_exit, null}
 };
 
@@ -341,6 +372,6 @@ tag_exit:
         on_error(ctx, &status);
     }
 
-
+    if(signlist) z_list_free(ctx, signlist); 
     fz_drop_context(ctx); 
 }
