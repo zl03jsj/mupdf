@@ -10,6 +10,7 @@
 #import "NTKOViewController.h"
 #import "NTKODsNormalFile.h"
 #import "NTKODsSvrSignFile.h"
+#import "NTKOPfxFile.h"
 
 #define GAP 20
 #define INDICATOR_Y -44-24
@@ -125,24 +126,43 @@ static void saveDoc(const char *current_path, fz_document *doc)
 	}
 }
 
-static z_pdf_sign_appearance* createAppearanceWithImagefile(NSString *imagefile, CGRect rect) {
-	if(!imagefile) return NULL;
-	
-	fz_image *image = NULL;
+static z_pdf_sign_appearance* createAppearanceWithNSData(NSData *imgdata, CGRect rect) {
 	z_pdf_sign_appearance *app = NULL;
-	
+	fz_image *image = NULL;
+	unsigned char *data = NULL;
 	fz_try(ctx) {
+		data = fz_malloc(ctx, imgdata.length);
+		int size = (int)imgdata.length;
+		
+		[imgdata getBytes:data length:size];
+		
 		fz_rect r = {rect.origin.x, rect.origin.y, rect.origin.x + rect.size.width,
 			rect.origin.y + rect.size.height};
-		image = fz_new_image_from_file(ctx, [imagefile cStringUsingEncoding:NSUTF8StringEncoding]);
+		
+		image = fz_new_image_from_data(ctx, data, size);
+		fz_free(ctx, data);	data = NULL;
 		app = z_pdf_new_sign_appearance_with_image(ctx, image, r, NULL);
 	}
 	fz_always(ctx) {
+		if(data) fz_free(ctx, data);
 		if(image) fz_drop_image(ctx, image);
 	}
 	fz_catch(ctx) {
 		NSLog(@"create sign appearance faild.\nerror message:%s.", ctx->error->message);
 	}
+	return app;
+}
+
+static z_pdf_sign_appearance* createAppearanceWithImagefile(NSString *imagefile, CGRect rect) {
+	if(!imagefile) return NULL;
+	z_pdf_sign_appearance *app = NULL;
+	NSData *imgdata = [NSData dataWithContentsOfFile:imagefile];
+	if(!imgdata) return NULL;
+	
+	fz_try(ctx)
+		app = createAppearanceWithNSData(imgdata, rect);
+	fz_catch(ctx)
+		fz_rethrow(ctx);
 	return app;
 }
 
@@ -628,9 +648,9 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 	barmode = BARMODE_ANNOTATION;
 }
 
-- (void) showSignMenu
+- (void) showOkMenu
 {
-	[[self navigationItem] setRightBarButtonItems:[NSArray arrayWithObjects:signButton, nil]];
+	[[self navigationItem] setRightBarButtonItems:[NSArray arrayWithObjects:nextstepButton, nil]];
 	[[self navigationItem] setLeftBarButtonItem:cancelButton];
 	
 	for (UIView<MuPageView> *view in [canvas subviews])
@@ -638,8 +658,6 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 		if ([view number] == current)
 			[view deselectAnnotation];
 	}
-	
-	barmode = BARMODE_SIGN;
 }
 
 - (void) update
@@ -810,6 +828,8 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 					
 				case BARMODE_SIGN:
 				case BARMODE_Handsign:
+
+					
 					break;
 			}
 		}
@@ -854,7 +874,6 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 			[self inkModeOff];
 			break;
 		case BARMODE_SIGN:
-			[self showAnnotationMenu];
 			[self signModeOff];
 			break;
 		case BARMODE_Handsign:
@@ -1346,20 +1365,24 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 
 - (void) onNextstep: (id)sender {
 	if(barmode==BARMODE_SIGN && _signstep==SIGN_STEP_GET_SIGN_POSITION) {
-#if 0
+		
 		UIView<MuPageView> *view = [self curPageView];
 		MuSignView *signview = view.signView;
 		CGRect rect = signview.rectOfPage;
 		id<NTKOTableDs> dsfile = signview.signfile;
-		if( !CGRectIsEmpty(rect) && imagefile) {
+		NSData *imgdata = dsfile.imagedata;
+		
+		if(!CGRectIsEmpty(rect) && imgdata) {
 			if(_app)
 				z_pdf_drop_sign_appreance(ctx, _app);
-			_app = createAppearanceWithImagefile(imagefile, rect);
+			_app = createAppearanceWithNSData(imgdata, rect);
 			
-			if(_app) [self showDeviceCreateView];
-			else NSLog(@"create sign appearance faild.");
+			if(_app) [self pushDeviceCreateVc];
+			else {
+				NSLog(@"create sign appearance faild.");
+				[self signModeOff];
+			}
 		}
-#endif
 	}
 	
 	if(barmode==BARMODE_Handsign && _signstep==SIGN_STEP_HAND_DRAW_APPEARANCE) {
@@ -1378,6 +1401,7 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 }
 
 #pragma mark - delegate of MuFileSelectView
+// this call back is call by
 - (BOOL) fileSelected:(MuFileselectViewController *)vc Selected:(id<NTKOTableDs>)selDs selectdIndexpath:(NSIndexPath *)indexpath
 {
 	if(barmode==BARMODE_SIGN && ( _signstep==SIGN_STEP_SVR_LOGIN || _signstep==SIGN_STEP_OPEN_ESP ) ) {
@@ -1403,8 +1427,8 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 		}
 		else {
 			if([selDs isKindOfClass:[NTKODsNormalFile class]]) {
-				NTKODsNormalFile *dsfile = (NTKODsNormalFile*)selDs;
-				// [NTKOPswCheckViewController verifyPfxPassword:vc pfxfile:dsfile.file pfxPswCheckViewDelegate:self deviceCreateOkBlock:nil];
+				NTKOPswCheckViewController *pswVc = [[[NTKOPswCheckViewController alloc]initWithNtkoFile:selDs Delegate:self CheckBlock:nil]autorelease];
+				[self.navigationController pushViewController:pswVc animated:YES];
 				return YES;
 			}
 		}
@@ -1424,9 +1448,9 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 		_signstep = SIGN_STEP_GET_SIGN_POSITION;
 }
 
-- (void) showDeviceCreateView {
+- (void) pushDeviceCreateVc {
 	_signstep = SIGN_STEP_GET_SIGN_DEVICE;
-	[MuFileselectViewController showDefaultPfxSelect:self fileselectedDelegate:self fileselectedblock:nil];
+	[MuFileselectViewController pushDefaultPfxSelect:self fileselectedDelegate:self fileselectedblock:nil];
 }
 
 - (void) onSvrSignOpened:(NTKODsSvrSignFile*)espfile {
@@ -1438,7 +1462,11 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 			[_svrSignFile release];
 		
 		_svrSignFile = [espfile retain];
+		
+		
 		[self.navigationController popToViewController:self animated:YES];
+		[self showOkMenu];
+		
 		UIView<MuPageView>* view = [self curPageView];
 		[view imageViewModeOn:_svrSignFile];
 		
@@ -1447,15 +1475,39 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 
 #pragma mark - delegate of pfx passwrod verify view
 - (BOOL) onPswCheck:(NTKOPswCheckViewController*)checkVc Ds:(id<NTKOTableDs>)ds Password:(NSString *)psw {
-	BOOL opened = NO;
+	BOOL closePswVc = NO;
+	
+	// _signstep==SIGN_STEP_OPEN_ESP
 	if([ds isKindOfClass:[NTKODsSvrSignFile class]]) {
 		NTKODsSvrSignFile *signfile = (NTKODsSvrSignFile*)ds;
-		opened = [signfile open:psw];
-		if(opened || YES) {
+		closePswVc = [signfile open:psw];
+		if(closePswVc) {
 			[self onSvrSignOpened:signfile];
 		}
 	}
-	return opened;
+	
+	// _signstep == SIGN_STEP_GET_SIGN_DEVICE
+	if(barmode==BARMODE_SIGN && _signstep==SIGN_STEP_GET_SIGN_DEVICE) {
+		if([ds isKindOfClass:[NTKOPfxFile class]]) {
+			NTKOPfxFile *pfxfile = (NTKOPfxFile*)ds;
+			if(_device) z_drop_device(ctx, _device);
+			_device = [pfxfile createOpsslDev:psw];
+			
+			if(_device && _app) {
+				UIView<MuPageView> *view = [self curPageView];
+				if(view) {
+					_signstep = SIGN_SETP_ADD_SIGN;
+					_app = z_pdf_keep_sign_apperance(ctx, _app);
+					[view addsign:_app signdevice:_device];
+				}
+				[self signModeOff];
+				[self handsignModeOff];
+				[self showAnnotationMenu];
+			}
+		}
+	}
+
+	return closePswVc;
 }
 
 - (void) onPswViewClose:(int)remainChances {
@@ -1465,28 +1517,28 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 	
 }
 
-- (BOOL) deviceCreateOk:(z_device *)device
-{
-	if(_signstep==SIGN_STEP_GET_SIGN_DEVICE) {
-		_signstep = SIGN_SETP_ADD_SIGN;
-		UIView<MuPageView> *view = [self curPageView];
-		
-		if(view) {
-			if(_device) z_drop_device(ctx, _device);
-			_device = z_keep_device(ctx, device);
-			
-			if(_device && _app)
-				[view addsign:_app signdevice:_device];
-			else
-				NSLog(@"invalid sign params");
-		}
-		[self signModeOff];
-		[self handsignModeOff];
-		[self showAnnotationMenu];
-
-	}
-	return NO;
-}
+//- (BOOL) deviceCreateOk:(z_device *)device
+//{
+//	if(_signstep==SIGN_STEP_GET_SIGN_DEVICE) {
+//		_signstep = SIGN_SETP_ADD_SIGN;
+//		UIView<MuPageView> *view = [self curPageView];
+//		
+//		if(view) {
+//			if(_device) z_drop_device(ctx, _device);
+//			_device = z_keep_device(ctx, device);
+//			
+//			if(_device && _app)
+//				[view addsign:_app signdevice:_device];
+//			else
+//				NSLog(@"invalid sign params");
+//		}
+//		[self signModeOff];
+//		[self handsignModeOff];
+//		[self showAnnotationMenu];
+//
+//	}
+//	return NO;
+//}
 
 - (void) deviceCreateFailed {
 	if(barmode==BARMODE_Handsign)
@@ -1499,6 +1551,9 @@ static z_pdf_sign_appearance *createAppearanceWithPointArrayList(z_fpoint_arrayl
 
 - (void) signModeOff {
 	_signstep = SIGN_STEP_NOT_SIGINING;
+	[self.navigationController popToViewController:self animated:YES];
+	[self showAnnotationMenu];
+	
 	UIView<MuPageView> *view = [self curPageView];
 	[view imageViewModeOff];
 	

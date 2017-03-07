@@ -146,7 +146,7 @@
 	_signfile = [signfile retain];
 	
 	if(_image) [_image release];
-	_image = _signfile.image;
+	_image = [_signfile.image retain];
 	
 	if(!_firstLayoutsubview)
 		[self refreshImageRect];

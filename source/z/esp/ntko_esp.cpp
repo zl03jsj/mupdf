@@ -123,14 +123,17 @@ NTKOEspParser::NTKOEspParser(fz_context *_ctx) {
     espbuffer = NULL;
     pswOk = false;
     crcOk = false; 
+    encoded = false;
     memset(signname, 0, sizeof(signname));
     memset(signuser, 0, sizeof(signname));
     memset(&espHeader, 0, sizeof(NTKOEspHeader)); 
 }
 
 NTKOEspParser::~NTKOEspParser() {
-    if(espbuffer)
+    if(espbuffer) {
+		if(encoded) encodeData();
         fz_drop_buffer(ctx, espbuffer); 
+    }
 }
 
 bool NTKOEspParser::open(unsigned char *data, int size, char *password, bool copydata) 
@@ -237,6 +240,9 @@ fz_image *NTKOEspParser::getImage() {
 fz_buffer *NTKOEspParser::getImagedata() {
     if(!pswOk || !crcOk) return NULL;
 
+    if(!encoded) 
+        encodeData();
+
     fz_buffer *imgbuff = NULL;
 	unsigned char *imagedata = NULL;
 	int imageSize = 0;
@@ -265,19 +271,12 @@ void NTKOEspParser::initEspHeader() {
     if(!IsNtkoEspFile(ctx, espbuffer)) {
         fz_throw(ctx, FZ_ERROR_GENERIC, "parsing esp failed:not a esp file.");
     } 
-    const unsigned int CRC_OFS = 20;
     char *data = NULL;
     unsigned int size = 0; 
     fz_stream *stm = NULL;
 
-    bool encoded = false;
     fz_try(ctx) {
-        size = fz_buffer_get_data(ctx, espbuffer, (unsigned char**)&data); 
-        data += CRC_OFS;
-        size -= CRC_OFS;
-
-        encodeData((unsigned char*)data, size);
-        encoded = true;
+        encodeData();
 
         stm = fz_open_buffer(ctx, espbuffer);
 
@@ -331,11 +330,6 @@ void NTKOEspParser::initEspHeader() {
         fz_read(ctx, stm, (byte*)espHeader.reserved, NTKO_MAX_RESERVED);
     }
     fz_always(ctx) {
-		if(encoded)
-		{
-			size = fz_buffer_get_data(ctx, espbuffer, (unsigned char**)&data);
-			encodeData((unsigned char*)data, size);
-		}
     }
     fz_catch(ctx)
         fz_rethrow(ctx);
@@ -419,12 +413,18 @@ NTKOEspParser* NTKOEspParser::create(fz_context *ctx) {
     return new NTKOEspParser(ctx);
 }
 
-void NTKOEspParser::encodeData(unsigned char *data, unsigned int size) 
+void NTKOEspParser::encodeData() 
 {
+    const unsigned int CRC_OFS = 20;
+    unsigned char *data = NULL;
+    int size = fz_buffer_get_data(ctx, espbuffer, &data); 
+    data += CRC_OFS;
+    size -= CRC_OFS; 
 	while(size--) {
 		*data ^= CRC32Table[(size & 0xFF)];
 		data++;
 	}
+    encoded = !encoded;
 }
 
 const unsigned char NTKOEspParser::NTKOEspFileFlag[8] = "NTKOESP";

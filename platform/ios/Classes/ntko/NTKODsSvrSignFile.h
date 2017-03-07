@@ -15,6 +15,8 @@
 
 @property (nonatomic, copy) NSString *title;
 @property (nonatomic, copy) NSString *describe;
+@property (nonatomic, retain, readonly) NSData *data;
+@property (nonatomic, retain, readonly) NSData *imagedata;
 @property (nonatomic, retain, readonly) UIImage *image;
 
 @property (nonatomic, copy) NSString *name;

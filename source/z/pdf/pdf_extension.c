@@ -141,13 +141,13 @@ pdf_document * pdf_open_document_with_filestream(fz_context * ctx, fz_stream *fi
 //	return buf;
 //}
 
-void z_set_pix_color_1(unsigned char* d, unsigned char *s, int alpha){
-    if(alpha && 0==(*s+1))  memset(d, 0xff, 3);    
-    else { memset(d, *s, 3); }
+static void z_set_pix_color_1(unsigned char* d, unsigned char *s, int alpha) {
+    if(alpha && 0==*(s+1)) memset(d, 0xff, 3);    
+    else memset(d, *s, 3);
 }
 
-void z_set_pix_color_3(unsigned char* d, unsigned char *s, int alpha) {
-    if(alpha && 0==(*s+3)) memset(d, 0xff, 3);
+static void z_set_pix_color_3(unsigned char* d, unsigned char *s, int alpha) {
+    if(alpha && 0==*(s+3)) memset(d, 0xff, 3);
     else memcpy(d, s, 3);
 }
 
@@ -159,14 +159,16 @@ fz_buffer *fz_pixmap_rgb(fz_context *ctx, fz_pixmap *pixmap) {
 
     unsigned char *s = fz_pixmap_samples(ctx, pixmap);
     unsigned char *d = fz_malloc(ctx, size);
+    fz_buffer *buffer = fz_new_buffer_from_data(ctx, d, size);
     int n = pixmap->n==1? 1: pixmap->n - pixmap->alpha;
 
-    if(n!=1 && n!=3) {
+    SET_PIXEL_FUNC fun = NULL;
+    if(n==1) fun = z_set_pix_color_1;
+    else if(n==3) fun = z_set_pix_color_3;
+    else {
         fz_throw(ctx, FZ_ERROR_GENERIC, "Is something wrong with pixmap????");
-        return NULL;
-    }
-
-    SET_PIXEL_FUNC fun = n==1 ? z_set_pix_color_1:z_set_pix_color_3;
+        return NULL; 
+    } 
 
     for(int i=0; i<pixcount; i++) {
         fun(d, s, pixmap->alpha); 
@@ -174,7 +176,7 @@ fz_buffer *fz_pixmap_rgb(fz_context *ctx, fz_pixmap *pixmap) {
         s += pixmap->n;
     }
 
-    return fz_new_buffer_from_data(ctx, d, size);
+    return buffer;
 }
 
 /* TODO:fix get pixmap mask */

@@ -11,7 +11,7 @@
 
 
 @implementation NTKODsSvrSignFile{
-	fz_pixmap *_pixmap;
+	// fz_pixmap *_pixmap;
 	ntko_server_espinfo *_svrespinfo;
 }
 
@@ -20,24 +20,32 @@
 	
 	NTKOEspParser *parser = NULL;
 	bool isok = false;
-	fz_image *image = NULL;
+	// fz_image *image = NULL;
+	fz_buffer *imgbuf = NULL;
 	fz_try(ctx) {
 		parser = NTKOEspParser::create(ctx);
 		isok = parser->open(_svrespinfo->data, (char*)[password UTF8String]);
 		if(isok) {
 			[self resetAttributes];
 			const NTKOEspHeader *header = parser->getHeader();
+			unsigned char *imgbytes = NULL;
+			int size = 0;
 			_name = [[NSString stringWithUTF8String:header->signname]retain];
 			_sn = [[NSString stringWithUTF8String:header->signSN]retain];
 			_unid = [[[NSUUID UUID] UUIDString]retain];
 			_user = [[NSString stringWithUTF8String:header->signuser]retain];
 			_signer = [getLoginuser() retain];
-			image = parser->getImage();
-			_pixmap  = fz_get_pixmap_from_image(ctx, image, NULL, NULL, NULL, NULL);
+			imgbuf = parser->getImagedata();
+			
+			size = (int)fz_buffer_get_data(ctx, imgbuf, &imgbytes);
+			_imagedata = [[NSData alloc] initWithBytes:imgbytes length:size];
+			// image = parser->getImage();
+			// _pixmap  = fz_get_pixmap_from_image(ctx, image, NULL, NULL, 0, 0);
 		}
 	}
 	fz_always(ctx) {
-		if(image) fz_drop_image(ctx, image);
+		if(imgbuf) fz_drop_buffer(ctx, imgbuf);
+		// if(image) fz_drop_image(ctx, image);
 		if(parser) delete parser;
 	}
 	fz_catch(ctx) {
@@ -61,7 +69,12 @@
 	return isok?YES:NO;
 }
 
-- (instancetype) initWithSvrEspInfo:(ntko_server_espinfo *)espinfo {
+- (NSData*) data {
+	return nil;
+}
+
+- (instancetype) initWithSvrEspInfo:(ntko_server_espinfo *)espinfo
+{
 	self = [super init];
 	if(self) {
 		_svrespinfo = ntko_keep_server_espinfo(ctx, espinfo);
@@ -74,15 +87,18 @@
 }
 
 - (UIImage*) image {
-	if(!_pixmap) return nil;
-	
+#if 1
+	if(!_imagedata) return nil;
+	return [UIImage imageWithData:_imagedata];
+#else
 	UIImage *image_ui = nil;
 	
 	CGDataProviderRef imagedata = CreateWrappedPixmap(_pixmap);
 	image_ui = newImageWithPixmap(_pixmap, imagedata, 1.0f);
 	CGDataProviderRelease(imagedata);
-	
 	return image_ui;
+#endif
+
 }
 
 - (void) resetAttributes {
@@ -93,7 +109,7 @@
 	if(_signer) {[_signer release]; _signer=nil;}
 	if(_title) {[_title release]; _title=nil;}
 	if(_describe) {[_describe release]; _describe=nil;}
-	if(_pixmap) {fz_drop_pixmap(ctx, _pixmap); _pixmap = NULL;}
+	if(_imagedata) {[_imagedata release]; _imagedata = nil;}
 }
 
 - (void)dealloc {

@@ -77,7 +77,7 @@ private:
     NTKOEspParser(fz_context *_ctx); 
     void initEspHeader();
     bool checkCrcValue();
-    static void encodeData(unsigned char *data, unsigned int size);
+    void encodeData();
     static unsigned int GetCRC32(unsigned char* data, unsigned int size);
 private:
     fz_context *ctx = NULL;
@@ -87,6 +87,7 @@ private:
     char16_t signuser[NTKO_MAX_SIGNUSER] = {0};
     bool pswOk = false;
     bool crcOk = false;
+    bool encoded = false;
 
     static const unsigned int CRC32Table[256];
     static const int NTKOEspFileHeaderSize = 564;

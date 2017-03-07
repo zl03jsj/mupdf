@@ -13,6 +13,8 @@
 		6818B5781E2C9CC3006BFE7D /* ic_stamp.png.bak.png in Resources */ = {isa = PBXBuildFile; fileRef = 6818B5741E2C9CBB006BFE7D /* ic_stamp.png.bak.png */; };
 		6818B5791E2C9EC9006BFE7D /* MuFileselectViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 685455211E1E4B410083354B /* MuFileselectViewController.xib */; };
 		6818B57A1E2C9EC9006BFE7D /* MuFileselectViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 685455211E1E4B410083354B /* MuFileselectViewController.xib */; };
+		682566CD1E6EB5F700C25A4D /* NTKOPfxFile.m in Sources */ = {isa = PBXBuildFile; fileRef = 682566CC1E6EB5F700C25A4D /* NTKOPfxFile.m */; };
+		682566CE1E6EB5F700C25A4D /* NTKOPfxFile.m in Sources */ = {isa = PBXBuildFile; fileRef = 682566CC1E6EB5F700C25A4D /* NTKOPfxFile.m */; };
 		6835282C1E640017008333F3 /* NTKODsNormalFile.m in Sources */ = {isa = PBXBuildFile; fileRef = 683528271E640017008333F3 /* NTKODsNormalFile.m */; };
 		6835282D1E640017008333F3 /* NTKODsNormalFile.m in Sources */ = {isa = PBXBuildFile; fileRef = 683528271E640017008333F3 /* NTKODsNormalFile.m */; };
 		6835282E1E640017008333F3 /* NTKOLoginView.m in Sources */ = {isa = PBXBuildFile; fileRef = 683528291E640017008333F3 /* NTKOLoginView.m */; };
@@ -220,6 +222,8 @@
 		6818B5721E2C9CBB006BFE7D /* ic_signature.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ic_signature.png; path = resources/ic_signature.png; sourceTree = "<group>"; };
 		6818B5731E2C9CBB006BFE7D /* ic_stamp.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ic_stamp.png; path = resources/ic_stamp.png; sourceTree = "<group>"; };
 		6818B5741E2C9CBB006BFE7D /* ic_stamp.png.bak.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ic_stamp.png.bak.png; path = resources/ic_stamp.png.bak.png; sourceTree = "<group>"; };
+		682566CB1E6EB5F700C25A4D /* NTKOPfxFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NTKOPfxFile.h; path = Classes/ntko/NTKOPfxFile.h; sourceTree = "<group>"; };
+		682566CC1E6EB5F700C25A4D /* NTKOPfxFile.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = NTKOPfxFile.m; path = Classes/ntko/NTKOPfxFile.m; sourceTree = "<group>"; };
 		683528261E640017008333F3 /* NTKODsNormalFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NTKODsNormalFile.h; path = Classes/ntko/NTKODsNormalFile.h; sourceTree = "<group>"; };
 		683528271E640017008333F3 /* NTKODsNormalFile.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = NTKODsNormalFile.m; path = Classes/ntko/NTKODsNormalFile.m; sourceTree = "<group>"; };
 		683528281E640017008333F3 /* NTKOLoginView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NTKOLoginView.h; path = Classes/ntko/NTKOLoginView.h; sourceTree = "<group>"; };
@@ -374,6 +378,8 @@
 				683528291E640017008333F3 /* NTKOLoginView.m */,
 				6835282A1E640017008333F3 /* NTKOViewController.h */,
 				6835282B1E640017008333F3 /* NTKOViewController.m */,
+				682566CB1E6EB5F700C25A4D /* NTKOPfxFile.h */,
+				682566CC1E6EB5F700C25A4D /* NTKOPfxFile.m */,
 			);
 			name = ntko;
 			sourceTree = "<group>";
@@ -854,6 +860,7 @@
 				685455391E1E4B5F0083354B /* MuPageViewNormal.m in Sources */,
 				6854552E1E1E4B5F0083354B /* MuHanddrawView.m in Sources */,
 				6854553B1E1E4B5F0083354B /* MuAppDelegate.m in Sources */,
+				682566CD1E6EB5F700C25A4D /* NTKOPfxFile.m in Sources */,
 				685454F31E1E48370083354B /* common.m in Sources */,
 				6854553C1E1E4B5F0083354B /* MuDocRef.m in Sources */,
 				6854552D1E1E4B5F0083354B /* MuFileselectViewController.m in Sources */,
@@ -889,6 +896,7 @@
 				687BED0A1E5BEB4B00DE551E /* MuPageViewNormal.m in Sources */,
 				687BED0B1E5BEB4B00DE551E /* MuHanddrawView.m in Sources */,
 				687BED0C1E5BEB4B00DE551E /* MuAppDelegate.m in Sources */,
+				682566CE1E6EB5F700C25A4D /* NTKOPfxFile.m in Sources */,
 				687BED0D1E5BEB4B00DE551E /* common.m in Sources */,
 				687BED0E1E5BEB4B00DE551E /* MuDocRef.m in Sources */,
 				687BED0F1E5BEB4B00DE551E /* MuFileselectViewController.m in Sources */,

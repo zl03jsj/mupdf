@@ -16,7 +16,8 @@
 #include "mupdf/pdf.h"
 
 #define RES_PATH "/Users/zl03jsj/Documents/pdftest"
-#define RES_Image_file  RES_PATH"/Monkey_D_Luffey.png"
+#define RES_Image_file  RES_PATH"/esp_saved.png"
+// #define RES_Image_file  RES_PATH"/esp_saved.png"
 // #define RES_Pdf_file    RES_PATH"/pdffile/PDF32000_2008.pdf"
 #define RES_Pdf_file    RES_PATH"/pdffile/test.pdf"
 #define RES_Cert_file   RES_PATH"/user/zl.pfx"
@@ -252,8 +253,8 @@ int main(int argc, char **argv) {
     fz_context *ctx = fz_new_context(NULL, NULL, FZ_STORE_DEFAULT);
     pdf_document *doc = pdf_open_document(ctx, infile);
     // xref = pdf_get_xref_entry
-    doTestPdfSign(ctx, doc, 0, r, ofile);
-    // doTestAddImage(ctx, doc);
+    // doTestPdfSign(ctx, doc, 0, r, ofile);
+    doTestAddImage(ctx, doc);
     // doTestsign(ctx, doc, ofile, r);
     pdf_drop_document(ctx, doc);
     fz_drop_context(ctx);

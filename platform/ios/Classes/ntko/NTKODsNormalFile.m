@@ -18,14 +18,30 @@
 	if(self) {
 		self->_file = [file retain];
 		if(isFileImage(_file))
-			self->_image = [[UIImage imageWithContentsOfFile:_file] retain];
+			_image = [[UIImage imageWithContentsOfFile:_file] retain];
+		_title = [[_file pathExtension] retain];
+		_describe = [[_file lastPathComponent] retain];
 	}
 	return self;
+}
+
+- (NSData*) data {
+	if(!_file)
+		return nil;
+	return [NSData dataWithContentsOfFile:_file];
+}
+
+- (NSData*) imagedata {
+	if(!isFileImage(_file))
+		return nil;
+	return [NSData dataWithContentsOfFile:_file];
 }
 
 - (void) dealloc {
 	if(_file) [_file release];
 	if(_image) [_image release];
+	if(_title) [_title release];
+	if(_describe) [_describe release];
 	[super dealloc];
 }
 
