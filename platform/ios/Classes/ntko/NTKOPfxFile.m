@@ -21,4 +21,14 @@
 	}
 	return device;
 }
+
+- (oneway void) release {
+	NSLog(@"retain count=%ld", [self retainCount]);
+	[super release];
+}
+
+- (void) dealloc {
+	NSLog(@"%@ was dealloced", [self class]);
+	[super dealloc];
+}
 @end

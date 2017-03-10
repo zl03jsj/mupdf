@@ -840,6 +840,7 @@ static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
 
 - (void) dealloc
 {
+	NSLog(@"%@ was dealloced", [self class]);
 //	printf("page number = %d, dealloc\n", number);
 	// dealloc can trigger in background thread when the queued block is
 	// our last owner, and releases us on completion.
@@ -1611,7 +1612,7 @@ static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
 	}
 	
 	signView = [[MuSignView alloc]initWithPageSize:pageSize];
-	signView.signfile = [dsfile retain];
+	signView.signfile = dsfile;
 
 	signView.frame = imageView.frame;
 	[self addSubview:signView];
@@ -1639,21 +1640,25 @@ static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
 }
 
 - (void)signingModeOn {
-	_isSigning = YES;
-	if(!loadingView)
-		loadingView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
-	[loadingView startAnimating];
-	[self addSubview:loadingView];
+	dispatch_async(dispatch_get_main_queue(), ^{
+		_isSigning = YES;
+		if(!loadingView)
+			loadingView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
+		[loadingView startAnimating];
+		[self addSubview:loadingView];
+	});
 }
 
 - (void)signingModeOff {
-	_isSigning = NO;
-	[loadingView removeFromSuperview];
-	[loadingView release];
-	loadingView = nil;
+	dispatch_async(dispatch_get_main_queue(), ^{
+		_isSigning = NO;
+		[loadingView removeFromSuperview];
+		[loadingView release];
+		loadingView = nil;
+	});
 }
 
-- (void)addsign:(z_pdf_sign_appearance *)app signdevice:(z_device *)device {
+- (void)addsign:(z_pdf_sign_appearance *)app signdevice:(z_device *)device SignInfo:(ntko_sign_info*)signinfo openedFile:(NSString*)filename {
 	// asyncronize so must keep
 	z_pdf_keep_sign_apperance(ctx, app);
 	z_keep_device(ctx, device);
@@ -1661,19 +1666,57 @@ static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
 	[self signingModeOn];
 	
 	dispatch_async(queue, ^{
+		char *svrtime = NULL;
 		fz_try(ctx) {
-			z_dosign_with_page(ctx, doc, page, device, app);
-			dispatch_async(dispatch_get_main_queue(), ^{
-				[self update];
-			});
-			[self loadAnnotations];
+			bool isok = true;
+			
+#ifdef NTKO_SERVER_SIGN
+			char svrlog[1024];
+			memset(svrlog, 0, sizeof(svrlog));
+			const char *fmt =
+			"username=%s&password=%s&signname=%s&signuser=%s&signsn=%s&signunid=%s&" \
+			"servertime=%s&appname=%s&cspreleasename=%s&cspusename=%s&" \
+			"signop=%s&signtype=%d&docfile=%s&docinfo=%s&signpos=page_number_%d";
+			char *op = NULL;
+			
+			if(signinfo->signtype==signtype_sign) op = "Addsign";
+			else if(signinfo->signtype==signtype_handsign) op = "AddHandsign";
+			else if(signinfo->signtype==signtype_image) op = "AddImagesign";
+			else op = "Addsign";
+			
+			svrtime = ntko_http_get_svrtime(ctx, &_ssCtx->svrinfo, &_ssCtx->status);
+			snprintf(svrlog, sizeof(svrlog), fmt, _ssCtx->username, _ssCtx->password,
+					 signinfo->sign_name,signinfo->sign_user, signinfo->sign_sn, signinfo->sign_unid,
+					 svrtime, "IOS_Pdf", signinfo->cert_issure, signinfo->cert_user, op,
+					 signinfo->signtype, [[filename lastPathComponent] UTF8String], NULL, number);
+			isok = ntko_http_dosign_log(ctx, &_ssCtx->svrinfo, svrlog, &_ssCtx->rights, &_ssCtx->status);
+#endif
+			if(isok) {
+				z_dosign_with_page(ctx, doc, page, device, app);
+				dispatch_async(dispatch_get_main_queue(), ^{
+					[self update];
+					[self loadAnnotations];
+				});
+			}
 		}
 		fz_always(ctx) {
+			if(svrtime) fz_free(ctx, svrtime);
+			// TODO: create ntko_free_signinfo method to free
+			if(signinfo) {
+				if(signinfo->cert_issure) fz_free(ctx, signinfo->cert_issure);
+				if(signinfo->cert_user) fz_free(ctx, signinfo->cert_user);
+				if(signinfo->sign_name) fz_free(ctx, signinfo->sign_name);
+				if(signinfo->sign_sn) fz_free(ctx, signinfo->sign_sn);
+				if(signinfo->sign_unid) fz_free(ctx, signinfo->sign_unid);
+				if(signinfo->sign_user) fz_free(ctx, signinfo->sign_user);
+				fz_free(ctx, signinfo);
+			}
+			
+			[self signingModeOff];
 			z_pdf_drop_sign_appreance(ctx, app);
 			z_drop_device(ctx, device);
 		}
 		fz_catch(ctx){
-			[self signingModeOff];
 			NSLog(@"add sign faild.\nerror message:%s", ctx->error->message);
 		}
 	});

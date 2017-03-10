@@ -242,10 +242,29 @@ bool download(fz_context *ctx, ntko_server_info *svrinfo, ntko_user_rights *righ
     }
 }
 
+// http://192.168.3.89:1986/ntkoSignServer/dologsign?username=zl&password=ntko111111&signname=zl%E6%B5%8B%E8%AF%95%E5%8D%B0%E7%AB%A0&signuser=zl&signsn=32ADEA28090740448B5AE8C491885AB2&signunid=356AB1E4-2B38-425C-A73F-FAF43E137AB2&servertime=2017-03-09%2019:31:15&appname=IOS_Pdf&cspreleasename=(null)&cspusename=(null)&signop=Addsign&signtype=1&docfile=test.pdf&docinfo=(null)&signpos=page_number_0
+
+static
+bool dolog(fz_context *ctx, ntko_server_info *svrinfo, ntko_user_rights *rights, ntko_sign_options *options, ntko_http_response_status *status) {
+
+    fz_try(ctx) {
+    ntko_http_dosign_log(ctx, svrinfo,
+            "username=zl&password=ntko111111&signname=zl%E6%B5%8B%E8%AF%95%E5%8D%B0%E7%AB%A0&signuser=zl&signsn=32ADEA28090740448B5AE8C491885AB2&signunid=356AB1E4-2B38-425C-A73F-FAF43E137AB2&servertime=2017-03-09 19:31:15&appname=IOS_Pdf&cspreleasename=(null)&cspusename=(null)&signop=Addsign&signtype=1&docfile=test.pdf&docinfo=(null)&signpos=page_number_0", 
+        rights, status);
+        unsigned char *data = null;
+        int size = fz_buffer_get_data(ctx, status->data, &data);
+        printf("get signdata: size=%d, content=%s\n", size, data);
+    }
+    fz_catch(ctx) {
+        fz_rethrow(ctx);
+    }
+
+}
 ntko_op ops[] =  {
     {"listesp", list_server_signs, op_check_listesp},
     {"getsvrtime", getsvrtime, op_check_getsvrtime},
     {"download", download, null},
+    {"dolog", dolog, null},
     {"exit", op_exit, null}
 };
 

@@ -9,7 +9,7 @@
 #import "common.h"
 #import "NTKOLoginView.h"
 #import "MuDocumentController.h"
-#import "NTKODsSvrSignFile.h"
+#import "NTKOEspFile.h"
 #import "MuFileselectViewController.h"
 #import "mupdf/z/ntko_svr.h"
 
@@ -30,6 +30,9 @@
 - (void) initNew:(MuDocumentController *)docVc VC:(UIViewController *)vc
 {
 	[super initNew:docVc VC:vc];
+	
+	self.delegate = docVc;
+	
 	_red_color = [[UIColor redColor]CGColor];
 	_normal_color = nil;
 }
@@ -109,9 +112,6 @@
 }
 
 - (BOOL) doLogin {
-#ifndef SVR_SIGN
-	return NO;
-#endif
 	if(!_ssCtx || !_ssCtx->username || !_ssCtx->password)
 		return NO;
 	fz_try(ctx) {
@@ -129,19 +129,10 @@
 		[_indcator stopAnimating];
 		if(loginOk) {
 			_lb_message.text = @"login success, getting esp list...";
-			[_indcator startAnimating];
-			
-			dispatch_async(queue, ^(void) {
-				NSArray<NTKODsSvrSignFile*> *esplist = [NTKODsSvrSignFile svrEsplist];
-				
-				dispatch_async(dispatch_get_main_queue(), ^(void) {
-					[_indcator stopAnimating];
-					MuFileselectViewController *vc = [[MuFileselectViewController alloc]initWithDatasource:esplist FileSelDelegate:_docVc FileSelBlock:nil];
-					vc.backViewController = _docVc;
-					[_vc.navigationController pushViewController:vc animated:YES];
-					[vc release];
-				});
-			});
+ 			[_indcator startAnimating];
+			if(_delegate) {
+				[_delegate OnLoginOk];
+			}
 		}
 		else {
 			_bt_login.enabled = YES;
@@ -203,6 +194,7 @@
 }
 */
 - (void)dealloc {
+	if(_block) Block_release(_block);
 	[_txt_serverurl release];
 	[_txt_username release];
 	[_txt_password release];

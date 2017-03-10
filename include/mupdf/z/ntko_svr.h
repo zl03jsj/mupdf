@@ -139,6 +139,9 @@ struct ntko_user_right_s
 	bool permit_doubleCrossPage_sign;
 	bool multiPage_sign_need_ekey;       // 多页章是否使用ekey
 	bool multiCrossPage_sign_need_ekey;  // 骑缝章是否使用ekey
+	
+	bool permit_imagesign;
+	bool permit_localsign;
 }; 
 typedef struct ntko_user_right_s ntko_user_rights;
 
@@ -264,6 +267,13 @@ typedef struct ntko_server_sign_info_s
 	int server_id;
 } ntko_server_sign_info;
 
+	
+typedef enum {
+	signtype_sign = 1,
+	signtype_handsign = 2,
+	signtype_image = 3
+} ntko_sign_type;
+	
 // ntko signature information
 //
 // sign_sn: stored in esp file, for unique NTKO esp sign file, 
@@ -295,9 +305,13 @@ struct ntko_sign_info_s {
     char *sign_name;
     char *sign_user;
     char *signer;
+
+    char *cert_issure;
+    char *cert_user;
+
     ntko_sign_print_mode printmode;
     int serverid;
-    int signtype;
+    ntko_sign_type signtype;
 };
 typedef struct ntko_sign_info_s ntko_sign_info;
 
@@ -365,7 +379,7 @@ bool ntko_http_get_user_rights(fz_context *ctx, ntko_server_info *svrinfo,
 /* 
     ntko_http_dosign_log: do sign opration log on sign server
 
-    log: posted form fields Key-Value Pair combined string, formated as:
+    log: posted form fields Key-Value Pairs combined string, formated as:
         "username=???&password=???&signname=???&signuser=???&"  \
         "signsn=???&signunid=???&ekeysn=???&servertime=???&"    \
         "appname=???&cspreleasename=???cspusename=???&"         \

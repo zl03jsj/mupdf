@@ -193,10 +193,12 @@
 */
 
 - (void)dealloc {
+	NSLog(@"%@ was dealloced", [self class]);
 	if(_block) Block_release(_block);
 	[_pfxfilename release];
 	[_pfxfilepassword release];
-	[(id)_nfile release];
+	[_nfile release];
+	
 	[_message release];
 	[_btOkay release];
 	[super dealloc];

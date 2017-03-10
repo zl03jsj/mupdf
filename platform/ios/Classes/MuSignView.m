@@ -189,6 +189,7 @@
 }
 
 -(void) dealloc {
+	NSLog(@"%@ was dealloced", [self class]);
 	[_signfile release];
 	[_image release];
 	[_color release];

@@ -79,6 +79,7 @@ static void showAlert(NSString *msg, NSString *filename)
 
 - (void) dealloc
 {
+	NSLog(@"%@ was dealloced", [self class]);
 	[doc release];
 	[files release];
 	[super dealloc];

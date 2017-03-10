@@ -472,10 +472,33 @@ int ntko_make_url(char *url, int urlsize, char*base, char*sub, char *fields)
         if(*(url-1)=='/') *(url-1) = '?';
         else *url++ = '?';
         memcpy(url, fields, fieldssize);
+		url += fieldssize;
     } 
     *(++url) = '\0';
 
     return size; 
+}
+
+int ntko_url_format(char *url, int size) {
+    int len = strlen(url);
+    char *tmp = url + len - 1;
+	int itmp = 0;
+	while(*url++!=0) {
+		if(*url==' ') {
+			// check if size big enough to replace space to '%20'
+			if( (len+2) >= (size-1) )	break;
+			itmp = 0;
+			while( tmp!=url ) {
+				*(tmp+2) = *tmp;
+				tmp--; itmp++;
+			}
+			memcpy(url, "%20", 3);
+			tmp = url + itmp + 3;
+			url += 3;
+			len += 2;
+		}
+	}
+    return len;
 }
 
 // if command failed, throw a error, http_helper->code is CURLcode, contain
@@ -485,7 +508,7 @@ static
 void ntko_do_http_command(fz_context *ctx, ntko_request *command,
          char *baseurl, char *fields,  ntko_http_response_status *status)
 {
-    char url[512];
+    char url[1024];
     char *submit = null;
 
     CURL *httphandle = null; 
@@ -493,7 +516,9 @@ void ntko_do_http_command(fz_context *ctx, ntko_request *command,
         submit = fields;
         fields = null;
     }
-    int size = ntko_make_url(url, sizeof(url), baseurl, command->name, fields); 
+    int size = ntko_make_url(url, sizeof(url), baseurl, command->name, fields);
+	// replace ' ' to "%20"
+    size += ntko_url_format(url, sizeof(url));
     if(!size)
         fz_throw(ctx, FZ_ERROR_GENERIC, "make http request url faild"); 
 

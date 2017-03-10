@@ -26,13 +26,15 @@ typedef BOOL(^FileSelectedBlock)(MuFileselectViewController *vc, id<NTKOTableDs>
 @property (nonatomic, copy) FileSelectedBlock fileselectedBlock;
 @property (nonatomic, assign) id backViewController;
 
-- (instancetype) initWithDatasource:(NSArray<id<NTKOTableDs>>*)ds FileSelDelegate:(id<MuFileSelectViewDelegate>)delegate FileSelBlock:(FileSelectedBlock)block;
+- (instancetype) initWithDatasource:(NSArray<id<NTKOTableDs>>*)ds Title:(NSString*)title FileSelDelegate:(id<MuFileSelectViewDelegate>)delegate FileSelBlock:(FileSelectedBlock)block;
 
-+ (instancetype) pushDefaultImageSelect: (UIViewController*)parentVC SelDelegate:(id<MuFileSelectViewDelegate>)delegate SelBlock:(FileSelectedBlock)block;
+- (void) addTableSection:(NSArray<id<NTKOTableDs>>*)sectionDs Title:(NSString*)title;
+
++ (void) pushDefaultImageSelect: (UIViewController*)parentVC SelDelegate:(id<MuFileSelectViewDelegate>)delegate SelBlock:(FileSelectedBlock)block;
 
 + (void)showDefaultImageSelect: (UIViewController*)parentVC SelDelegate:(id<MuFileSelectViewDelegate>)delegate SelBlock:(FileSelectedBlock)block;
 
-+ (instancetype) pushDefaultPfxSelect: (UIViewController*)parentVC fileselectedDelegate:(id<MuFileSelectViewDelegate>)delegate fileselectedblock:(FileSelectedBlock)block;
++ (void) pushDefaultPfxSelect: (UIViewController*)parentVC fileselectedDelegate:(id<MuFileSelectViewDelegate>)delegate fileselectedblock:(FileSelectedBlock)block;
 
 + (void)showDefaultPfxSelect: (UIViewController*)parentVC SelDelegate:(id<MuFileSelectViewDelegate>)delegate SelBlock:(FileSelectedBlock)block;
 
@@ -40,5 +42,8 @@ typedef BOOL(^FileSelectedBlock)(MuFileselectViewController *vc, id<NTKOTableDs>
 
 + (instancetype) defaultPfxViewController: (id<MuFileSelectViewDelegate>)delegate SelBlock:(FileSelectedBlock)block;
 
++ (NSArray*) defaultImages;
++ (NSArray*) defaultPfxs;
++ (NSArray*) defaultSigns;
 
 @end

@@ -80,14 +80,14 @@ private:
     void encodeData();
     static unsigned int GetCRC32(unsigned char* data, unsigned int size);
 private:
-    fz_context *ctx = NULL;
-    fz_buffer *espbuffer = NULL;
+    fz_context *ctx;
+    fz_buffer *espbuffer;
     NTKOEspHeader espHeader;
-    char16_t signname[NTKO_MAX_SIGNNAME] = {0};
-    char16_t signuser[NTKO_MAX_SIGNUSER] = {0};
-    bool pswOk = false;
-    bool crcOk = false;
-    bool encoded = false;
+    char16_t signname[NTKO_MAX_SIGNNAME];
+    char16_t signuser[NTKO_MAX_SIGNUSER];
+    bool pswOk;
+    bool crcOk;
+    bool encoded;
 
     static const unsigned int CRC32Table[256];
     static const int NTKOEspFileHeaderSize = 564;

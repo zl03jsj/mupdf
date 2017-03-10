@@ -28,7 +28,7 @@
 	ctx = fz_new_context(NULL, NULL, ResourceCacheMaxSize);
 	fz_register_document_handlers(ctx);
 
-#ifdef SVR_SIGN
+#ifdef NTKO_SERVER_SIGN
 	z_init_ssCtx();
 #endif
 	
@@ -97,7 +97,7 @@
 - (void)applicationWillTerminate:(UIApplication *)application
 {
 	printf("applicationWillTerminate!\n");
-#ifdef SVR_SIGN
+#ifdef NTKO_SERVER_SIGN
 	z_free_ssCtx();
 #endif
 	fz_drop_context(ctx); ctx = NULL;

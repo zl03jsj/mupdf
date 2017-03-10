@@ -9,5 +9,14 @@
 #import <UIKit/UIKit.h>
 #import "NTKOBaseView.h"
 
+@protocol NTKOLoginDelegate
+@optional
+- (void)OnLoginOk;
+@end
+
+typedef void (^BLOCK_LoginOk)();
+
 @interface NTKOLoginView : NTKOBaseView
+@property (nonatomic, copy) BLOCK_LoginOk block;
+@property (nonatomic, assign) id<NTKOLoginDelegate> delegate;
 @end

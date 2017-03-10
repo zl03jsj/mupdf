@@ -115,9 +115,9 @@
 
 - (void) dealloc
 {
-	int i;
+	NSLog(@"%@ was dealloced", [self class]);
 	[color release];
-	for (i = 0; i < hitCount; i++)
+	for (int i = 0; i < hitCount; i++)
 		free(linkUrl[i]);
 	[super dealloc];
 }

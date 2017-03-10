@@ -2531,25 +2531,22 @@ void z_pdf_set_signature_appearance_with_image(fz_context *ctx, pdf_document *do
 	fz_text *text = NULL;
 	fz_colorspace *cs = NULL;
     fz_matrix pagemtx;
-    fz_rect annotrect = app->rect;
 
     pdf_page_transform(ctx, annot->page, NULL, &pagemtx);
-    fz_transform_rect(&annotrect, &pagemtx); 
 
 	fz_var(dlist);
 	fz_var(dev);
     fz_var(cs);
 	fz_try(ctx)
 	{
-        fz_rect rect = annotrect;
+        fz_rect rect = app->rect;
         fz_matrix image_ctm = fz_identity;
 
 		dlist = fz_new_display_list(ctx, NULL);
 		dev = fz_new_list_device(ctx, dlist);
 
         // caculate image matrix and fill image
-        //* before verion1.10a need the next call
-        // fz_pre_translate(&image_ctm, rect.x0, rect.y0);
+        fz_pre_translate(&image_ctm, rect.x0, rect.y0);
         fz_pre_scale(&image_ctm, fz_rect_dx(&rect), fz_rect_dy(&rect));
         rect = fz_unit_rect;
 
@@ -2572,7 +2569,7 @@ void z_pdf_set_signature_appearance_with_image(fz_context *ctx, pdf_document *do
                 }
 
                 /* Display the distinguished name in the right-hand half */
-                rect = annotrect;
+                rect = app->rect;
                 fz_transform_rect(&rect, &pagemtx);
                 rect.x0 = (rect.x0 + rect.x1)/2.0f;
                 rect.y0 = (rect.y0 + rect.y1)/2.0f;
@@ -2696,7 +2693,7 @@ static void z_points_bounds(z_fpoint_arraylist *al, fz_rect *bound) {
 }
 
 #pragma message("define Z_DRAW_PATH_WIHT_ALPHA_CHANNEL or Z_DRAW_PATH_WIDHT_SOURCE_OR to transparent draw path")
-#define Z_DRAW_PATH_WITH_ALPHA_CHANNEL 0.8f
+#define Z_DRAW_PATH_WITH_ALPHA_CHANNEL 0.6f
 // #define Z_DRAW_PATH_WIDHT_SOURCE_OR
 
 void z_pdf_set_signature_appearance_with_path(fz_context *ctx, pdf_document *doc, pdf_annot *annot, z_pdf_sign_appearance *app) 
@@ -2709,45 +2706,35 @@ void z_pdf_set_signature_appearance_with_path(fz_context *ctx, pdf_document *doc
 	fz_text *text = NULL;
 	fz_colorspace *cs = NULL;
     const float red[3] = {1.0f, 0.0f, 0.0f};
-    fz_rect pagemedia;
-    fz_rect annotrect;
-    fz_matrix pagemtx;
-    pdf_to_rect(ctx, pdf_dict_get(ctx, annot->page->obj, PDF_NAME_BBox), &pagemedia);
-    pdf_to_rect(ctx, pdf_dict_get(ctx, annot->obj, PDF_NAME_Rect), &annotrect);
-
-    pdf_page_transform(ctx, annot->page, NULL, &pagemtx);
 
 	fz_var(dlist);
 	fz_var(dev);
     fz_var(cs);
 	fz_try(ctx)
 	{
-        fz_rect rect = pagemedia;
-
+        fz_rect rect;
         fz_matrix path_mtx = fz_identity;
-        fz_rect bounds = fz_empty_rect;;
+        fz_matrix page_mtx;
+        pdf_page_transform(ctx, annot->page, NULL, &page_mtx);
 
 		dlist = fz_new_display_list(ctx, NULL);
 		dev = fz_new_list_device(ctx, dlist);
 		cs = fz_device_rgb(ctx);
 
-        z_points_bounds((z_fpoint_arraylist*)app->app, &bounds);
-        fz_expand_rect(&bounds, 5.0f);
-
-        // fz_pre_translate(&image_ctm, rect.x0, rect.y0);
-        // fz_pre_scale(&path_mtx, fz_rect_dx(&rect), fz_rect_dy(&rect));
-
         z_fpoint_arraylist *al = (z_fpoint_arraylist*)app->app;
         z_fpoint_arraylist_node *n = al->first; 
 
+        z_points_bounds(al, &rect);
+        fz_expand_rect(&rect, 5.0f);
+
 #if defined(Z_DRAW_PATH_WITH_SOURCE_OR)
-        fz_begin_group(ctx, dev, &bounds, 0, 0, FZ_BLEND_DARKEN, 1);
+        fz_begin_group(ctx, dev, &rect, 0, 0, FZ_BLEND_DARKEN, 1);
 #endif
         while(n) {
             z_stroke_points_path(ctx, dev, n->a, &path_mtx, cs, red, Z_DRAW_PATH_WITH_ALPHA_CHANNEL); 
             n = n->n;
-        } 
-
+        }
+		
         if(app->text && strlen(app->text)) {
             const char *da = z_pdf_add_sign_annot_da(ctx, doc, obj);
             dr = pdf_dict_getp(ctx, pdf_trailer(ctx, doc), "Root/AcroForm/DR");
@@ -2760,25 +2747,20 @@ void z_pdf_set_signature_appearance_with_path(fz_context *ctx, pdf_document *doc
                 }
 
                 /* Display the distinguished name in the right-hand half */
-                rect = annotrect;
-                fz_transform_rect(&rect, &pagemtx);
                 rect.x0 = (rect.x0 + rect.x1)/2.0f;
                 rect.y0 = (rect.y0 + rect.y1)/2.0f;
                 text = fit_text(ctx, &font_rec, app->text, &rect);
-                fz_fill_text(ctx, dev, text, &pagemtx, cs, font_rec.da_rec.col, 0.5f);
+                fz_fill_text(ctx, dev, text, &page_mtx, cs, font_rec.da_rec.col, 0.5f);
             } 
             else {
                 fz_warn(ctx, "Add text on image faild.");
                 // fz_warn(ctx, "No defualt resource(/DR) tag in AcroForm.");
             }
         }
-
 #if defined(Z_DRAW_PATH_WITH_SOURCE_OR)
         fz_end_group(ctx, dev);
 #endif
-
-		pdf_set_annot_appearance(ctx, doc, annot, &annotrect, dlist);
-
+		pdf_set_annot_appearance(ctx, doc, annot, &rect, dlist); 
 		/* Drop the cached xobject from the annotation structure to
 		 * force a redraw on next pdf_update_page call */
 		pdf_drop_xobject(ctx, annot->ap);

@@ -23,6 +23,7 @@
 
 - (void) dealloc
 {
+	NSLog(@"%@ was dealloced", [self class]);
 	[titles release];
 	[pages release];
 	[super dealloc];

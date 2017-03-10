@@ -12,6 +12,7 @@
 #import "MuUpdater.h"
 #import "MuFileselectViewController.h"
 #import "NTKOPswCheckViewController.h"
+#import "NTKOLoginView.h"
 
 enum
 {
@@ -24,6 +25,7 @@ enum
 	BARMODE_STRIKE,
 	BARMODE_INK,
 	BARMODE_Handsign,
+	BARMODE_IMAGESIGN,
 	BARMODE_SIGN,
 	BARMODE_DELETE
 };
@@ -42,7 +44,7 @@ typedef enum Signstep_s {
 	SIGN_STEP_SAVE_SIGNATURE
 } Signstep;
 
-@interface MuDocumentController : UIViewController <UIScrollViewDelegate, UIGestureRecognizerDelegate, UISearchBarDelegate, MuDialogCreator, MuUpdater, MuFileSelectViewDelegate, NTKOPswCheckViewDelegate>
+@interface MuDocumentController : UIViewController <UIScrollViewDelegate, UIGestureRecognizerDelegate, UISearchBarDelegate, MuDialogCreator, MuUpdater, MuFileSelectViewDelegate, NTKOPswCheckViewDelegate, NTKOLoginDelegate>
 - (instancetype) initWithFilename: (NSString*)nsfilename path:(NSString *)path document:(MuDocRef *)aDoc;
 - (void) createPageView: (int)number;
 - (void) gotoPage: (int)number animated: (BOOL)animated;

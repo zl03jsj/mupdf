@@ -17,7 +17,6 @@
 		682566CE1E6EB5F700C25A4D /* NTKOPfxFile.m in Sources */ = {isa = PBXBuildFile; fileRef = 682566CC1E6EB5F700C25A4D /* NTKOPfxFile.m */; };
 		6835282C1E640017008333F3 /* NTKODsNormalFile.m in Sources */ = {isa = PBXBuildFile; fileRef = 683528271E640017008333F3 /* NTKODsNormalFile.m */; };
 		6835282D1E640017008333F3 /* NTKODsNormalFile.m in Sources */ = {isa = PBXBuildFile; fileRef = 683528271E640017008333F3 /* NTKODsNormalFile.m */; };
-		6835282E1E640017008333F3 /* NTKOLoginView.m in Sources */ = {isa = PBXBuildFile; fileRef = 683528291E640017008333F3 /* NTKOLoginView.m */; };
 		6835282F1E640017008333F3 /* NTKOLoginView.m in Sources */ = {isa = PBXBuildFile; fileRef = 683528291E640017008333F3 /* NTKOLoginView.m */; };
 		683528301E640017008333F3 /* NTKOViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6835282B1E640017008333F3 /* NTKOViewController.m */; };
 		683528311E640017008333F3 /* NTKOViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6835282B1E640017008333F3 /* NTKOViewController.m */; };
@@ -148,8 +147,8 @@
 		687BED391E5BEB4B00DE551E /* ic_trash.png in Resources */ = {isa = PBXBuildFile; fileRef = DAD72803183E6F33005C14FA /* ic_trash.png */; };
 		687BED3A1E5BEB4B00DE551E /* ic_share.png in Resources */ = {isa = PBXBuildFile; fileRef = DADF824C1905241900855662 /* ic_share.png */; };
 		68A9C4001E6564DC002EE436 /* libcurl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 68A9C3FF1E6564DC002EE436 /* libcurl.a */; };
-		68A9C4071E67C2FE002EE436 /* NTKODsSvrSignFile.mm in Sources */ = {isa = PBXBuildFile; fileRef = 68A9C4041E67C1EC002EE436 /* NTKODsSvrSignFile.mm */; };
-		68A9C4081E67C300002EE436 /* NTKODsSvrSignFile.mm in Sources */ = {isa = PBXBuildFile; fileRef = 68A9C4041E67C1EC002EE436 /* NTKODsSvrSignFile.mm */; };
+		68A9C4071E67C2FE002EE436 /* NTKOEspFile.mm in Sources */ = {isa = PBXBuildFile; fileRef = 68A9C4041E67C1EC002EE436 /* NTKOEspFile.mm */; };
+		68A9C4081E67C300002EE436 /* NTKOEspFile.mm in Sources */ = {isa = PBXBuildFile; fileRef = 68A9C4041E67C1EC002EE436 /* NTKOEspFile.mm */; };
 		68A9C4091E67C327002EE436 /* NTKOBaseView.m in Sources */ = {isa = PBXBuildFile; fileRef = 68A9C4021E67C1EC002EE436 /* NTKOBaseView.m */; };
 		68A9C40A1E67C329002EE436 /* NTKOBaseView.m in Sources */ = {isa = PBXBuildFile; fileRef = 68A9C4021E67C1EC002EE436 /* NTKOBaseView.m */; };
 		68A9C40B1E67CCB2002EE436 /* NTKOViews.xib in Resources */ = {isa = PBXBuildFile; fileRef = 68A9C4061E67C1EC002EE436 /* NTKOViews.xib */; };
@@ -245,8 +244,8 @@
 		68A9C3FF1E6564DC002EE436 /* libcurl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcurl.a; path = "../../build/debug-ios-x86_64/libcurl.a"; sourceTree = "<group>"; };
 		68A9C4011E67C1EC002EE436 /* NTKOBaseView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NTKOBaseView.h; path = Classes/ntko/NTKOBaseView.h; sourceTree = "<group>"; };
 		68A9C4021E67C1EC002EE436 /* NTKOBaseView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = NTKOBaseView.m; path = Classes/ntko/NTKOBaseView.m; sourceTree = "<group>"; };
-		68A9C4031E67C1EC002EE436 /* NTKODsSvrSignFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NTKODsSvrSignFile.h; path = Classes/ntko/NTKODsSvrSignFile.h; sourceTree = "<group>"; };
-		68A9C4041E67C1EC002EE436 /* NTKODsSvrSignFile.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = NTKODsSvrSignFile.mm; path = Classes/ntko/NTKODsSvrSignFile.mm; sourceTree = "<group>"; };
+		68A9C4031E67C1EC002EE436 /* NTKOEspFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NTKOEspFile.h; path = Classes/ntko/NTKOEspFile.h; sourceTree = "<group>"; };
+		68A9C4041E67C1EC002EE436 /* NTKOEspFile.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = NTKOEspFile.mm; path = Classes/ntko/NTKOEspFile.mm; sourceTree = "<group>"; };
 		68A9C4051E67C1EC002EE436 /* NTKOTableDs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NTKOTableDs.h; path = Classes/ntko/NTKOTableDs.h; sourceTree = "<group>"; };
 		68A9C4061E67C1EC002EE436 /* NTKOViews.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = NTKOViews.xib; path = Classes/ntko/NTKOViews.xib; sourceTree = "<group>"; };
 		68A9C4101E67DD3B002EE436 /* NTKOPswCheckViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NTKOPswCheckViewController.h; path = Classes/ntko/NTKOPswCheckViewController.h; sourceTree = "<group>"; };
@@ -368,8 +367,8 @@
 				68A9C4121E67DD3B002EE436 /* NTKOPswCheckView.xib */,
 				68A9C4011E67C1EC002EE436 /* NTKOBaseView.h */,
 				68A9C4021E67C1EC002EE436 /* NTKOBaseView.m */,
-				68A9C4031E67C1EC002EE436 /* NTKODsSvrSignFile.h */,
-				68A9C4041E67C1EC002EE436 /* NTKODsSvrSignFile.mm */,
+				68A9C4031E67C1EC002EE436 /* NTKOEspFile.h */,
+				68A9C4041E67C1EC002EE436 /* NTKOEspFile.mm */,
 				68A9C4051E67C1EC002EE436 /* NTKOTableDs.h */,
 				68A9C4061E67C1EC002EE436 /* NTKOViews.xib */,
 				683528261E640017008333F3 /* NTKODsNormalFile.h */,
@@ -844,9 +843,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				685455381E1E4B5F0083354B /* MuAnnotation.m in Sources */,
-				68A9C4081E67C300002EE436 /* NTKODsSvrSignFile.mm in Sources */,
+				68A9C4081E67C300002EE436 /* NTKOEspFile.mm in Sources */,
 				685454F21E1E48370083354B /* main.m in Sources */,
-				6835282E1E640017008333F3 /* NTKOLoginView.m in Sources */,
 				685455331E1E4B5F0083354B /* MuHitView.m in Sources */,
 				685455351E1E4B5F0083354B /* MuInkView.m in Sources */,
 				685455311E1E4B5F0083354B /* MuLibraryController.m in Sources */,
@@ -880,7 +878,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				687BED001E5BEB4B00DE551E /* MuAnnotation.m in Sources */,
-				68A9C4071E67C2FE002EE436 /* NTKODsSvrSignFile.mm in Sources */,
+				68A9C4071E67C2FE002EE436 /* NTKOEspFile.mm in Sources */,
 				683528311E640017008333F3 /* NTKOViewController.m in Sources */,
 				687BED011E5BEB4B00DE551E /* main.m in Sources */,
 				687BED021E5BEB4B00DE551E /* MuHitView.m in Sources */,
@@ -969,11 +967,13 @@
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				CORE_ESP = yes;
 				DEVELOPMENT_TEAM = C4W745U45Q;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(COMMAND_LINE_DEFINES)",
 					DEBUG,
+					debug,
 				);
 				HAVE_LIBCRYPTO = yes;
 				INFOPLIST_FILE = "$(SRCROOT)/MuPDF_openssl_sign-Info.plist";
@@ -994,11 +994,13 @@
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				CORE_ESP = yes;
 				DEVELOPMENT_TEAM = C4W745U45Q;
 				GCC_OPTIMIZATION_LEVEL = s;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(COMMAND_LINE_DEFINES)",
 					RELEASE,
+					release,
 				);
 				HAVE_LIBCRYPTO = yes;
 				INFOPLIST_FILE = "$(SRCROOT)/MuPDF_openssl_sign-Info.plist";
@@ -1024,6 +1026,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					NTKO_SERVER_SIGN,
 					DEBUG,
+					debug,
 				);
 				HAVE_LIBCRYPTO = yes;
 				INFOPLIST_FILE = "$(SRCROOT)/MuPDF_openssl_sign_svr-Info.plist";
@@ -1050,6 +1053,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					NTKO_SERVER_SIGN,
 					RELEASE,
+					release,
 				);
 				HAVE_LIBCRYPTO = yes;
 				INFOPLIST_FILE = "$(SRCROOT)/MuPDF_openssl_sign_svr-Info.plist";

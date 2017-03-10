@@ -8,26 +8,27 @@
 
 #import <UIKit/UIKit.h>
 
-#import "NTKOTableDs.h"
+#import "NTKODsNormalFile.h"
 #include "common.h"
 
-@interface NTKODsSvrSignFile : NSObject <NTKOTableDs>
-
-@property (nonatomic, copy) NSString *title;
-@property (nonatomic, copy) NSString *describe;
-@property (nonatomic, retain, readonly) NSData *data;
-@property (nonatomic, retain, readonly) NSData *imagedata;
+@interface NTKOEspFile : NTKODsNormalFile
 @property (nonatomic, retain, readonly) UIImage *image;
 
 @property (nonatomic, copy) NSString *name;
 @property (nonatomic, copy) NSString *sn;
 @property (nonatomic, copy) NSString *unid;
 @property (nonatomic, copy) NSString *user;
-
 @property (nonatomic, copy) NSString *signer;
 
 - (instancetype) initWithSvrEspInfo:(ntko_server_espinfo*) espinfo;
 - (BOOL)open:(NSString *)password;
++ (NSArray<NTKOEspFile*>*) svrEsplist;
 
-+ (NSArray<NTKODsSvrSignFile*>*) svrEsplist;
+
+//@property (nonatomic, copy) NSString *title;
+//@property (nonatomic, copy) NSString *describe;
+//@property (nonatomic, retain, readonly) NSData *data;
+//@property (nonatomic, retain, readonly) NSData *imagedata;
+//@property (nonatomic, retain, readonly) UIImage *image;
+
 @end

@@ -14,7 +14,7 @@
 extern "C" {
 #endif
 	
-#define SVR_SIGN
+// #define SVR_SIGN
 #include "mupdf/z/ntko_svr.h"
 
 extern fz_context *ctx;
@@ -48,12 +48,15 @@ typedef struct ntko_svrsign_context_s {
 } ntko_svrsign_context;
 
 extern ntko_svrsign_context *_ssCtx;
-
+	
 bool z_init_ssCtx();
 bool z_free_ssCtx();
 
 NSString *getLoginuser();
+	
 bool download_server_esp(ntko_server_espinfo *espinfo);
+	
+bool svr_sign_log(ntko_sign_info *signinfo);
 
 BOOL isFileImage(NSString *file);
 
@@ -62,6 +65,8 @@ BOOL isFilePfx(NSString *file);
 BOOL fileIsInPath(NSArray *paths, NSString *file);
 
 BOOL fileHasSuffixs(NSArray *suffixs, NSString *file);
+	
+
 	
 #ifdef __cplusplus
 }

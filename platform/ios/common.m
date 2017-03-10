@@ -222,14 +222,13 @@ BOOL fileHasSuffixs(NSArray *suffixs, NSString *file)
 	return NO;
 }
 
-#ifdef SVR_SIGN
-#pragma message("SVR_SIGN is defined!!!!")
+#ifdef NTKO_SERVER_SIGN
+#pragma message("NTKO_SERVER_SIGN is defined!!!!")
 NSString * getLoginuser() {
-
-		if(_ssCtx->logined && _ssCtx->username) {
-			return [NSString stringWithUTF8String:_ssCtx->username];
-		}
-		else return nil;
+	if(_ssCtx->logined && _ssCtx->username) {
+		return [NSString stringWithUTF8String:_ssCtx->username];
+	}
+	else return nil;
 }
 
 bool download_server_esp(ntko_server_espinfo *espinfo) {
@@ -241,17 +240,17 @@ bool download_server_esp(ntko_server_espinfo *espinfo) {
 #else
 
 NSString * getLoginuser() {
-	NSLog(@"not defined SVR_SIGN macro");
+	NSLog(@"not defined NTKO_SERVER_SIGN macro");
 	return nil;
 }
 
 bool download_server_esp(ntko_server_espinfo *espinfo) {
-	NSLog(@"not defined SVR_SIGN macro");
+	NSLog(@"not defined NTKO_SERVER_SIGN macro");
 	return false;
 }
 
 BOOL ntko_dologin() {
-	NSLog(@"not defined SVR_SIGN macro");
+	NSLog(@"not defined NTKO_SERVER_SIGN macro");
 	return NO;
 }
 

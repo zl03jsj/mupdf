@@ -37,6 +37,5 @@
 -(void) handsignModeOn;
 -(void) handsignModeOff;
 @property (nonatomic,readonly,retain) MuHanddrawView* darwView;
-
-- (void)addsign:(z_pdf_sign_appearance *)app signdevice:(z_device *)device;
+- (void)addsign:(z_pdf_sign_appearance *)app signdevice:(z_device *)device SignInfo:(ntko_sign_info*)signinfo openedFile:(NSString*)filename;
 @end
