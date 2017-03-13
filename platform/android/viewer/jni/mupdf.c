@@ -1693,7 +1693,7 @@ str_get_md5(fz_context *ctx, const char* str, unsigned char *digest)
 
 
 JNIEXPORT void JNICALL
-JNI_FN(MuPDFCore_addInkAnnotationInternal)(JNIEnv * env, jobject thiz, jobjectArray arcs, jstring password, jstring customdata, float inkThickness, int inkColor)
+JNI_FN(MuPDFCore_addInkAnnotationInternal)(JNIEnv * env, jobject thiz, jobjectArray arcs, jstring password, jstring jncdata, float inkThickness, int inkColor)
 {
 	globals *glo = get_globals(env, thiz);
 	fz_context *ctx = glo->ctx;
@@ -1728,7 +1728,7 @@ JNI_FN(MuPDFCore_addInkAnnotationInternal)(JNIEnv * env, jobject thiz, jobjectAr
     else
         pw = NULL;
 
-    ncdata = (*env)->GetStringUTFChars(env, customdata, NULL);
+    ncdata = (*env)->GetStringUTFChars(env, jncdata, NULL);
 
 	fz_var(pts);
 	fz_var(counts);
