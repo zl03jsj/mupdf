@@ -35,8 +35,20 @@
 #define SMALL_FLOAT (0.00001)
 #define PROOF_RESOLUTION (300)
 
-#define ANNOT_PASSWORD_NAME    "Password"
-#define ANNOT_PASSWORD_DEFAULT "12345678"
+// ntko defined annotaion data
+// to store ntko custom data
+// Object structure:
+// ......annotation begin.....
+// <</Type /Annotation 
+//      /NTKOData 
+//      <<  /Password /password_md5_string
+//          /Customdata /coustom_data_string
+//      >>
+// ......the other element in Annotaion
+// >>
+#define NTKO_OBJ_NAME_NDATA         "NTKOData"
+#define NTKO_OBJ_NAME_PASSWORD      "Passowrd"
+#define NTKO_OBJ_NAME_CUSTOMDATA    "Customdata"
 
 enum
 {
@@ -1679,8 +1691,9 @@ str_get_md5(fz_context *ctx, const char* str, unsigned char *digest)
 	fz_md5_final(&state, digest);
 }
 
+
 JNIEXPORT void JNICALL
-JNI_FN(MuPDFCore_addInkAnnotationInternal)(JNIEnv * env, jobject thiz, jobjectArray arcs, jstring password, float inkThickness, int inkColor)
+JNI_FN(MuPDFCore_addInkAnnotationInternal)(JNIEnv * env, jobject thiz, jobjectArray arcs, jstring password, jstring customdata, float inkThickness, int inkColor)
 {
 	globals *glo = get_globals(env, thiz);
 	fz_context *ctx = glo->ctx;
@@ -1699,19 +1712,23 @@ JNI_FN(MuPDFCore_addInkAnnotationInternal)(JNIEnv * env, jobject thiz, jobjectAr
         (inkColor&0xFF)/255.0, 0.0f };
 
 	const char *pw = NULL;
-	unsigned char md5psw[16];
+	char md5psw[16];
+    const char *ncdata = NULL;
+
 
 	if (idoc == NULL)
 		return;
 
 	pw = (*env)->GetStringUTFChars(env, password, NULL);
-    str_get_md5(ctx, pw?pw:ANNOT_PASSWORD_DEFAULT, md5psw); 
-
     if( pw ) {
+        str_get_md5(ctx, pw, (unsigned char*)md5psw); 
         (*env)->ReleaseStringUTFChars(env, password, pw);
+        pw = md5psw;
+    } 
+    else
         pw = NULL;
-    }
 
+    ncdata = (*env)->GetStringUTFChars(env, customdata, NULL);
 
 	fz_var(pts);
 	fz_var(counts);
@@ -1766,9 +1783,24 @@ JNI_FN(MuPDFCore_addInkAnnotationInternal)(JNIEnv * env, jobject thiz, jobjectAr
 		}
 
         annot = pdf_create_annot(ctx, (pdf_page *)pc->page, PDF_ANNOT_INK);
-        pdf_dict_puts_drop(ctx, annot->obj, ANNOT_PASSWORD_NAME, 
-                pdf_new_string(ctx, idoc, (char*)md5psw, sizeof(md5psw) ));
 
+        pdf_obj *ntkoobj = NULL;
+        if(pw) {
+            ntkoobj = pdf_new_dict(ctx, idoc, 1);
+            pdf_dict_puts_drop(ctx, ntkoobj, NTKO_OBJ_NAME_PASSWORD,
+                    pdf_new_string(ctx, idoc, pw, strlen(pw)));
+        }
+
+        if(ncdata) {
+            if(!ntkoobj)
+               ntkoobj  = pdf_new_dict(ctx, idoc, 1); 
+            pdf_dict_puts_drop(ctx, ntkoobj, NTKO_OBJ_NAME_CUSTOMDATA,
+                    pdf_new_string(ctx, idoc, ncdata, strlen(ncdata)));
+        }
+        if(ntkoobj) {
+            pdf_dict_puts_drop(ctx, annot->obj, NTKO_OBJ_NAME_NDATA, ntkoobj);
+        }
+        
 		pdf_set_annot_border(ctx, annot, inkThickness);
 		pdf_set_annot_color(ctx, annot, 3, color);
 		pdf_set_annot_ink_list(ctx, annot, n, counts, pts);
@@ -1808,7 +1840,9 @@ JNI_FN(MuPDFCore_deleteAnnotationInternal)(JNIEnv * env, jobject thiz, int annot
 		return;
 
 	pw = (*env)->GetStringUTFChars(env, password, NULL);
-    str_get_md5(ctx, pw?pw:ANNOT_PASSWORD_DEFAULT, md5psw); 
+    if(pw) {
+        str_get_md5(ctx, pw, md5psw);
+    }
 
     if( pw ) {
         (*env)->ReleaseStringUTFChars(env, password, pw);
@@ -1823,14 +1857,17 @@ JNI_FN(MuPDFCore_deleteAnnotationInternal)(JNIEnv * env, jobject thiz, int annot
 
 		if (annot)
 		{
-            pdf_obj *pswobj = pdf_dict_gets(ctx, ((pdf_annot*)annot)->obj, ANNOT_PASSWORD_NAME);
+           pdf_obj *ntkoobj = pdf_dict_getp(ctx, ((pdf_annot*)annot)->obj, NTKO_OBJ_NAME_NDATA);
+           pdf_obj *pswobj = NULL; 
+            if(ntkoobj) 
+                pswobj = pdf_dict_gets(ctx, ntkoobj, NTKO_OBJ_NAME_PASSWORD); 
+
             if(pswobj==NULL || ( pdf_to_str_len(ctx, pswobj)==sizeof(md5psw) &&
                     !memcmp(pdf_to_str_buf(ctx, pswobj), md5psw, sizeof(md5psw))) )
             {
                     pdf_delete_annot(ctx, (pdf_page *)pc->page, (pdf_annot *)annot);
                     update_changed_rects_all_page(glo, pc, idoc);
-                    dump_annotation_display_lists(glo);
-
+                    dump_annotation_display_lists(glo); 
             }
             else {
                 fz_throw(ctx, FZ_ERROR_GENERIC, "Cannot delete annotaion: wrong password.");
@@ -1870,8 +1907,12 @@ JNI_FN(MuPDFCore_isAnnotationHasPasswordInternal)(JNIEnv * env, jobject thiz, in
 
 		if (annot)
 		{
-            pdf_obj *pswobj = pdf_dict_gets(ctx, ((pdf_annot*)annot)->obj, ANNOT_PASSWORD_NAME);
-            hasPassword = pswobj ? JNI_TRUE :JNI_FALSE;
+            pdf_obj *ntkoobj = pdf_dict_gets(ctx, ((pdf_annot*)annot)->obj, NTKO_OBJ_NAME_NDATA);
+            pdf_obj *npswobj = NULL;
+            if(ntkoobj) {
+                npswobj = pdf_dict_gets(ctx, ntkoobj, NTKO_OBJ_NAME_PASSWORD);
+            }
+            hasPassword = npswobj ? JNI_TRUE :JNI_FALSE;
 		}
 		else {
 			fz_throw(ctx, FZ_ERROR_GENERIC, "Annot index out of range.");

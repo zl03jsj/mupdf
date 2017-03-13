@@ -19,6 +19,7 @@ public class Annotation
 	public native Pixmap toPixmap(Matrix ctm, ColorSpace colorspace, boolean alpha);
 	public native Rect getBounds();
 	public native DisplayList toDisplayList();
+	public native String customData();
 
 	private native long advance();
 }
