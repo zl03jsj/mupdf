@@ -1824,14 +1824,16 @@ JNI_FN(MuPDFCore_deleteAnnotationInternal)(JNIEnv * env, jobject thiz, int annot
 		if (annot)
 		{
             pdf_obj *pswobj = pdf_dict_gets(ctx, ((pdf_annot*)annot)->obj, ANNOT_PASSWORD_NAME);
-            if( pdf_to_str_len(ctx, pswobj)!=sizeof(md5psw) ||
-                memcmp(pdf_to_str_buf(ctx, pswobj), md5psw, sizeof(md5psw) ) ){
-                fz_throw(ctx, FZ_ERROR_GENERIC, "Cannot delete annotaion: wrong password.");
+            if(pswobj==NULL || ( pdf_to_str_len(ctx, pswobj)==sizeof(md5psw) &&
+                    !memcmp(pdf_to_str_buf(ctx, pswobj), md5psw, sizeof(md5psw))) )
+            {
+                    pdf_delete_annot(ctx, (pdf_page *)pc->page, (pdf_annot *)annot);
+                    update_changed_rects_all_page(glo, pc, idoc);
+                    dump_annotation_display_lists(glo);
+
             }
             else {
-                pdf_delete_annot(ctx, (pdf_page *)pc->page, (pdf_annot *)annot);
-                update_changed_rects_all_page(glo, pc, idoc);
-                dump_annotation_display_lists(glo);
+                fz_throw(ctx, FZ_ERROR_GENERIC, "Cannot delete annotaion: wrong password.");
             }
 		}
 	}
