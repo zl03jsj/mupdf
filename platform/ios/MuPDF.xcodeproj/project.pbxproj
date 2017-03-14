@@ -231,7 +231,6 @@
 		6835282B1E640017008333F3 /* NTKOViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = NTKOViewController.m; path = Classes/ntko/NTKOViewController.m; sourceTree = "<group>"; };
 		68460D691E5C32EC00348BDF /* ic_settings.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ic_settings.png; path = resources/ic_settings.png; sourceTree = "<group>"; };
 		6854551D1E1E48370083354B /* MuPDF_openssl_sign.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MuPDF_openssl_sign.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		6854551E1E1E48370083354B /* MuPDF_openssl_sign-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "MuPDF_openssl_sign-Info.plist"; path = "/Users/zl03jsj/Documents/mupdf/platform/ios/MuPDF_openssl_sign-Info.plist"; sourceTree = "<absolute>"; };
 		6854551F1E1E4B410083354B /* MuFileselectViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MuFileselectViewController.h; path = Classes/MuFileselectViewController.h; sourceTree = "<group>"; };
 		685455201E1E4B410083354B /* MuFileselectViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = MuFileselectViewController.m; path = Classes/MuFileselectViewController.m; sourceTree = "<group>"; };
 		685455211E1E4B410083354B /* MuFileselectViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = MuFileselectViewController.xib; path = Classes/MuFileselectViewController.xib; sourceTree = "<group>"; };
@@ -240,7 +239,6 @@
 		685455271E1E4B410083354B /* MuSignView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MuSignView.h; path = Classes/MuSignView.h; sourceTree = "<group>"; };
 		685455281E1E4B410083354B /* MuSignView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = MuSignView.m; path = Classes/MuSignView.m; sourceTree = "<group>"; };
 		687BED3F1E5BEB4B00DE551E /* MuPDF_openssl_sign_svr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MuPDF_openssl_sign_svr.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		687BED401E5BEB4C00DE551E /* MuPDF_openssl_sign_svr-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "MuPDF_openssl_sign_svr-Info.plist"; path = "/Users/zl03jsj/Documents/mupdf/platform/ios/MuPDF_openssl_sign_svr-Info.plist"; sourceTree = "<absolute>"; };
 		68A9C3FF1E6564DC002EE436 /* libcurl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcurl.a; path = "../../build/debug-ios-x86_64/libcurl.a"; sourceTree = "<group>"; };
 		68A9C4011E67C1EC002EE436 /* NTKOBaseView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NTKOBaseView.h; path = Classes/ntko/NTKOBaseView.h; sourceTree = "<group>"; };
 		68A9C4021E67C1EC002EE436 /* NTKOBaseView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = NTKOBaseView.m; path = Classes/ntko/NTKOBaseView.m; sourceTree = "<group>"; };
@@ -253,6 +251,8 @@
 		68A9C4121E67DD3B002EE436 /* NTKOPswCheckView.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = NTKOPswCheckView.xib; path = Classes/ntko/NTKOPswCheckView.xib; sourceTree = "<group>"; };
 		68DEB0B61E2C993D003CCD96 /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = ../../thirdparty/openssl/ios/libcrypto.a; sourceTree = "<group>"; };
 		68DEB0B71E2C993D003CCD96 /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../../thirdparty/openssl/ios/libssl.a; sourceTree = "<group>"; };
+		7B9247DC1E779FFE002E6F2C /* MuPDF_openssl_sign-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "MuPDF_openssl_sign-Info.plist"; sourceTree = "<group>"; };
+		7B9247DD1E77A00C002E6F2C /* MuPDF_openssl_sign_svr-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "MuPDF_openssl_sign_svr-Info.plist"; sourceTree = "<group>"; };
 		7C6152E719DDD6A90095ECAC /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = MuPDF/Images.xcassets; sourceTree = "<group>"; };
 		7C6152E919DDF05B0095ECAC /* Launch Screen.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = "Launch Screen.xib"; path = "MuPDF/Launch Screen.xib"; sourceTree = "<group>"; };
 		968E1E3D1779A54F0050CEA3 /* MuPDF.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MuPDF.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -394,8 +394,6 @@
 				968E1E461779A54F0050CEA3 /* Resources */,
 				968E1E3F1779A54F0050CEA3 /* Frameworks */,
 				968E1E3E1779A54F0050CEA3 /* Products */,
-				6854551E1E1E48370083354B /* MuPDF_openssl_sign-Info.plist */,
-				687BED401E5BEB4C00DE551E /* MuPDF_openssl_sign_svr-Info.plist */,
 			);
 			sourceTree = "<group>";
 			usesTabs = 1;
@@ -452,6 +450,8 @@
 				96E1CDEC1779A60700FCF717 /* x_alt_blue.png */,
 				96E1CDED1779A60700FCF717 /* x_alt_blue@2x.png */,
 				968E1E481779A54F0050CEA3 /* Info.plist */,
+				7B9247DC1E779FFE002E6F2C /* MuPDF_openssl_sign-Info.plist */,
+				7B9247DD1E77A00C002E6F2C /* MuPDF_openssl_sign_svr-Info.plist */,
 			);
 			name = Resources;
 			sourceTree = SOURCE_ROOT;

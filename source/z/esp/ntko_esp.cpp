@@ -62,7 +62,12 @@ rune_from_utf16be(int *out, unsigned char *s, unsigned char *end)
 		int a = s[0] << 8 | s[1];
         // https://en.wikipedia.org/wiki/UTF-16
         // U+0000 to U+D7FF and U+E000 to U+FFFF
-        // Both UTF-16 and UCS-2 encode code points in this range as single 16-bit code units that are numerically equal to the corresponding code points. These code points in the Basic Multilingual Plane (BMP) are the only code points that can be represented in UCS-2.[citation needed] As of Unicode 9.0 some modern non-latin Asian, Middle-eastern and African scripts fall outside this range.
+        // Both UTF-16 and UCS-2 encode code points in this range as single 
+        // 16-bit code units that are numerically equal to the corresponding 
+        // code points. These code points in the Basic Multilingual Plane (BMP) 
+        // are the only code points that can be represented in UCS-2.[citation needed] 
+        // As of Unicode 9.0 some modern non-latin Asian, Middle-eastern and 
+        // African scripts fall outside this range.
 		if (a >= 0xD800 && a <= 0xDFFF && s + 4 <= end) {
 			int b = s[2] << 8 | s[3];
 			*out = ((a - 0xD800) << 10) + (b - 0xDC00) + 0x10000;
