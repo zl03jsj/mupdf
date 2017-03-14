@@ -40,15 +40,15 @@
 // Object structure:
 // ......annotation begin.....
 // <</Type /Annotation 
-//      /NTKOData 
+//      /NTKO
 //      <<  /Password /password_md5_string
-//          /Customdata /coustom_data_string
+//          /Data /data_string
 //      >>
 // ......the other element in Annotaion
 // >>
-#define NTKO_OBJ_NAME_NDATA         "NTKOData"
-#define NTKO_OBJ_NAME_PASSWORD      "Passowrd"
-#define NTKO_OBJ_NAME_CUSTOMDATA    "Customdata"
+#define NTKO_OBJ_NAME_NTKO          "NTKO"
+#define NTKO_OBJ_NAME_Password      "Passowrd"
+#define NTKO_OBJ_NAME_Data          "Data"
 
 enum
 {
@@ -1787,18 +1787,18 @@ JNI_FN(MuPDFCore_addInkAnnotationInternal)(JNIEnv * env, jobject thiz, jobjectAr
         pdf_obj *ntkoobj = NULL;
         if(pw) {
             ntkoobj = pdf_new_dict(ctx, idoc, 1);
-            pdf_dict_puts_drop(ctx, ntkoobj, NTKO_OBJ_NAME_PASSWORD,
+            pdf_dict_puts_drop(ctx, ntkoobj, NTKO_OBJ_NAME_Password,
                     pdf_new_string(ctx, idoc, pw, strlen(pw)));
         }
 
         if(ncdata) {
             if(!ntkoobj)
                ntkoobj  = pdf_new_dict(ctx, idoc, 1); 
-            pdf_dict_puts_drop(ctx, ntkoobj, NTKO_OBJ_NAME_CUSTOMDATA,
+            pdf_dict_puts_drop(ctx, ntkoobj, NTKO_OBJ_NAME_Data,
                     pdf_new_string(ctx, idoc, ncdata, strlen(ncdata)));
         }
         if(ntkoobj) {
-            pdf_dict_puts_drop(ctx, annot->obj, NTKO_OBJ_NAME_NDATA, ntkoobj);
+            pdf_dict_puts_drop(ctx, annot->obj, NTKO_OBJ_NAME_NTKO, ntkoobj);
         }
         
 		pdf_set_annot_border(ctx, annot, inkThickness);
@@ -1857,10 +1857,10 @@ JNI_FN(MuPDFCore_deleteAnnotationInternal)(JNIEnv * env, jobject thiz, int annot
 
 		if (annot)
 		{
-           pdf_obj *ntkoobj = pdf_dict_getp(ctx, ((pdf_annot*)annot)->obj, NTKO_OBJ_NAME_NDATA);
+           pdf_obj *ntkoobj = pdf_dict_getp(ctx, ((pdf_annot*)annot)->obj, NTKO_OBJ_NAME_NTKO);
            pdf_obj *pswobj = NULL; 
             if(ntkoobj) 
-                pswobj = pdf_dict_gets(ctx, ntkoobj, NTKO_OBJ_NAME_PASSWORD); 
+                pswobj = pdf_dict_gets(ctx, ntkoobj, NTKO_OBJ_NAME_Password); 
 
             if(pswobj==NULL || ( pdf_to_str_len(ctx, pswobj)==sizeof(md5psw) &&
                     !memcmp(pdf_to_str_buf(ctx, pswobj), md5psw, sizeof(md5psw))) )
@@ -1907,10 +1907,10 @@ JNI_FN(MuPDFCore_isAnnotationHasPasswordInternal)(JNIEnv * env, jobject thiz, in
 
 		if (annot)
 		{
-            pdf_obj *ntkoobj = pdf_dict_gets(ctx, ((pdf_annot*)annot)->obj, NTKO_OBJ_NAME_NDATA);
+            pdf_obj *ntkoobj = pdf_dict_gets(ctx, ((pdf_annot*)annot)->obj, NTKO_OBJ_NAME_NTKO);
             pdf_obj *npswobj = NULL;
             if(ntkoobj) {
-                npswobj = pdf_dict_gets(ctx, ntkoobj, NTKO_OBJ_NAME_PASSWORD);
+                npswobj = pdf_dict_gets(ctx, ntkoobj, NTKO_OBJ_NAME_Password);
             }
             hasPassword = npswobj ? JNI_TRUE :JNI_FALSE;
 		}
@@ -2129,6 +2129,19 @@ JNI_FN(MuPDFCore_getWidgetAreasInternal)(JNIEnv * env, jobject thiz, int pageNum
 	return arr;
 }
 
+// get NTKO
+static const char* 
+ntko_pdf_get_data(fz_context* ctx, pdf_annot *annot) {
+    pdf_obj *ntkoobj = pdf_dict_gets(ctx, annot->obj, NTKO_OBJ_NAME_NTKO);
+    const char *ncdata = NULL;
+    if(ntkoobj) {
+        pdf_obj *dataobj = pdf_dict_gets(ctx, ntkoobj, NTKO_OBJ_NAME_Data);
+        if(dataobj)
+            ncdata = pdf_to_str_buf(ctx, dataobj);
+    } 
+    return ncdata;
+}
+
 JNIEXPORT jobjectArray JNICALL
 JNI_FN(MuPDFCore_getAnnotationsInternal)(JNIEnv * env, jobject thiz, int pageNumber)
 {
@@ -2176,6 +2189,26 @@ JNI_FN(MuPDFCore_getAnnotationsInternal)(JNIEnv * env, jobject thiz, int pageNum
 
 		jannot = (*env)->NewObject(env, annotClass, ctor,
 				(float)rect.x0, (float)rect.y0, (float)rect.x1, (float)rect.y1, type);
+
+		pdf_document *doc = pdf_specifics(ctx, glo->doc);
+        if(doc) {
+            const char *data = ntko_pdf_get_data(ctx, (pdf_annot*)annot);
+            if(data) {
+                jfieldID fid = (*env)->GetFieldID(env, annotClass, "ntkodata", "Ljava/lang/String;");
+                jstring jdata;
+                const char* tmpdata;
+
+                if(fid) {
+                    jdata = (*env)->GetObjectField(env, annot, fid);    
+                    tmpdata = (*env)->GetStringUTFChars(env, jdata, NULL);
+                    if(tmpdata)
+                        (*env)->ReleaseStringUTFChars(env, jdata, tmpdata);
+                    jdata = (*env)->NewStringUTF(env, data);
+                    (*env)->SetObjectField(env, annot, fid, jdata);
+                }
+            }
+        }
+
 		if (jannot == NULL) return NULL;
 		(*env)->SetObjectArrayElement(env, arr, count, jannot);
 		(*env)->DeleteLocalRef(env, jannot);

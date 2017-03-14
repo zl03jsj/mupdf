@@ -3945,29 +3945,29 @@ FUN(Annotation_toPixmap)(JNIEnv *env, jobject self, jobject jctm, jobject jcs, j
 // TODO: define ntko custom pdf object, and it's operation
 // in .h file, to call use union interface
 JNIEXPORT jobject JNICALL
-FUN(Annotation_customData)(JNIEnv *env, jobject self)
+FUN(Annotation_ntkodata)(JNIEnv *env, jobject self)
 {
 	fz_context *ctx = get_context(env);
 	pdf_document *doc =  pdf_specifics(ctx, from_Document(env, self));
 
-    if(!doc){
-        // only pdf support custom data
+    if(!doc) {
+        // only pdf support ntko data
         return  NULL;
     } 
 
 	pdf_annot *annot = (pdf_annot*)from_Annotation(env, self);
 
-    pdf_obj *ntkoobj = pdf_dict_gets(ctx, annot->obj, "NTKOData");
-    const char *ncdata = NULL;
-    if(ntkoobj) {
-        pdf_obj *ncdobj = pdf_dict_gets(ctx, ntkoobj, "Customdata");
-        if(ncdobj)
-            ncdata = pdf_to_str_buf(ctx, ncdobj);
+    pdf_obj *ntko = pdf_dict_gets(ctx, annot->obj, "NTKO");
+    const char *data = NULL;
+    if(ntko) {
+        pdf_obj *dataobj = pdf_dict_gets(ctx, ntko, "Data");
+
+        if(dataobj)
+            data = pdf_to_str_buf(ctx, dataobj);
     }
 
-    if(ncdata) {
-        return (*env)->NewStringUTF(env, ncdata);
-    }
+    if(data)
+        return (*env)->NewStringUTF(env, data);
     
     return NULL; 
 }
