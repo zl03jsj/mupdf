@@ -14,6 +14,7 @@
 
 #include "mupdf/fitz.h"
 #include "mupdf/pdf.h"
+#include "mupdf/z/z_math.h"
 
 #define JNI_FN(A) Java_com_artifex_mupdfdemo_ ## A
 #define PACKAGENAME "com/artifex/mupdfdemo"
@@ -1691,6 +1692,143 @@ str_get_md5(fz_context *ctx, const char* str, unsigned char *digest)
 	fz_md5_final(&state, digest);
 }
 
+static z_fpoint_arraylist* 
+z_points_to_zfpoints_arrlist(JNIEnv *env, fz_context *ctx, jobjectArray zpoint_aa, float maxwidth, fz_matrix *mtx) 
+{
+    jclass cls_zpoint =  (*env)->FindClass(env, "com/z/ZPoint"); 
+    jfieldID  fid_w = (*env)->GetFieldID(env, cls_zpoint,  "w", "F"); 
+    jmethodID mid_x = (*env)->GetMethodID(env, cls_zpoint, "x", "()F");
+    jmethodID mid_y = (*env)->GetMethodID(env, cls_zpoint, "y", "()F");
+
+    int i, j, lsize, asize;
+	lsize = (*env)->GetArrayLength(env, zpoint_aa);
+
+    z_fpoint_arraylist *l = z_new_fpoint_arraylist(ctx); 
+    z_fpoint_array *a = NULL;
+
+    jobjectArray one; 
+    for(i=0; i<lsize; i++) {
+        one = (jobjectArray)(*env)->GetObjectArrayElement(env, zpoint_aa, i); 
+        asize = (*env)->GetArrayLength(env, one);
+
+        a = z_new_fpoint_array(ctx, asize, maxwidth, 0.5f);
+
+        for(j=0; j<asize; ++j) {
+            jobject zp = (*env)->GetObjectArrayElement(env, a, j);
+            a->point[j].p.x = (*env)->CallIntMethod(env, zp, mid_x);
+            a->point[j].p.y = (*env)->CallIntMethod(env, zp, mid_y);
+            a->point[j].w = (*env)->GetIntField(env, zp, fid_w);
+            fz_transform_point(&(a->point[j].p), mtx);
+        }
+        z_fpoint_arraylist_append(ctx, l, a); 
+    }
+
+    return l; 
+}
+
+// TODO: for functions:
+// ntko_pdf_new_dataobj,ntko_pdf_annot_put_data
+// move implementation to mupdfcore, compiled into libmupdf.a
+// declear function in z_pdf.h
+static pdf_obj*
+ntko_pdf_new_dataobj(fz_context *ctx, pdf_document *doc, const char *password, const char *data) 
+{
+    pdf_obj *ntkoobj = NULL;
+    fz_try(ctx) {
+    if(password) {
+        ntkoobj = pdf_new_dict(ctx, doc, 1);
+        pdf_dict_puts_drop(ctx, ntkoobj, NTKO_OBJ_NAME_Password,
+                pdf_new_string(ctx, doc, password, strlen(password)));
+    }
+
+    if(data) {
+        if(!ntkoobj)
+            ntkoobj  = pdf_new_dict(ctx, doc, 1); 
+        pdf_dict_puts_drop(ctx, ntkoobj, NTKO_OBJ_NAME_Data,
+                pdf_new_string(ctx, doc, data, strlen(data)));
+    }
+    }
+    fz_catch(ctx) {
+        fz_rethrow(ctx);
+    }
+    return ntkoobj;
+}
+
+static void
+ntko_pdf_annot_put_data(fz_context *ctx, pdf_document *doc, pdf_annot *annot, const char *password, const char *data)
+{
+    pdf_obj *ntkoobj = NULL;
+    fz_try(ctx) {
+        ntkoobj = ntko_pdf_new_dataobj(ctx, doc, password, data);
+        if(ntkoobj)
+            pdf_dict_puts_drop(ctx, annot->obj, NTKO_OBJ_NAME_NTKO, ntkoobj);
+    }
+    fz_catch(ctx) {
+        if(ntkoobj) pdf_drop_obj(ctx, ntkoobj);
+        fz_rethrow(ctx);
+    } 
+}
+
+JNIEXPORT void JNICALL
+JNI_FN(MuPDFCore_addAnnotaionWithPressure)(JNIEnv * env, jobject thiz, jobjectArray arcs, float maxwidth, jstring password, jstring jncdata, int inkColor)
+{
+	globals *glo = get_globals(env, thiz);
+	fz_context *ctx = glo->ctx;
+	pdf_document *doc =  pdf_specifics(ctx, glo->doc);
+	page_cache *pc = &glo->pages[glo->current];
+
+    z_pdf_sign_appearance *app = NULL;
+
+	float color[4] = {((inkColor>>16)&0xFF)/255.0,
+        ((inkColor>>8) &0xFF)/255.0,
+        (inkColor&0xFF)/255.0, 0.0f };
+
+	const char *pw = NULL;
+	char md5psw[16];
+    const char *data = NULL;
+
+
+	if (doc== NULL)
+		return;
+
+	pw = (*env)->GetStringUTFChars(env, password, NULL);
+    if( pw ) {
+        str_get_md5(ctx, pw, (unsigned char*)md5psw); 
+        (*env)->ReleaseStringUTFChars(env, password, pw);
+        pw = md5psw;
+    } 
+    else pw = NULL;
+
+    data = (*env)->GetStringUTFChars(env, jncdata, NULL); 
+    z_fpoint_arraylist *l = NULL;
+
+	fz_try(ctx)
+	{
+        pdf_annot *annot;
+		fz_matrix mtx;
+
+		float zoom = 72 / glo->resolution;
+		fz_scale(&mtx, zoom, zoom);
+
+        l = z_points_to_zfpoints_arrlist(env, ctx, arcs, maxwidth, &mtx);
+        annot = pdf_create_annot(ctx, (pdf_page*)pc->page, PDF_ANNOT_WIDGET); 
+        ntko_pdf_annot_put_data(ctx, doc, annot, pw, data);
+        app = z_pdf_new_sign_appearance_with_paths(ctx, l, fz_empty_rect, NULL);
+        z_pdf_set_signature_appearance_with_path(ctx, doc, annot, app); 
+        dump_annotation_display_lists(glo);
+    }
+	fz_always(ctx) {
+        if(l) z_drop_fpoint_arraylist(ctx, l);
+        if(app) z_pdf_drop_sign_appreance(ctx, app);
+	}
+	fz_catch(ctx) {
+		LOGE("addAnnotation: %s failed", ctx->error->message);
+		jclass cls = (*env)->FindClass(env, "java/lang/OutOfMemoryError");
+		if (cls != NULL)
+			(*env)->ThrowNew(env, cls, "Out of memory in MuPDFCore_searchPage");
+		(*env)->DeleteLocalRef(env, cls);
+	}
+}
 
 JNIEXPORT void JNICALL
 JNI_FN(MuPDFCore_addInkAnnotationInternal)(JNIEnv * env, jobject thiz, jobjectArray arcs, jstring password, jstring jncdata, float inkThickness, int inkColor)

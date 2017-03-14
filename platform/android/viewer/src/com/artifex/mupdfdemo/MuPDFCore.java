@@ -4,6 +4,9 @@ import android.graphics.Bitmap;
 import android.graphics.PointF;
 import android.graphics.RectF;
 
+import com.z.math.ZPoint;
+import com.z.math.Bezier;
+
 import java.util.ArrayList;
 
 public class MuPDFCore
@@ -62,6 +65,16 @@ public class MuPDFCore
 	private native byte[] textAsHtml();
 	private native void addMarkupAnnotationInternal(PointF[] quadPoints, int type);
 	private native void addInkAnnotationInternal(PointF[][] arcs,String password, String ncdata, float inkThickness, float inkColor);
+
+
+    private void addAnnotation(ArrayList<Bezier> l, float maxwidth, String password, String ncdata, int color) {
+        // TODO:build ZPoint[][] from l, and call addAnnotaionWithPressure 
+        // to add annotation.
+    }
+
+    private native void addAnnotaionWithPressure(ZPoint[][] arcs, float maxwidth, String password, String ncdata, int color);
+
+
 	// check if ink annotation has password
 	// 2016/11/6 by zl03jsj
 	private native boolean isAnnotationHasPasswordInternal(int annot_index);
