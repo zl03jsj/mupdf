@@ -2532,6 +2532,7 @@ void z_pdf_set_signature_appearance_with_image(fz_context *ctx, pdf_document *do
 	fz_colorspace *cs = NULL;
     fz_matrix pagemtx;
 
+    memset(&font_rec, 0, sizeof(font_info));
     pdf_page_transform(ctx, annot->page, NULL, &pagemtx);
 
 	fz_var(dlist);
@@ -2694,8 +2695,13 @@ static void z_points_bounds(z_fpoint_arraylist *al, fz_rect *bound) {
 }
 
 #pragma message("define Z_DRAW_PATH_WIHT_ALPHA_CHANNEL or Z_DRAW_PATH_WIDHT_SOURCE_OR to transparent draw path")
+#define Z_DRAW_PATH_WIDHT_SOURCE_OR
+
+#ifdef Z_DRAW_PATH_WIDHT_SOURCE_OR
+#define Z_DRAW_PATH_WITH_ALPHA_CHANNEL 1.0f
+#else
 #define Z_DRAW_PATH_WITH_ALPHA_CHANNEL 0.6f
-// #define Z_DRAW_PATH_WIDHT_SOURCE_OR
+#endif
 
 void z_pdf_set_signature_appearance_with_path(fz_context *ctx, pdf_document *doc, pdf_annot *annot, z_pdf_sign_appearance *app) 
 {
@@ -2707,6 +2713,8 @@ void z_pdf_set_signature_appearance_with_path(fz_context *ctx, pdf_document *doc
 	fz_text *text = NULL;
 	fz_colorspace *cs = NULL;
     const float red[3] = {1.0f, 0.0f, 0.0f};
+
+    memset(&font_rec, 0, sizeof(font_info));
 
 	fz_var(dlist);
 	fz_var(dev);
@@ -2732,7 +2740,7 @@ void z_pdf_set_signature_appearance_with_path(fz_context *ctx, pdf_document *doc
         fz_begin_group(ctx, dev, &rect, 0, 0, FZ_BLEND_DARKEN, 1);
 #endif
         while(n) {
-            z_stroke_points_path(ctx, dev, n->a, &path_mtx, cs, red, Z_DRAW_PATH_WITH_ALPHA_CHANNEL); 
+            z_stroke_points_path(ctx, dev, n->a, &path_mtx, cs, red, 1.0f); 
             n = n->n;
         }
 		

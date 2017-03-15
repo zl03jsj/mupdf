@@ -51,6 +51,29 @@ fz_buffer *z_deflate_buffer(fz_context *ctx, fz_buffer *bf);
 
 fz_buffer *z_deflate_buffer(fz_context *ctx, fz_buffer *bf);
 
+// ntko custom defined pdf_object, to store ntko custom data
+// Object data structure:
+// ......annotation begin.....
+// <</Type /Annotation 
+//      /NTKO
+//      <<  /Password /password_md5_string
+//          /Data /data_string
+//      >>
+// ......the other element in Annotaion
+// >>
+//
+/* create new ntko custom pdf object from password, custom data */
+pdf_obj* z_pdf_new_ntko_data_object(fz_context *ctx, pdf_document *doc, const char *password, const char *data);
+
+/* add custom pdf_obj to annot */
+void z_pdf_annot_put_data(fz_context *ctx, pdf_annot *annot, const char *password, const char *data);
+
+void z_pdf_add_annotation(fz_context *ctx, pdf_page *page, z_pdf_sign_appearance *app, const char *psw, const char *data); 
+
+const char* z_pdf_ntko_password(fz_context *ctx, pdf_obj *obj);
+
+const char* z_pdf_ntko_data(fz_context *ctx, pdf_obj *obj); 
+
 #ifdef __cplusplus
 }
 #endif

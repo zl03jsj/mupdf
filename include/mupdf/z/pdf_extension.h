@@ -52,6 +52,8 @@ void stderr_restore();
 #endif
 
 void z_pdf_incremental_save_document(fz_context *ctx, pdf_document *doc, const char *savefile, const char *orignalfile);
+
+void z_pdf_obj_display(fz_context *ctx, pdf_obj *obj);
 #ifdef __cplusplus
 }
 #endif

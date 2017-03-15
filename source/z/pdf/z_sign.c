@@ -33,6 +33,7 @@ void z_drop_device(fz_context *ctx, z_device *device)
     }
 }
 
+
 void z_pdf_dosign_with_page(fz_context *ctx, z_device *device, pdf_document *doc,pdf_page *page, z_pdf_sign_appearance *app) {
     pdf_annot *annot = NULL;
     char *signame = NULL;
@@ -62,6 +63,7 @@ void z_pdf_dosign_with_page(fz_context *ctx, z_device *device, pdf_document *doc
 		fz_rethrow(ctx);
 	}
 }
+
 void z_pdf_dosign(fz_context *ctx, z_device *device, pdf_document *doc,int pageno, z_pdf_sign_appearance *app)
 {
     pdf_page *page = NULL;

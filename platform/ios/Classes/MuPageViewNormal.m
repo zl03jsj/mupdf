@@ -1659,6 +1659,13 @@ static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
 }
 
 - (void)addsign:(z_pdf_sign_appearance *)app signdevice:(z_device *)device SignInfo:(ntko_sign_info*)signinfo openedFile:(NSString*)filename {
+	
+	pdf_document *pdfdoc = pdf_specifics(ctx, doc);
+	if(!pdfdoc) {
+		NSLog(@"only supported by pdf file");
+		return;
+	}
+		
 	// asyncronize so must keep
 	z_pdf_keep_sign_apperance(ctx, app);
 	z_keep_device(ctx, device);
@@ -1692,6 +1699,9 @@ static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
 			isok = ntko_http_dosign_log(ctx, &_ssCtx->svrinfo, svrlog, &_ssCtx->rights, &_ssCtx->status);
 #endif
 			if(isok) {
+				// the follow code test add annotation with
+				// 'pressuer-hand draw', or image appearance.
+				// z_pdf_add_annotation(ctx, (pdf_page*)page, app, NULL, NULL);
 				z_dosign_with_page(ctx, doc, page, device, app);
 				dispatch_async(dispatch_get_main_queue(), ^{
 					[self update];

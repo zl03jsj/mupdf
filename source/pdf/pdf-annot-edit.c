@@ -632,3 +632,26 @@ void pdf_set_free_text_details(fz_context *ctx, pdf_annot *annot, fz_point *pos,
 		fz_rethrow(ctx);
 	}
 }
+
+void 
+z_pdf_add_annotation(fz_context *ctx, pdf_page *page, z_pdf_sign_appearance *app, const char *psw, const char *data)
+{
+    if(!page)
+        fz_throw(ctx, FZ_ERROR_GENERIC, "invalid page.");
+    pdf_annot *annot = NULL;
+
+    fz_try(ctx) {
+        annot = (pdf_annot*)pdf_create_annot(ctx, page, PDF_ANNOT_INK); 
+         z_pdf_annot_put_data(ctx, annot, psw, data);
+        // must add /P(which page the annot belong to) tag.
+        pdf_dict_put_drop(ctx, annot->obj, PDF_NAME_P, 
+            pdf_new_indirect(ctx, page->doc, pdf_obj_parent_num(ctx, page->obj), 0));
+
+        z_pdf_set_signature_appearance_with_path(ctx, page->doc, annot, app); 
+    }
+	fz_catch(ctx) {
+        if(annot) pdf_drop_annots(ctx, annot);
+		fz_rethrow(ctx);
+	}
+}
+
