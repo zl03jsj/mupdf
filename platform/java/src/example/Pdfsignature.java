@@ -1,10 +1,16 @@
+package example;
+/**
+ * Created by 88911562@qq.com on 2017/1/9.
+ *
+ * example of back ground adding pdf signature
+ */
 import com.artifex.mupdf.fitz.Document;
 import com.artifex.mupdf.fitz.Page;
 import com.artifex.mupdf.fitz.Rect;
 import com.z.OpensslSignDevice;
 import com.z.PdfSignAppearance;
 
-public class Main {
+public class Pdfsignature {
     public static void main(String[] args) {
         final String rootPath = "/Users/zl03jsj/Documents/pdftest/";
         final String pdffile  = "test.pdf";
@@ -19,7 +25,6 @@ public class Main {
         Page page = doc.loadPage(0);
 
         Rect rect = page.getBounds();
-//        System.out.println("page rect" + rect.toString());
 
         rect = new Rect(0, 0, 100, 100);
 

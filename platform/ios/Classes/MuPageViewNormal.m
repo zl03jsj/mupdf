@@ -1695,8 +1695,8 @@ static void z_dosign_with_page(fz_context *ctx, fz_document *doc, fz_page *page,
 				z_dosign_with_page(ctx, doc, page, device, app);
 				dispatch_async(dispatch_get_main_queue(), ^{
 					[self update];
-					[self loadAnnotations];
 				});
+				[self loadAnnotations];
 			}
 		}
 		fz_always(ctx) {

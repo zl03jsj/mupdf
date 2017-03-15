@@ -138,4 +138,11 @@
 #define TOFU_SIL
 #endif
 
+/*  -std=c99 or c11 or c14 */
+#if __STDC_VERSION__ && (__STDC_VERSION__>=199901L)
+#define ASM __asm
+#else
+#define ASM asm
+#endif
+
 #endif /* FZ_CONFIG_H */

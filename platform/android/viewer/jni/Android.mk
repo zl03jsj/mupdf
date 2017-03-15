@@ -18,8 +18,10 @@ LOCAL_C_INCLUDES := \
 	$(MUPDF_ROOT)/source/fitz \
 	$(MUPDF_ROOT)/source/pdf \
 	$(MUPDF_ROOT)/platform/java
-LOCAL_CFLAGS := -DHAVE_ANDROID
+LOCAL_CFLAGS := -DHAVE_ANDROID -std=c11
 LOCAL_MODULE := mupdf_java32
+
+# $(warning $(LOCAL_CFLAGS))
 
 LOCAL_SRC_FILES := \
 	mupdf.c \

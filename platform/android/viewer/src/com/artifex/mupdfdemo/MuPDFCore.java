@@ -4,6 +4,9 @@ import android.graphics.Bitmap;
 import android.graphics.PointF;
 import android.graphics.RectF;
 
+import com.z.math.ZPoint;
+import com.z.math.Bezier;
+
 import java.util.ArrayList;
 
 public class MuPDFCore
@@ -61,7 +64,22 @@ public class MuPDFCore
 	private native TextChar[][][][] text();
 	private native byte[] textAsHtml();
 	private native void addMarkupAnnotationInternal(PointF[] quadPoints, int type);
-	private native void addInkAnnotationInternal(PointF[][] arcs,String password);
+	private native void addInkAnnotationInternal(PointF[][] arcs,String password, String ncdata, float inkThickness, float inkColor);
+
+
+     public void addAnnotation(ArrayList<Bezier> l, float maxwidth, String password, String ncdata, int color) {
+		ZPoint[][] arcs = new ZPoint[l.size()][];
+		int i;
+		for(i=0; i<l.size(); ++i)  {
+			ArrayList<ZPoint> ps = l.get(i).getZPoints();
+			arcs[i] = ps.toArray(new ZPoint[ps.size()]);
+		}
+		addAnnotaionWithPressure(arcs, maxwidth, password, ncdata, color);
+    }
+
+    private native void addAnnotaionWithPressure(ZPoint[][] arcs, float maxwidth, String password, String ncdata, int color);
+
+
 	// check if ink annotation has password
 	// 2016/11/6 by zl03jsj
 	private native boolean isAnnotationHasPasswordInternal(int annot_index);

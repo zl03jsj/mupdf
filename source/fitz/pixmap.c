@@ -205,7 +205,7 @@ __attribute__((naked));
 static void
 clear_cmyka_bitmap_ARM(uint32_t *samples, int c, int value)
 {
-	asm volatile(
+	ASM volatile(
 	ENTER_ARM
 	"stmfd	r13!,{r4-r6,r14}					\n"
 	"@ r0 = samples							\n"
@@ -914,7 +914,7 @@ fz_subsample_pixmap_ARM(unsigned char *ptr, int w, int h, int f, int factor,
 			int divX, int back4, int fwd4, int fwd3,
 			int divY, int back5, int divXY)
 {
-	asm volatile(
+	ASM volatile(
 	ENTER_ARM
 	"stmfd	r13!,{r1,r4-r11,r14}					\n"
 	"@STACK:r1,<9>,factor,n,fwd,back,back2,fwd2,divX,back4,fwd4,fwd3,divY,back5,divXY\n"

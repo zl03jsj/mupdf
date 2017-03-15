@@ -2634,7 +2634,8 @@ static void z_stroke_points_path(fz_context *ctx, fz_device *dev, z_fpoint_array
         path = fz_new_path(ctx);
         stroke = z_new_default_stroke_state(ctx, w); 
 
-        for(int i=1; i<points->len-1; i++) {
+        int i;
+        for(i=1; i<points->len-1; i++) {
             lastpoint = curpoint;
             curpoint = points->point + i;
             if(lastpoint->w!=stroke->linewidth) {

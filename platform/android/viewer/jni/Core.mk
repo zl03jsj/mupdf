@@ -11,7 +11,8 @@ include $(CLEAR_VARS)
 
 MY_ROOT := ../../..
 
-LOCAL_CFLAGS += -Wall -Wno-uninitialized
+# -NOCJK: not compile cjk font into mupdf lib
+LOCAL_CFLAGS += -Wall -Wno-uninitialized -std=c11 -DNOCJK
 
 ifeq ($(TARGET_ARCH),arm)
 LOCAL_CFLAGS += -DARCH_ARM -DARCH_THUMB -DARCH_ARM_CAN_LOAD_UNALIGNED
@@ -67,6 +68,7 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(MY_ROOT)/source/cbz/*.c) \
 	$(wildcard $(MY_ROOT)/source/gprf/*.c) \
 	$(wildcard $(MY_ROOT)/source/html/*.c) \
+	$(wildcard $(MY_ROOT)/source/z/pdf/*.c) \
 	$(wildcard $(MY_ROOT)/generated/*.c)
 
 ifdef FZ_ENABLE_GPRF

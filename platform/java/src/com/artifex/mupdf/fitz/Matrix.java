@@ -113,6 +113,24 @@ public class Matrix
 		return this;
 	}
 
+    public Matrix invert() {
+		float det = a * d - b * c;
+		if (det < -Float.MIN_NORMAL|| det > Float.MIN_NORMAL)
+		{
+			float t = a;
+			float rdet = 1 / det;
+			a =  d * rdet;
+			b = -b * rdet;
+			c = -c * rdet;
+			d =  t * rdet;
+
+            t = -e * a - f * c;
+			f = -e * b - f * d;
+            e = t;
+		}
+		return this;
+	}
+
 	public String toString() {
 		return "[" + a + " " + b + " " + c + " " + d + " " + e + " " + f + "]";
 	}

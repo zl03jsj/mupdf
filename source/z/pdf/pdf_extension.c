@@ -65,7 +65,7 @@ void z_pdf_incremental_save_document(fz_context *ctx, pdf_document *doc, const c
     int saved = 0;
     
     fz_try(ctx) {
-        tmpfilename = new_unique_string(ctx, savefile, NULL);
+        tmpfilename = new_unique_string(ctx, (char*)savefile, NULL);
         if(orignalfile && fz_file_exists(ctx, orignalfile)) {
             buffer = fz_read_file(ctx, orignalfile);
         }
@@ -141,12 +141,14 @@ pdf_document * pdf_open_document_with_filestream(fz_context * ctx, fz_stream *fi
 //	return buf;
 //}
 
-static void z_set_pix_color_1(unsigned char* d, unsigned char *s, int alpha) {
+static void
+z_set_pix_color_1(unsigned char* d, unsigned char *s, int alpha) {
     if(alpha && 0==*(s+1)) memset(d, 0xff, 3);    
     else memset(d, *s, 3);
 }
 
-static void z_set_pix_color_3(unsigned char* d, unsigned char *s, int alpha) {
+static void
+z_set_pix_color_3(unsigned char* d, unsigned char *s, int alpha) {
     if(alpha && 0==*(s+3)) memset(d, 0xff, 3);
     else memcpy(d, s, 3);
 }
@@ -251,7 +253,7 @@ pdf_obj *pdf_add_pixmap(fz_context *ctx, pdf_document *doc, fz_pixmap *pixmap)
 	pdf_obj *maskobj = add_image_xobj(ctx, doc, &xi);
 	fz_drop_buffer(ctx, bfCompressed);
 #endif 
-	buffer = fz_pixmap_rgb(ctx, pixmap);
+	buffer = fz_pixmap_rgb(ctx, pixmap); 
 	fz_buffer *bfCompressed = z_deflate_buffer(ctx, buffer);
 
     fz_drop_buffer(ctx, buffer);
@@ -365,9 +367,9 @@ int pdf_add_image_with_document(fz_context *ctx, pdf_document *doc, fz_buffer*im
 }
 
 int pdf_add_image_with_filestream(fz_context *ctx, fz_stream*file, fz_buffer*imgbf,
-	char *outfile, int pageno, int x, int y, int w, int h, char *password)
+	int pageno, int x, int y, int w, int h, char *savefile)
 {
-	pdf_document *doc = pdf_open_document_with_filestream(ctx, file,password);
+	pdf_document *doc = pdf_open_document_with_filestream(ctx, file, NULL);
 	int pagecount = pdf_count_pages(ctx, doc);
 	if (pageno < 0) pageno = 0;
 	if (pageno >= pagecount) {
@@ -375,24 +377,52 @@ int pdf_add_image_with_filestream(fz_context *ctx, fz_stream*file, fz_buffer*img
 		return z_error;
 	}
 	int code = pdf_add_image_with_document(ctx, doc, imgbf, pageno, x, y, w, h);
-	if( !code ) 
-        z_pdf_incremental_save_document(ctx, doc, outfile, NULL);
+
+    z_pdf_incremental_save_document(ctx, doc, (char*)file, (char*)savefile);
 	pdf_drop_document(ctx, doc);
 	return code;
 }
 
-int pdf_add_image_with_filename(fz_context *ctx, char *pdffile, char *imgfile,
-	char *outfile, int pageno, int x, int y, int w, int h, char *password)
-{
-	fz_stream *file = fz_open_file(ctx, pdffile);
-	fz_buffer *img = fz_read_file(ctx, imgfile);
-	int code = pdf_add_image_with_filestream(ctx, file, img, outfile, pageno, x, y, w, h,password);
-	fz_drop_stream(ctx, file);
-	fz_drop_buffer(ctx, img);
-	return code;
+int pdf_add_imagefile(fz_context *ctx, pdf_document *doc, char *imgfile, int pageno, int x, int y, int w, int h) {
+    fz_stream *stm = NULL;
+    fz_buffer *buf = NULL;
+    fz_try(ctx) {
+        stm = fz_open_file(ctx, imgfile);
+        buf = fz_read_all(ctx, stm, 512); 
+        pdf_add_image_with_document(ctx, doc, buf, pageno, x, y, w, h);
+    }
+    fz_always(ctx) {
+        if(stm) fz_drop_stream(ctx, stm);
+        if(buf) fz_drop_buffer(ctx, buf);
+    }
+    fz_catch(ctx)
+        fz_rethrow(ctx);
+
+    return z_okay;
 }
 
-// #define redirect_error_output
+int pdf_add_image_with_filename(fz_context *ctx, char *pdffile, char *imgfile, int pageno, int x, int y, int w, int h, char * savefile) 
+{
+    fz_stream *fstm = NULL;
+    fz_buffer *buff = NULL;
+
+    fz_try(ctx) {
+        fstm = fz_open_file(ctx, pdffile);
+        buff = fz_read_file(ctx, imgfile);
+        pdf_add_image_with_filestream(ctx, fstm, buff, pageno, x, y, w, h, savefile);
+
+    }
+    fz_always(ctx) {
+        if(fstm) fz_drop_stream(ctx, fstm);
+        if(buff) fz_drop_buffer(ctx, buff);
+    }
+    fz_catch(ctx) {
+        fz_rethrow(ctx);
+    }
+
+    return z_okay;
+}
+
 #ifdef redirect_error_output
 // Simulator code
 // stderr fileno is 2!!
@@ -430,6 +460,7 @@ fz_rect pdf_page_box(fz_context *ctx, pdf_document *doc, int pageno) {
 	return bbox;
 }
 
+#if 0
 int pdf_add_content_stream(fz_context *ctx, pdf_document *doc, pdf_obj *page,
     fz_buffer *buffer)
 {
@@ -496,8 +527,9 @@ Z_pdf_add_stream(fz_context *ctx, pdf_document *doc, fz_buffer *buf, int cp)
     }
 	return obj;
 }
+#endif
 
-void Z_pdf_obj_display(fz_context *ctx, pdf_obj *obj) 
+void z_pdf_obj_display(fz_context *ctx, pdf_obj *obj) 
 {
     printf("===pdf object content display====\n");
     fz_output *o = fz_new_output_with_file_ptr(ctx, stdout, 0);
@@ -510,8 +542,49 @@ void Z_pdf_obj_display(fz_context *ctx, pdf_obj *obj)
     fz_drop_output(ctx, o);
 }
 
+#if 0
+int z_pdf_add_image_old(fz_context *ctx, pdf_page *page, fz_buffer *imgbuf, int x, int y, int w, int h) 
+{ 
+    pdf_obj *resobj= pdf_dict_get(ctx, page->obj, PDF_NAME_Resources);
+	pdf_obj *subobj;
+
+    // add ext state obj
+    pdf_obj * egsobj = pdf_add_extstate(ctx, page->doc);
+    pdf_resource_add_extgstate(ctx, page->doc, resobj, ntkoextobjname, egsobj);
+    // add image
+    // fz_image *image = fz_new_image_from_file(ctx, RES_Image_file);
+    fz_image *image = fz_new_image_from_buffer(ctx, imgbuf);
+    // pdf_init_resource_tables(ctx, page->doc);
+    pdf_obj *imageobj = pdf_add_image(ctx, page->doc, image, 0);
+    fz_drop_image(ctx, image);
+	subobj = pdf_dict_get(ctx, resobj, PDF_NAME_XObject);
+
+	if (!subobj) {
+		subobj = pdf_new_dict(ctx, page->doc, 10);
+		pdf_dict_put_drop(ctx, resobj, PDF_NAME_XObject, subobj);
+	}
 
 
+	pdf_dict_puts_drop(ctx, subobj, "zlimage", imageobj); 
+	char *xobjname = new_unique_string(ctx, "ntkoimage", NULL);
+    pdf_obj *imagecontent = pdf_add_content(ctx, page->doc, "zlimage", x, y, w, h);
+    pdf_obj *contents = pdf_dict_get(ctx, page->obj, PDF_NAME_Contents);
+
+    if( !pdf_is_array(ctx, contents) ) {
+        pdf_obj *arr = pdf_new_array(ctx, page->doc, 2);
+
+        pdf_array_push_drop(ctx, arr, imagecontent);
+        pdf_array_push(ctx, arr, contents); 
+        pdf_dict_del(ctx, page->obj, contents);
+        pdf_dict_put_drop(ctx, page->obj, PDF_NAME_Contents, arr);
+        contents = arr;
+    }
+    else {
+        pdf_array_push_drop(ctx, contents, imagecontent);
+    }
+    pdf_update_page(ctx, page);
+}
+#endif
 
 
 

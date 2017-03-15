@@ -910,6 +910,7 @@ static void fast_cmyk_to_gray(fz_pixmap *dst, fz_pixmap *src)
 }
 
 #ifdef ARCH_ARM
+
 static void
 fast_cmyk_to_rgb_ARM(unsigned char *dst, unsigned char *src, int n)
 __attribute__((naked));
@@ -917,7 +918,7 @@ __attribute__((naked));
 static void
 fast_cmyk_to_rgb_ARM(unsigned char *dst, unsigned char *src, int n)
 {
-	asm volatile(
+	ASM volatile( 
 	ENTER_ARM
 	"stmfd	r13!,{r4-r11,r14}					\n"
 	"@ r0 = dst							\n"

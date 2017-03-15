@@ -15,7 +15,8 @@
 #include "mupdf_native.h" /* javah generated prototypes */
 
 #ifdef DEBUG
-#define SUPPORT_JNI_DEBUG_ \
+#define SUPPORT_JNI_DEBUG_ 
+//#define SUPPORT_JNI_DEBUG_ \
     printf("jni debug, input a char...\n"); getchar();
 #else
 #define SUPPORT_JNI_DEBUG_ 
@@ -3088,9 +3089,14 @@ FUN(Pixmap_getPixels)(JNIEnv *env, jobject self)
 
 	if (!ctx | !pixmap) return NULL;
 
+#if 1
+    if((pixmap->n - pixmap->alpha) != 3) {
+        jni_throw(env, FZ_ERROR_GENERIC,  "invalid colorspace for getpixels (must be rgb/bgr either with aplha or not)"); 
+    }
+#else 
 	if (pixmap->n != 4 || !pixmap->alpha)
 	{
-		jni_throw(env, FZ_ERROR_GENERIC, "invalid colorspace for getPixels (must be RGB/BGR with alpha)");
+		jni_throw(env, FZ_ERROR_GENERIC, "invalid colorspace for getpixels (must be rgb/bgr with alpha)");
 		return NULL;
 	}
 
@@ -3099,6 +3105,7 @@ FUN(Pixmap_getPixels)(JNIEnv *env, jobject self)
 		jni_throw(env, FZ_ERROR_GENERIC, "invalid stride for getPixels");
 		return NULL;
 	}
+#endif
 
 	arr = (*env)->NewIntArray(env, size);
 	if (!arr) return NULL;
@@ -3935,6 +3942,36 @@ FUN(Annotation_toPixmap)(JNIEnv *env, jobject self, jobject jctm, jobject jcs, j
 	return to_Pixmap_safe_own(ctx, env, pixmap);
 }
 
+// TODO: define ntko custom pdf object, and it's operation
+// in .h file, to call use union interface
+JNIEXPORT jobject JNICALL
+FUN(Annotation_ntkodata)(JNIEnv *env, jobject self)
+{
+	fz_context *ctx = get_context(env);
+	pdf_document *doc =  pdf_specifics(ctx, from_Document(env, self));
+
+    if(!doc) {
+        // only pdf support ntko data
+        return  NULL;
+    } 
+
+	pdf_annot *annot = (pdf_annot*)from_Annotation(env, self);
+
+    pdf_obj *ntko = pdf_dict_gets(ctx, annot->obj, "NTKO");
+    const char *data = NULL;
+    if(ntko) {
+        pdf_obj *dataobj = pdf_dict_gets(ctx, ntko, "Data");
+
+        if(dataobj)
+            data = pdf_to_str_buf(ctx, dataobj);
+    }
+
+    if(data)
+        return (*env)->NewStringUTF(env, data);
+    
+    return NULL; 
+}
+
 JNIEXPORT jobject JNICALL
 FUN(Annotation_getBounds)(JNIEnv *env, jobject self)
 {
@@ -4314,6 +4351,7 @@ FUN(Document_pdfAddSignature) (JNIEnv *env, jobject self, jobject _page, jobject
             fz_throw(ctx, FZ_ERROR_GENERIC, "failed,sign device is null");
         }
         z_pdf_dosign_with_page(ctx, device, doc, page, app);
+        pdf_update_page(ctx, page);
     }
     fz_catch(ctx) {
         jni_rethrow(env, ctx);
@@ -4969,7 +5007,10 @@ JNIEXPORT void JNICALL Java_com_z_PdfSignAppearance_finalize
 (JNIEnv *env, jobject self) {
 	fz_context *ctx = get_context(env);
     z_pdf_sign_appearance *app = from_PdfSignAppearance(env, self);
-    z_pdf_drop_sign_appreance(ctx, app); 
+    if(app) {
+        z_pdf_drop_sign_appreance(ctx, app); 
+        (*env)->SetLongField(env, self, fid_PdfSignAppearance_pointer, 0); 
+    }
 }
 
 JNIEXPORT jlong JNICALL Java_com_z_PdfSignAppearance_newNativeWithImageFile
@@ -5026,7 +5067,10 @@ JNIEXPORT void JNICALL Java_com_z_OpensslSignDevice_finalize
 {
     fz_context *ctx = get_context(env);
     z_device *device = from_OpensslSignDevice(env, self);
-    z_drop_device(ctx, device); 
+    if(device) {
+        z_drop_device(ctx, device); 
+        (*env)->SetLongField(env, self, fid_OpensslSignDevice_pointer, 0); 
+    }
 }
 
 JNIEXPORT jlong JNICALL Java_com_z_OpensslSignDevice_newNativeWithPfxFile

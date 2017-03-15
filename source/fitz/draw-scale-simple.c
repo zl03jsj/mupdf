@@ -549,10 +549,7 @@ scale_row_to_temp(unsigned char * restrict dst, const unsigned char * restrict s
 	}
 }
 
-#pragma message("not use asm code, becase of invalid asm instruction")
-// #if defined(ARMV7) || defined(ARM64)
-// #ifdef ARCH_ARM
-#if 0
+#ifdef ARCH_ARM
 static void
 scale_row_to_temp1(unsigned char * restrict dst, const unsigned char * restrict src, const fz_weights * restrict weights)
 __attribute__((naked));
@@ -580,7 +577,7 @@ __attribute__((naked));
 static void
 scale_row_to_temp1(unsigned char * restrict dst, const unsigned char * restrict src, const fz_weights * restrict weights)
 {
-	asm volatile(
+	ASM volatile(
 	ENTER_ARM
     ".syntax unified\n"
 	"stmfd	r13!,{r4-r7,r9,r14}				\n"
@@ -647,7 +644,7 @@ scale_row_to_temp1(unsigned char * restrict dst, const unsigned char * restrict 
 static void
 scale_row_to_temp2(unsigned char * restrict dst, const unsigned char * restrict src, const fz_weights * restrict weights)
 {
-	asm volatile(
+	ASM volatile(
 	ENTER_ARM
 	"stmfd	r13!,{r4-r6,r9-r11,r14}				\n"
 	"@ r0 = dst						\n"
@@ -717,7 +714,7 @@ scale_row_to_temp2(unsigned char * restrict dst, const unsigned char * restrict 
 static void
 scale_row_to_temp3(unsigned char * restrict dst, const unsigned char * restrict src, const fz_weights * restrict weights)
 {
-	asm volatile(
+	ASM volatile(
 	ENTER_ARM
 	"stmfd	r13!,{r4-r11,r14}				\n"
 	"@ r0 = dst						\n"
@@ -800,7 +797,7 @@ scale_row_to_temp3(unsigned char * restrict dst, const unsigned char * restrict 
 static void
 scale_row_to_temp4(unsigned char * restrict dst, const unsigned char * restrict src, const fz_weights * restrict weights)
 {
-	asm volatile(
+	ASM volatile(
 	ENTER_ARM
 	"stmfd	r13!,{r4-r11,r14}				\n"
 	"@ r0 = dst						\n"
@@ -874,7 +871,7 @@ scale_row_to_temp4(unsigned char * restrict dst, const unsigned char * restrict 
 static void
 scale_row_from_temp(unsigned char * restrict dst, const unsigned char * restrict src, const fz_weights * restrict weights, int width, int n, int row)
 {
-	asm volatile(
+	ASM volatile(
 	ENTER_ARM
 	"stmfd	r13!,{r4-r11,r14}				\n"
 	"@ r0 = dst						\n"
@@ -956,7 +953,7 @@ scale_row_from_temp(unsigned char * restrict dst, const unsigned char * restrict
 static void
 scale_row_from_temp_alpha(unsigned char * restrict dst, const unsigned char * restrict src, const fz_weights * restrict weights, int width, int n, int row)
 {
-	asm volatile(
+	ASM volatile(
 	ENTER_ARM
 	"stmfd	r13!,{r4-r11,r14}				\n"
 	"mov	r11,#255		@ r11= 255		\n"

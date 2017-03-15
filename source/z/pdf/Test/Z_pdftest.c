@@ -16,8 +16,11 @@
 #include "mupdf/pdf.h"
 
 #define RES_PATH "/Users/zl03jsj/Documents/pdftest"
-#define RES_Image_file  RES_PATH"/esp_saved.png"
+// #define RES_Image_file  RES_PATH"/Monkey_D_Luffey.png"
 // #define RES_Image_file  RES_PATH"/esp_saved.png"
+// #define RES_Image_file  "/Users/zl03jsj/Downloads/pdf-pre-post-annotation.png"
+#define RES_Image_file  RES_PATH"/esp_saved.png"
+
 // #define RES_Pdf_file    RES_PATH"/pdffile/PDF32000_2008.pdf"
 #define RES_Pdf_file    RES_PATH"/pdffile/test.pdf"
 #define RES_Cert_file   RES_PATH"/user/zl.pfx"
@@ -58,56 +61,14 @@ void doTestsign(fz_context *ctx, pdf_document *doc, char *ofilename, fz_rect r) 
 
 void doTestAddImage(fz_context *ctx, pdf_document *doc)
 {
-    fz_stream *imgstream = fz_open_file(ctx, RES_Image_file);
-    fz_buffer *imgbuffer = fz_read_all(ctx, imgstream, 1024);
-    fz_drop_stream(ctx, imgstream);
-    pdf_add_image_with_document(ctx, doc,imgbuffer, 0, 100, 700, 100,100);
-    z_pdf_incremental_save_document(ctx, doc, RES_Pdf_savedfile, NULL);
-#if 0
-    pdf_page *page = pdf_load_page(ctx, doc, 0);
-    pdf_obj *pageobj = page->me;
-    pdf_obj *resobj  = page->resources;
-	pdf_obj *subres;
-
-    // add ext state obj
-    pdf_obj * egsobj = pdf_add_extstate(ctx, doc);
-    pdf_resource_add_extgstate(ctx, doc, resobj, ntkoextobjname, egsobj);
-
-    // add image
-    fz_image *image = fz_new_image_from_file(ctx, RES_Image_file);
-    pdf_init_resource_tables(ctx, doc);
-    pdf_obj *imageobj = pdf_add_image(ctx, doc, image, 0);
-    fz_drop_image(ctx, image);
-
-	subres = pdf_dict_get(ctx, resobj, PDF_NAME_XObject);
-	if (!subres) {
-		subres = pdf_new_dict(ctx, doc, 10);
-		pdf_dict_put_drop(ctx, resobj, PDF_NAME_XObject, subres);
-	}
-	pdf_dict_puts_drop(ctx, subres, "zlimage", imageobj);
-
-    // add contents
-    pdf_obj *imagecontentobj = pdf_add_content(ctx, doc, "zlimage",
-            75, 650, 200, 200);
-    pdf_obj *contentobj = page->contents;
-    if( !pdf_is_array(ctx, contentobj) ) {
-        pdf_obj *arr = pdf_new_array(ctx, doc, 2);
-
-        pdf_array_push_drop(ctx, arr, imagecontentobj);
-        pdf_array_push(ctx, arr, contentobj);
-
-        pdf_dict_del(ctx, pageobj, contentobj);
-        pdf_dict_put_drop(ctx, pageobj, PDF_NAME_Contents, arr);
-        contentobj = arr;
+    fz_try(ctx) {
+        pdf_add_imagefile(ctx, doc, RES_Image_file, 0, 0, 0, 100, 100);
+        z_pdf_incremental_save_document(ctx, doc, RES_Pdf_savedfile, NULL);
     }
-    else {
-        pdf_array_push_drop(ctx, contentobj, imagecontentobj);
+    fz_catch(ctx) {
+        fz_warn(ctx, "%s", fz_caught_message(ctx));
     }
-    page->contents = contentobj;
-    pdf_save_incremental_tofile(ctx, doc, RES_Pdf_savedfile);
-    printf("page ref=%d\n", page->super.refs);
-    pdf_drop_page(ctx, page);
-#endif
+
 }
 
 void doTestSaveSigndata(char* infile, int b1, int size1, int b2,int size2, char *ofile)
@@ -252,9 +213,8 @@ int main(int argc, char **argv) {
     fz_context *ctx = fz_new_context(NULL, NULL, FZ_STORE_DEFAULT);
     pdf_document *doc = pdf_open_document(ctx, infile);
     // xref = pdf_get_xref_entry
-    doTestPdfSign(ctx, doc, 0, r, ofile);
-    // doTestAddImage(ctx, doc);
-    // doTestsign(ctx, doc, ofile, r);
+    // doTestPdfSign(ctx, doc, 0, r, ofile);
+    doTestAddImage(ctx, doc);
     pdf_drop_document(ctx, doc);
     fz_drop_context(ctx);
     printf("====================\n");
