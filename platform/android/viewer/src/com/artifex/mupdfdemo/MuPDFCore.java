@@ -67,12 +67,12 @@ public class MuPDFCore
 	private native void addInkAnnotationInternal(PointF[][] arcs,String password, String ncdata, float inkThickness, float inkColor);
 
 
-    private void addAnnotation(ArrayList<Bezier> l, float maxwidth, String password, String ncdata, int color) {
+     public void addAnnotation(ArrayList<Bezier> l, float maxwidth, String password, String ncdata, int color) {
 		ZPoint[][] arcs = new ZPoint[l.size()][];
 		int i;
 		for(i=0; i<l.size(); ++i)  {
-			arcs[i] = new ZPoint[l.get(i).getZPoints().size()];
-			l.get(i).getZPoints().toArray(arcs[i]);
+			ArrayList<ZPoint> ps = l.get(i).getZPoints();
+			arcs[i] = ps.toArray(new ZPoint[ps.size()]);
 		}
 		addAnnotaionWithPressure(arcs, maxwidth, password, ncdata, color);
     }
