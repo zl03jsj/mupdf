@@ -1,18 +1,13 @@
 /*
  * =====================================================================================
- *
  *       Filename:  z_pdf_ntko_data.c
- *
- *    Description:  jjjj
- *
+ *    Description:  operations for pdf ntko-custom-data
  *        Version:  1.0
  *        Created:  2017/03/15 17时59分39秒
  *       Revision:  none
  *       Compiler:  gcc
- *
- *         Author:  YOUR NAME (), 
- *   Organization:  
- *
+ *         Author:  YOUR NAME (88911562@qq.com),
+ *   Organization:  ntko.com
  * =====================================================================================
  */
 // ntko defined annotaion data
