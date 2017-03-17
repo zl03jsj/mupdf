@@ -1692,17 +1692,18 @@ z_points_to_zfpoints_arrlist(JNIEnv *env, fz_context *ctx, jobjectArray zpoint_a
     z_fpoint_array *a = NULL;
 
     jobjectArray one; 
-    for(i=0; i<lsize; i++) {
+    for(i=0; i<lsize; ++i) {
         one = (jobjectArray)(*env)->GetObjectArrayElement(env, zpoint_aa, i); 
         asize = (*env)->GetArrayLength(env, one);
 
         a = z_new_fpoint_array(ctx, asize, maxwidth, 0.5f);
 
         for(j=0; j<asize; ++j) {
-            jobject zp = (*env)->GetObjectArrayElement(env, a, j);
-            a->point[j].p.x = (*env)->CallIntMethod(env, zp, mid_x);
-            a->point[j].p.y = (*env)->CallIntMethod(env, zp, mid_y);
-            a->point[j].w = (*env)->GetIntField(env, zp, fid_w);
+            jobject zp = (*env)->GetObjectArrayElement(env, one, j);
+            a->point[j].p.x = (*env)->CallFloatMethod(env, zp, mid_x);
+            a->point[j].p.y = (*env)->CallFloatMethod(env, zp, mid_y);
+            a->point[j].w = (*env)->GetFloatField(env, zp, fid_w);
+            a->len++;
             fz_transform_point(&(a->point[j].p), mtx);
         }
         z_fpoint_arraylist_append(ctx, l, a); 
@@ -2239,12 +2240,12 @@ JNI_FN(MuPDFCore_getAnnotationsInternal)(JNIEnv * env, jobject thiz, int pageNum
                 const char* tmpdata;
 
                 if(fid) {
-                    jdata = (*env)->GetObjectField(env, annot, fid);    
+                    jdata = (*env)->GetObjectField(env, jannot, fid);    
                     tmpdata = (*env)->GetStringUTFChars(env, jdata, NULL);
                     if(tmpdata)
                         (*env)->ReleaseStringUTFChars(env, jdata, tmpdata);
                     jdata = (*env)->NewStringUTF(env, data);
-                    (*env)->SetObjectField(env, annot, fid, jdata);
+                    (*env)->SetObjectField(env, jannot, fid, jdata);
                 }
             }
         }
