@@ -1678,38 +1678,37 @@ str_get_md5(fz_context *ctx, const char* str, unsigned char *digest)
 }
 
 static z_fpoint_arraylist* 
-z_points_to_zfpoints_arrlist(JNIEnv *env, fz_context *ctx, jobjectArray zpoint_aa, float maxwidth, fz_matrix *mtx) 
+z_points_to_zfpoints_arrlist(JNIEnv *env, fz_context *ctx, jobjectArray jzpss, float maxwidth, fz_matrix *mtx) 
 {
     jclass cls_zpoint =  (*env)->FindClass(env, "com/z/ZPoint"); 
     jfieldID  fid_w = (*env)->GetFieldID(env, cls_zpoint,  "w", "F"); 
     jmethodID mid_x = (*env)->GetMethodID(env, cls_zpoint, "x", "()F");
     jmethodID mid_y = (*env)->GetMethodID(env, cls_zpoint, "y", "()F");
 
-    int i, j, lsize, asize;
-	lsize = (*env)->GetArrayLength(env, zpoint_aa);
+    int fpa_size, fpal_size, i, j;
+    fpal_size = (*env)->GetArrayLength(env, jzpss);
 
-    z_fpoint_arraylist *l = z_new_fpoint_arraylist(ctx); 
-    z_fpoint_array *a = NULL;
+    z_fpoint_arraylist *fpal = z_new_fpoint_arraylist(ctx); 
+    z_fpoint_array *fpa = NULL; 
+    jobjectArray jzps; 
 
-    jobjectArray one; 
-    for(i=0; i<lsize; ++i) {
-        one = (jobjectArray)(*env)->GetObjectArrayElement(env, zpoint_aa, i); 
-        asize = (*env)->GetArrayLength(env, one);
+    for(i=0; i<fpal_size; ++i) {
+        jzps = (jobjectArray)(*env)->GetObjectArrayElement(env, jzpss, i); 
+        fpa_size = (*env)->GetArrayLength(env, jzps);
 
-        a = z_new_fpoint_array(ctx, asize, maxwidth, 0.5f);
-
-        for(j=0; j<asize; ++j) {
-            jobject zp = (*env)->GetObjectArrayElement(env, one, j);
-            a->point[j].p.x = (*env)->CallFloatMethod(env, zp, mid_x);
-            a->point[j].p.y = (*env)->CallFloatMethod(env, zp, mid_y);
-            a->point[j].w = (*env)->GetFloatField(env, zp, fid_w);
-            a->len++;
-            fz_transform_point(&(a->point[j].p), mtx);
+        fpa = z_new_fpoint_array(ctx, fpa_size, maxwidth, 0.5f); 
+        for(j=0; j<fpa_size; ++j) {
+            jobject zp = (*env)->GetObjectArrayElement(env, jzps, j);
+            fpa->point[j].p.x = (*env)->CallFloatMethod(env, zp, mid_x);
+            fpa->point[j].p.y = (*env)->CallFloatMethod(env, zp, mid_y);
+            fpa->point[j].w = (*env)->GetFloatField(env, zp, fid_w);
+            fpa->len++;
+            fz_transform_point(&(fpa->point[j].p), mtx);
         }
-        z_fpoint_arraylist_append(ctx, l, a); 
+        z_fpoint_arraylist_append(ctx, fpal, fpa); 
     }
 
-    return l; 
+    return fpal; 
 }
 
 JNIEXPORT void JNICALL

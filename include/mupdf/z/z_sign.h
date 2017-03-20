@@ -34,7 +34,6 @@ typedef void (*z_sign_drop_appearance_fn)(fz_context*, z_pdf_sign_appearance *);
 typedef void (*z_sign_setsign_value_fn)(fz_context*, z_device *);
 typedef void (*z_sign_releasedevice_fn)(fz_context*, z_device *);
 
-
 struct z_pdf_sign_appearance_s {
     int refcount;
     fz_rect rect;

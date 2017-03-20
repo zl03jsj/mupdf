@@ -1,0 +1,72 @@
+mupdf 项目说明:
+
+目录结构:
+▾ mupdf/            /* 根目录
+  ▸ build/          /* Makefile 编译的输出目录
+  ▸ docs/           /* 官方文档
+  ▸ generated/      /* Makefile编译生成的的资源目录
+  ▸ include/        /* 头文件目录
+  ▸ platform/       /* java, android, ios, win32, x11平台相关的示例
+  ▸ resources/      /* 资源文件目录
+  ▸ scripts/        /* 这个目录还没有研究过
+  ▸ source/         /* 源文件目录
+  ▸ thirdparty/     /* 第三方库源代码
+    Makefile        
+    Makerules
+    Makethird
+    README
+    README.orig
+
+编译:
+$ cd ./mupdf 
+$ make -f Makefile HAVE_OPENSSL=yes CORE_ESP=yes CORE_SVR_HELPER=yes build=debug
+
+build:           debug/release, 控制编译debug版本或者release版本
+HAVE_OPENSSL:    yes, 则HAVE_LIBCRYPTO, HAVE_OPENSSL_SSL都会被设置为yes, 其中HAVE_LIBCRYPTO控制mupdf库是否可以使用openssl, 对pdf进行数字证书签名, HAVE_OPENSSL_SSL 控制libcurl是否支持https.
+CORE_ESP:        yes, 则把解析ntko esp格式印章文件的接口编译到mupdf的核心库中.
+CORE_SVR_HELPER: yes, 则把与ntko签章服务器通讯的接口编译到mupdf的核心库中, 项目在链接时,需要link对应的libcurl库, 如果定义了HAVE_OPENSSL=yes, 则同样需要链接ssl库.
+
+endroid 平台编译,需要安装ndk
+$ cd ./mupdf/platform/android/viewer
+$ ndk-build
+
+ios 平台编译, 需要mac系统,安装xcode
+在finder中定位到 ./mupdf/platform/ios/ 目录
+直接双击MuPDF.xcodeproj 项目文件,使用xcode 编译.
+
+数字证书签名相关:
+header文件: 
+    mupdf/include/mupdf/z/z_sign.h
+    mupdf/include/mupdf/pdf/crypt.h
+    mupdf/inlcude/mupdf/pdf/appearance.h
+source文件:
+    mupdf/source/z/pdf/z_sign.c
+    mupdf/source/pdf-pkcs7.c
+    mupdf/source/pdf-appearance.c
+
+以图片签章为例:
+    // 1: 创建签名device, pdf签名的appearance
+    z_device * device = z_openssl_new_device(ctx, RES_PATH"/user/zl.pfx", "111111");
+    fz_image * image = fz_new_image_from_file(ctx, RES_Image_file); 
+    z_pdf_sign_appearance *app = z_pdf_new_sign_appearance_with_image(ctx, image, rect, NULL); 
+    // 2: 加载pdfpage
+    pdf_page *page = pdf_load_page(ctx, doc, pageno); 
+    // 3: 开始添加签名
+    z_pdf_dosign_with_page(ctx, device, doc, page, app); 
+    pdf_drop_page(ctx, page); 
+    z_drop_device(ctx, device); 
+    // 4: 保存文档(计算数字证书签名,并保存文档)
+    z_pdf_incremental_save_document(ctx, doc, savefile, NULL);
+
+
+示例代码:
+mupdf/source/z/pdf/pdftest.c: 
+数字证书签名, 模拟手写笔迹的annotaion, 模拟书写笔迹算法, 添加图片等功能的实例代码
+
+mupdf/source/z/esp/espTest.cpp: 
+解析ntko esp签章文件的演示代码.
+
+mupdf/source/z/ntko_http_test.c
+与签章服务器通讯的演示代码.
+
+另外, ios平台的项目包含了大部分功能的演示.
