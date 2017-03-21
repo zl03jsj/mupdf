@@ -119,6 +119,8 @@ void *z_list_remove_last(fz_context *ctx, z_list *zlist);
 void z_list_clear(fz_context *ctx, z_list *zlist);
 void z_list_free(fz_context *ctx, z_list *zlist);
 
+/* digest must be 33 char size  */
+void z_text_md5(fz_context *ctx, const char* str, char *digest);
 
 #ifdef __cplusplus
 }

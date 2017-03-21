@@ -378,3 +378,21 @@ void z_list_free(fz_context *ctx, z_list *zlist)
 
 }
 
+/* digest must be 33 char size  */
+void
+z_text_md5(fz_context *ctx, const char* str, char *digest)
+{
+    int len = strlen(str);
+    unsigned char d[16];
+	fz_md5 state;
+	fz_md5_init(&state);
+	fz_md5_update(&state, (const unsigned char*)str, len);
+	fz_md5_final(&state, d);
+
+    int i;
+    for(i=0; i<(int)sizeof(d); i++) {
+        sprintf(digest, "%02x", d[i]);
+        digest+=2;
+    }
+    *digest = '\0';
+}

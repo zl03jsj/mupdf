@@ -641,8 +641,8 @@ z_pdf_add_annotation(fz_context *ctx, pdf_page *page, z_pdf_sign_appearance *app
     pdf_annot *annot = NULL;
 
     fz_try(ctx) {
-        annot = (pdf_annot*)pdf_create_annot(ctx, page, PDF_ANNOT_INK); 
-         z_pdf_annot_put_data(ctx, annot, psw, data);
+        annot = pdf_create_annot(ctx, page, PDF_ANNOT_INK); 
+        z_pdf_annot_put_data(ctx, annot, psw, data);
         // must add /P(which page the annot belong to) tag.
         pdf_dict_put_drop(ctx, annot->obj, PDF_NAME_P, 
             pdf_new_indirect(ctx, page->doc, pdf_obj_parent_num(ctx, page->obj), 0));

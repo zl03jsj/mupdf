@@ -153,4 +153,6 @@ void pdf_set_str_len(fz_context *ctx, pdf_obj *obj, int newlen);
 void pdf_set_int(fz_context *ctx, pdf_obj *obj, int i);
 void pdf_set_int_offset(fz_context *ctx, pdf_obj *obj, fz_off_t i);
 
+/*  print pdf object to file */
+void z_pdf_print_obj_file(fz_context *ctx, pdf_obj *obj, const char *filename);
 #endif

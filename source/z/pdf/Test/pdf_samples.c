@@ -93,7 +93,11 @@ void testAddAnnotation(fz_context *ctx, pdf_document *doc, int pageno, char *sav
         z_fpoint_arraylist_append(ctx, fpal, fps);
 
         app = z_pdf_new_sign_appearance_with_paths(ctx, fpal, fz_empty_rect, NULL);
-        z_pdf_add_annotation(ctx, page, app, "password", "ntkodata!!!!!!!!!!!!!!!!!!");
+        char md5[33];
+        z_text_md5(ctx, "111111", md5);
+        printf("password md5 = %s\n", md5);
+        z_pdf_add_annotation(ctx, page, app, md5, NULL);
+
 //        pdf_write_options opts = {0};
 //        pdf_save_document(ctx, doc, savefile, &opts);
         z_pdf_incremental_save_document(ctx, doc, savefile, NULL);
@@ -296,7 +300,7 @@ int main(int argc, char **argv) {
     // xref = pdf_get_xref_entry
     // doTestPdfSign(ctx, doc, 0, r, ofile);
     // doTestAddImage(ctx, doc);
-    testAddAnnotation(ctx, doc, 0, ofile);
+    testAddAnnotation(ctx, doc, 17, ofile);
     pdf_drop_document(ctx, doc);
     fz_drop_context(ctx);
     printf("====================\n");

@@ -2150,6 +2150,27 @@ int pdf_print_obj(fz_context *ctx, fz_output *out, pdf_obj *obj, int tight)
 	return n;
 }
 
+void z_pdf_print_obj_file(fz_context *ctx, pdf_obj *obj, const char *filename) 
+{
+//``a+''  Open for reading and writing.  The file is created if it does not
+//        exist.  The stream is positioned at the end of the file.  Subse-
+//        quent writes to the file will always end up at the then current
+//        end of file, irrespective of any intervening fseek(3) or similar
+    FILE *f = fopen(filename, "a+b");
+    if(!f) 
+        fz_throw(ctx, FZ_ERROR_GENERIC, "cannot open file:%s", filename);
+
+    fz_output *o = NULL;
+    fz_try(ctx) {
+        o = fz_new_output_with_file_ptr(ctx, f, 1);
+        pdf_print_obj(ctx, o, obj, 1); 
+    }
+    fz_always(ctx) 
+        fz_drop_output(ctx, o); 
+    fz_catch(ctx) 
+        fz_warn(ctx, "%s", fz_caught_message(ctx));
+}
+
 int pdf_obj_refs(fz_context *ctx, pdf_obj *ref)
 {
 	return (ref >= PDF_OBJ__LIMIT ? ref->refs : 0);

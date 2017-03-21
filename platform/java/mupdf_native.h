@@ -49,6 +49,14 @@ JNIEXPORT jobject JNICALL Java_com_artifex_mupdf_fitz_Annotation_toDisplayList
 
 /*
  * Class:     com_artifex_mupdf_fitz_Annotation
+ * Method:    ntkodata
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_artifex_mupdf_fitz_Annotation_ntkodata
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_artifex_mupdf_fitz_Annotation
  * Method:    advance
  * Signature: ()J
  */

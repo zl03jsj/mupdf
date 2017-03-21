@@ -1667,16 +1667,6 @@ JNI_FN(MuPDFCore_addMarkupAnnotationInternal)(JNIEnv * env, jobject thiz, jobjec
 	}
 }
 
-static void
-str_get_md5(fz_context *ctx, const char* str, unsigned char *digest)
-{
-    int len = strlen(str);
-	fz_md5 state;
-	fz_md5_init(&state);
-	fz_md5_update(&state, (const unsigned char*)str, len);
-	fz_md5_final(&state, digest);
-}
-
 static z_fpoint_arraylist* 
 z_points_to_zfpoints_arrlist(JNIEnv *env, fz_context *ctx, jobjectArray jzpss, float maxwidth, fz_matrix *mtx) 
 {
@@ -1704,7 +1694,11 @@ z_points_to_zfpoints_arrlist(JNIEnv *env, fz_context *ctx, jobjectArray jzpss, f
             fpa->point[j].w = (*env)->GetFloatField(env, zp, fid_w);
             fpa->len++;
             fz_transform_point(&(fpa->point[j].p), mtx);
+
+            (*env)->DeleteLocalRef(env, zp);
         }
+
+        (*env)->DeleteLocalRef(env, jzps);
         z_fpoint_arraylist_append(ctx, fpal, fpa); 
     }
 
@@ -1726,31 +1720,32 @@ JNI_FN(MuPDFCore_addAnnotaionWithPressure)(JNIEnv * env, jobject thiz, jobjectAr
         (inkColor&0xFF)/255.0, 0.0f };
 
 	const char *pw = NULL;
-	char md5psw[16];
+	char md5psw[33];
     const char *data = NULL;
-
 
 	if (doc== NULL)
 		return;
 
+    // if java string password, is java null, c string pw is "null"
+    // if input null java string to delete annot,
+    // we get "null" c string too.so, we stil can delete annotaion.
 	pw = (*env)->GetStringUTFChars(env, password, NULL);
     if( pw ) {
-        str_get_md5(ctx, pw, (unsigned char*)md5psw); 
+        z_text_md5(ctx, pw, md5psw); 
         (*env)->ReleaseStringUTFChars(env, password, pw);
-        pw = md5psw;
+        pw = md5psw; 
     } 
-    else pw = NULL;
 
     data = (*env)->GetStringUTFChars(env, jncdata, NULL); 
     z_fpoint_arraylist *l = NULL;
 
 	fz_try(ctx)
 	{
-        pdf_annot *annot;
-		fz_matrix mtx;
+		float zoom = 72.0 / glo->resolution;
+		fz_matrix mtx; 
 
-		float zoom = 72 / glo->resolution;
-		fz_scale(&mtx, zoom, zoom);
+		fz_scale(&mtx, zoom, zoom); 
+        maxwidth *= zoom;
 
         l = z_points_to_zfpoints_arrlist(env, ctx, arcs, maxwidth, &mtx);
         app = z_pdf_new_sign_appearance_with_paths(ctx, l, fz_empty_rect, NULL);
@@ -1759,6 +1754,8 @@ JNI_FN(MuPDFCore_addAnnotaionWithPressure)(JNIEnv * env, jobject thiz, jobjectAr
         dump_annotation_display_lists(glo);
     }
 	fz_always(ctx) {
+        if(data) (*env)->ReleaseStringUTFChars(env, jncdata, data);
+
         if(l) z_drop_fpoint_arraylist(ctx, l);
         if(app) z_pdf_drop_sign_appreance(ctx, app);
 	}
@@ -1766,7 +1763,6 @@ JNI_FN(MuPDFCore_addAnnotaionWithPressure)(JNIEnv * env, jobject thiz, jobjectAr
 		LOGE("addAnnotation: %s failed", ctx->error->message);
 		jclass cls = (*env)->FindClass(env, "java/lang/OutOfMemoryError");
 		if (cls != NULL)
-			(*env)->ThrowNew(env, cls, "Out of memory in MuPDFCore_searchPage");
 		(*env)->DeleteLocalRef(env, cls);
 	}
 }
@@ -1791,7 +1787,7 @@ JNI_FN(MuPDFCore_addInkAnnotationInternal)(JNIEnv * env, jobject thiz, jobjectAr
         (inkColor&0xFF)/255.0, 0.0f };
 
 	const char *pw = NULL;
-	char md5psw[16];
+	char md5psw[33];
     const char *ncdata = NULL;
 
 
@@ -1800,12 +1796,10 @@ JNI_FN(MuPDFCore_addInkAnnotationInternal)(JNIEnv * env, jobject thiz, jobjectAr
 
 	pw = (*env)->GetStringUTFChars(env, password, NULL);
     if( pw ) {
-        str_get_md5(ctx, pw, (unsigned char*)md5psw); 
+        z_text_md5(ctx, pw, md5psw); 
         (*env)->ReleaseStringUTFChars(env, password, pw);
         pw = md5psw;
     } 
-    else
-        pw = NULL;
 
     ncdata = (*env)->GetStringUTFChars(env, jncdata, NULL);
 
@@ -1898,19 +1892,20 @@ JNI_FN(MuPDFCore_deleteAnnotationInternal)(JNIEnv * env, jobject thiz, int annot
 	int i;
 
 	const char *pw = NULL;
-	unsigned char md5psw[16];
+	char md5psw[33];
 
 	if (idoc == NULL)
 		return;
 
 	pw = (*env)->GetStringUTFChars(env, password, NULL);
+    // if java string password, is java null, c string pw is "null"
+    // if input null java string to delete annot,
+    // we get "null" c string too.
+    // so, we stil can delete annotaion.
     if(pw) {
-        str_get_md5(ctx, pw, md5psw);
-    }
-
-    if( pw ) {
+        z_text_md5(ctx, pw, md5psw); 
         (*env)->ReleaseStringUTFChars(env, password, pw);
-        pw = NULL;
+        pw = md5psw; 
     }
 
 	fz_try(ctx)
@@ -1921,15 +1916,17 @@ JNI_FN(MuPDFCore_deleteAnnotationInternal)(JNIEnv * env, jobject thiz, int annot
 
 		if (annot) {
             const char* tmp = z_pdf_ntko_password(ctx, ((pdf_annot*)annot)->obj);
-            if(tmp && !memcmp(tmp, pw, sizeof(md5psw)))
-            {
+            int passwordOk = 1; 
+            if(tmp && (!pw || memcmp(tmp, pw, sizeof(md5psw))))
+                passwordOk = 0; 
+
+            if(passwordOk) {
                 pdf_delete_annot(ctx, (pdf_page *)pc->page, (pdf_annot *)annot);
                 update_changed_rects_all_page(glo, pc, idoc);
                 dump_annotation_display_lists(glo); 
             }
-            else {
+            else
                 fz_throw(ctx, FZ_ERROR_GENERIC, "Cannot delete annotaion: wrong password.");
-            }
 		}
 	}
 	fz_catch(ctx)
@@ -1964,7 +1961,7 @@ JNI_FN(MuPDFCore_isAnnotationHasPasswordInternal)(JNIEnv * env, jobject thiz, in
 			annot = fz_next_annot(ctx, annot);
 
 		if (annot) {
-            const char *tmp = z_pdf_ntko_data(ctx, ((pdf_annot*)annot)->obj);
+            const char *tmp = z_pdf_ntko_password(ctx, ((pdf_annot*)annot)->obj);
             hasPassword = tmp ? JNI_TRUE :JNI_FALSE;
 		}
 		else {
