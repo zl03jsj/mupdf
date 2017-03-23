@@ -1,11 +1,43 @@
 about:
-some extensions of mupdf for editing pdf by 88911562@qq
+extensions of mupdf.  by 88911562@qq
 
-git:
+extension functions:
+1)add pdf signature with image appearance.
+2)add pdf signature with path appearance.
+3)insert image to pdf.
+4)add hand draw annotation to pdf.
+5)annotation can added with password, and check password on deleting annotation.
+the all above functions could be used on windows, ios, android platform, and for java, c++ language.
+
+compile mupdf core library on windows,mac,linux platform:
+first step: 
+compile your openssl lib, get 2 library: libcrypto.a, libssl.a 
+
+second: 
+copy to  mupdf_dir_path/thirdparty/openssl/platform/ dir
+platform is: ios, macos, win, linux
+
+finnally:
+$cd mupdf_dir_path
+$make -f Makefile HAVE_LIBCRYPTO=yes HAVE_OPENSSL_SSL=yes build=debug
+you can use "HAVE_OPENSSL=yes" to replace  "HAVE_LIBCRYPTO=yes HAVE_OPENSSL_SSL=yes"
+if everything is ok, you can get libmupdf.a at mupdf_dir_path/build/release(debug)/
+
+now you can use libmupdf.a to do something. do not forget:
+when compile application, you must link openssl library.
+example:
+gcc ./test_pdf_signature.c -LPathofOpensslLib -lcrypto -lssl -lmupdf
+
+compile mupdf for android:
+
+
+
+mupdf official website: 
+www.mupdf.com
+official source clone :
 git clone --recursive git://git.ghostscript.com/mupdf.git 1.10a
 
-mupdf official website:
-www.mupdf.com
+
 
 The renderer in MuPDF is tailored for high quality anti-aliased graphics. It
 renders text with metrics and spacing accurate to within fractions of a pixel
