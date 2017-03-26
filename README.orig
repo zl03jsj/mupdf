@@ -9,7 +9,7 @@ extension functions:
 5)annotation can added with password, and check password on deleting annotation.
 the all above functions could be used on windows, ios, android platform, and for java, c++ language.
 
-buttom samples,look at:
+samples,look at:
 mupdf_path/source/z/pdf/samples/pdf_samples.c
 
 compile samples:
@@ -63,7 +63,24 @@ $make -C ../../.. generate
 $ndk-build
 you can get dynamic lib for android at: mupdf_dir_path/platform/android/viewer/lib
 
-                                                 all extensions by 88911562@qq.com
+for ios:
+you can open the project at(mupdf_dir_path/platform/ios) with xcode directly.
+select the Mupdf_openssl_sign target to compile.
+the ios application's directory like this:
+app_path/Documents
+    +/imagefiles
+        image_files
+    +/pfxfiles
+        certificate_files
+    .....
+    pdffiles.pdf
+    .....
+
+the test directory is created at:
+mupdf_path/platform/ios/Documents/ 
+you can use this folder directly.
+
+                                        all extensions by 88911562@qq.com
 
 mupdf official website: 
 www.mupdf.com
