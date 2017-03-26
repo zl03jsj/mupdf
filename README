@@ -1,5 +1,5 @@
 about:
-extensions of mupdf.  by 88911562@qq
+extensions of mupdf.              by 88911562@qq.com
 
 extension functions:
 1)add pdf signature with image appearance.
@@ -20,7 +20,7 @@ then you can run sample:
 $./pdftest 
 
 note:
-pdf signature sample need certificate, there is a test certificate at:
+pdf signature samples may needs certificate, there is a test certificate at:
 mupdf_path/source/z/pdf/samples/user/zl.pfx
 and it's password is '111111'
 
@@ -47,7 +47,10 @@ $make -f Makefile HAVE_LIBCRYPTO=yes HAVE_OPENSSL_SSL=yes build=debug
 you can use "HAVE_OPENSSL=yes" to replace  "HAVE_LIBCRYPTO=yes HAVE_OPENSSL_SSL=yes"
 if everything is ok, you can get libmupdf.a at mupdf_dir_path/build/release(debug)/
 
-now you can use libmupdf.a to do something. do not forget:
+now you can use libmupdf.a to add image/(hand draw) signature, add image, add
+hand draw annotations....
+
+do not forget:
 when compile application, you must link openssl library.
 example:
 gcc ./test_pdf_signature.c -LPathofOpensslLib -lcrypto -lssl -lmupdf
@@ -59,6 +62,7 @@ $cd mupdf_dir_path/platform/android/viewer/
 $make -C ../../.. generate
 $ndk-build
 you can get dynamic lib for android at: mupdf_dir_path/platform/android/viewer/lib
+
 
 mupdf official website: 
 www.mupdf.com
