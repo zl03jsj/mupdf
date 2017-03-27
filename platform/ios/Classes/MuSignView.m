@@ -83,8 +83,12 @@
 	CGSize scale = fitPageToScreen(_pagesize, size);
 	size.width /= scale.width;
 	size.height/= scale.height;
-	imagesize.width /= scale.width;
-	imagesize.height/= scale.height;
+	
+	// imagesize.width /= scale.width;
+	// imagesize.height/= scale.height;
+	float f = imagesize.width / imagesize.height;
+	imagesize.width = size.width / 4;
+	imagesize.height = imagesize.width / f;
 	
 	_startpoint.x = (size.width - imagesize.width) / 2;
 	_startpoint.y = (size.height- imagesize.height)/ 2;
