@@ -10,6 +10,7 @@ default: all
 # --- Configuration ---
 
 HAVE_OPENSSL = yes
+
 include Makerules 
 include Makethird
 

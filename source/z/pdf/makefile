@@ -4,17 +4,31 @@ os := $(os:MINGW%=MINGW)
 os := $(os:Windows_NT=MINGW)
 os := $(os:Darwin=macos)
 
+
+ifeq "$(OS)" "macos"
+CC = xcrun cc
+AR = xcrun ar
+LD = xcrun ld
+RANLIB_CMD = xcrun ranlib $@
+else ifeq "$(OS)" "ios" 
+CC = xcrun cc
+AR = xcrun ar
+LD = xcrun ld
+RANLIB_CMD = xcrun ranlib $@
+endif
+
+
 HAVE_LIBCRYPTO ?= yes
 build ?= debug
 
 incpath := -I../../../include -I./ 
-libs := -L../../../build/$(build) -lmupdf -lmupdfthird
+libs := -L../../../build/$(build) -lmupdf -lmupdfthird -lm
 
 ifeq "$(HAVE_LIBCRYPTO)" "yes"
 libs += -L../../../thirdparty/openssl/$(os) -lcrypto -lssl
 endif
 
-sourcedirs := ./Test/
+sourcedirs := ./samples/
 source := $(wildcard $(sourcedirs)*.c)
 objs := $(source:%.c=%.o)
 
@@ -26,14 +40,14 @@ endif
 
 default: mupdf $(objs) showinfo
 	@echo ........................
-	clang $(flags) -o pdftest $(objs) $(libs) 
+	$(CC) $(flags) -o pdftest $(objs) $(libs) 
 	@echo ........................
 
 $(objs): %.o:%.c
-	clang $(flags) -c $(incpath) $< -o $@
+	$(CC) $(flags) -c $(incpath) $< -o $@
 	
 # $(sourcedirs)%.o : $(sourcedirs)%.c
-	# clang -c $(flags) $< -o $@
+	# $(CC) -c $(flags) $< -o $@
 
 
 mupdf:
