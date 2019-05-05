@@ -28,15 +28,15 @@ $./compile.sh
   
 if every thing is ok,  you can get executable file: ./pdftest  
   
-to test add annotation, un-comment this code befor run 'compile.sh'  
+to test adding annotation, un-comment this code befor run 'compile.sh'  
     // testAddAnnotation(ctx, doc, p, ofile);  
 $./pdftest -p [pageno] -i [./pdffile/test.pdf] -o [./pdffile/out.pdf]  
   
-to test add pdf signature, un-comment this code befor run 'compile.sh'  
+to test add pdf signature, un-comment following code before run 'compile.sh'  
     // doTestPdfSign(ctx, doc, pageno, r, ofile);  
 $./pdftest -p [pageno] -i [./pdffile/test.pdf] -o [./pdffile/out.pdf] -x [x position] -y[y position] -w [width] -h [height]  
   
-and the same to test add iamge to pdf file:  
+and the same of insert image into pdf file:  
     // doTestAddImage(ctx, doc);  
   
 note:  
