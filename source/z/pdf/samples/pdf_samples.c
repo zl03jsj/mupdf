@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include "mupdf/pdf.h"
 
-#define RES_PATH "/Users/zl03jsj/Documents/pdftest"
+#define RES_PATH "./samples"
 // #define RES_Image_file  RES_PATH"/Monkey_D_Luffey.png"
 // #define RES_Image_file  RES_PATH"/esp_saved.png"
 // #define RES_Image_file  "/Users/zl03jsj/Downloads/pdf-pre-post-annotation.png"
@@ -25,7 +25,7 @@
 #define RES_Pdf_file    RES_PATH"/pdffile/test.pdf"
 #define RES_Cert_file   RES_PATH"/user/zl.pfx"
 #define RES_CA_file     RES_PATh"/ca/zl_ca.pfx"
-#define RES_Pdf_savedfile RES_PATH"/saved.pdf"
+#define RES_Pdf_savedfile RES_PATH"/pdffile/saved.pdf"
 #define Defualt_password "111111"
 
 void testAddAnnotation(fz_context *ctx, pdf_document *doc, int pageno, char *savefile) {
@@ -114,13 +114,13 @@ void testAddAnnotation(fz_context *ctx, pdf_document *doc, int pageno, char *sav
 }
 
 #if 1
-void doTestPdfSign(fz_context *ctx, pdf_document *doc, int pageno, fz_rect rect, char *savefile) 
+void doTestPdfSign(fz_context *ctx, pdf_document *doc, int pageno, fz_rect rect, char *savefile)
 {
     printf("dosign test pdf");
     z_device * device = z_openssl_new_device(ctx, RES_PATH"/user/zl.pfx", "111111");
-    fz_image * image = fz_new_image_from_file(ctx, RES_Image_file); 
+    fz_image * image = fz_new_image_from_file(ctx, RES_Image_file);
     z_pdf_sign_appearance *app = z_pdf_new_sign_appearance_with_image(ctx, image, rect, NULL);
-    
+
     pdf_page *page = pdf_load_page(ctx, doc, pageno);
     z_pdf_dosign_with_page(ctx, device, doc, page, app);
     pdf_drop_page(ctx, page);
@@ -134,7 +134,7 @@ void doTestsign(fz_context *ctx, pdf_document *doc, char *ofilename, fz_rect r) 
     Z_sign_device *signdevice = Z_openssl_SignDev_new(ctx, RES_PATH"/user/zl.pfx", "111111");
     fz_image *image = fz_new_image_from_file(ctx, RES_Image_file);
     Z_PdfSignContext *signctx = Z_PdfSignCtxInit(ctx, doc, 0, 1, image, r);
-    Z_pdf_add_sign(signctx, signdevice); 
+    Z_pdf_add_sign(signctx, signdevice);
     Z_PdfSignCtxDisplay(signctx);
     fz_drop_image(ctx, image);
 
@@ -167,7 +167,7 @@ void doTestSaveSigndata(char* infile, int b1, int size1, int b2,int size2, char 
     fseek(fs, b1, SEEK_SET);
     i = 0;
     while(i<size1){
-        tmp = fread(buf, 1,fz_min(sizeof(buf), size1-i), fs); 
+        tmp = fread(buf, 1,fz_min(sizeof(buf), size1-i), fs);
         fwrite(buf, 1, tmp, fd);
         i+=tmp;
     }
@@ -175,7 +175,7 @@ void doTestSaveSigndata(char* infile, int b1, int size1, int b2,int size2, char 
     fseek(fs, b2, SEEK_SET);
     i = 0;
     while(i<size2){
-        tmp = fread(buf, 1, fz_min(sizeof(buf), size2-i), fs); 
+        tmp = fread(buf, 1, fz_min(sizeof(buf), size2-i), fs);
         fwrite(buf, 1, tmp, fd);
         i+=tmp;
     }
@@ -187,7 +187,7 @@ void doTestSaveSigndata(char* infile, int b1, int size1, int b2,int size2, char 
 static void displayUsage(void)
 {
 	fprintf(stderr,
-        "usage: subdata ofs size filename [-o outfile]\n"   
+        "usage: subdata ofs size filename [-o outfile]\n"
         "\t-o\tname of subdata to store\n"
 		);
 	exit(1);
@@ -259,7 +259,7 @@ static void printMatrix(fz_matrix *mx)
 
 void matrixTest() {
     fz_matrix mx1 = {1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f};  // x 对称
-    fz_matrix mx2 = {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 841.9f};// 
+    fz_matrix mx2 = {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 841.9f};//
     fz_matrix r = fz_identity;
     fz_concat(&r, &mx1, &mx2);
     printMatrix(&r);
@@ -272,13 +272,13 @@ int main(int argc, char **argv) {
     // fz_rect r = {108.77f, 47.03f, 226.77f, 165.03f};
     // fz_rect r = {208.77f, 47.03f, 326.77f, 165.03f};
     fz_rect r = {50.0f, 50.0f, 150.0f, 150.0f};
-    int w, h;
+    int w, h, pageno = 0;
     w = r.x1 - r.x0;
     h = r.y1 - r.y0;
     infile = ofile = NULL;
     fz_optind = 1;
     char c;
-    while ((c = fz_getopt(argc, argv, "i:o:x:y:w:h:")) != -1) {
+    while ((c = fz_getopt(argc, argv, "i:o:x:y:w:h:p:")) != -1) {
         switch (c)
         {
             case 'i': infile = fz_optarg;   break;
@@ -287,6 +287,7 @@ int main(int argc, char **argv) {
             case 'y': r.y0 = atoi(fz_optarg);  break;
             case 'w': w = atoi(fz_optarg);  break;
             case 'h': h = atoi(fz_optarg);  break;
+            case 'p': pageno = atoi(fz_optarg); break;
         }
     }
     r.x1 = r.x0 + w;
@@ -298,9 +299,9 @@ int main(int argc, char **argv) {
     fz_context *ctx = fz_new_context(NULL, NULL, FZ_STORE_DEFAULT);
     pdf_document *doc = pdf_open_document(ctx, infile);
     // xref = pdf_get_xref_entry
-    // doTestPdfSign(ctx, doc, 0, r, ofile);
+    // doTestPdfSign(ctx, doc, pageno, r, ofile);
     // doTestAddImage(ctx, doc);
-    testAddAnnotation(ctx, doc, 17, ofile);
+    testAddAnnotation(ctx, doc, pageno, ofile);
     pdf_drop_document(ctx, doc);
     fz_drop_context(ctx);
     printf("====================\n");
