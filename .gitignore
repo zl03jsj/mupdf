@@ -100,3 +100,4 @@ source/z_/pdftest.dSYM/Contents/Info.plist
 .vim_auto_ses
 *.pyc
 httptest
+.idea/
