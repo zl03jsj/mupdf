@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 
 include_directories(./include)
+include_directories(./thirdparty/jpeg)
 
 aux_source_directory(./source/cbz cbz)
 aux_source_directory(./source/fitz fitz)

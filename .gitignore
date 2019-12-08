@@ -104,4 +104,5 @@ httptest
 visual_studio_code/
 cmake-build-debug/
 cmake-build-release/
+pdftest.dSYM/
 
