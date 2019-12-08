@@ -101,3 +101,7 @@ source/z_/pdftest.dSYM/Contents/Info.plist
 *.pyc
 httptest
 .idea/
+visual_studio_code/
+cmake-build-debug/
+cmake-build-release/
+
