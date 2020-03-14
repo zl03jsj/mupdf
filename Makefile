@@ -471,7 +471,7 @@ helper:
 	@echo CORE_ESP: build ntko espfile parsing into mupdf lib
 	@echo ""
 	@echo CORE_SVR_HELPER: build ntko sign server http helper into mupdf lib
-	@echo "                                           ntko.com(zl03jsj@163.com)"
+	@echo "                                           zl03jsj@163.com"
 
 showflags:
 	@echo HAVE_LIBCRYPTO=$(HAVE_LIBCRYPTO),LIBCRYPTO_CFLAGS:$(LIBCRYPTO_CFLAGS) LIBCRYPTO_LIBS:$(LIBCRYPTO_LIBS)

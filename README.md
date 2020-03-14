@@ -12,14 +12,14 @@ the all above functions could be used on windows, ios, android platform, and for
 samples,look at:
 mupdf_path/source/z/pdf/samples/pdf_samples.c
 
-x11 is needed by mupdf, to compile mupdf lib, install XQuartz first:
+on macos, x11 is needed, to compile mupdf lib, install XQuartz first:
 https://dl.bintray.com/xquartz/downloads/XQuartz-2.7.11.dmg
 
-digtal signature is depend on openssl, you can compile it by yourself, or
+openssl is must for digital signature, you can compile it by yourself, or
 get pre-built(for macos) binary and include header files at:
 https://github.com/zl03jsj/openssl_mac.git
 
-run following command to update submodules:
+run following command to get thirdpart dependencies, which are submodules:
 git submodule update --init --recursive
 
 after all above, you may need to take a look at ./compile.sh, make sure
@@ -103,7 +103,7 @@ the test directory is created at:
 mupdf_path/platform/ios/Documents/
 you can use this folder directly.
 
-if you want show your appreciation, you can contribute money to me:^_^!
+if you want show your appreciation, contribute money:^_^!
 ![image](https://github.com/zl03jsj/hand-draw-algorithm/blob/master/hand_writing/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20171216183802.jpg)
 
 mupdf official website:
