@@ -106,3 +106,4 @@ cmake-build-debug/
 cmake-build-release/
 pdftest.dSYM/
 .vscode/
+go/pkg/
