@@ -10,24 +10,20 @@ package mupdf
 */
 import "C"
 import (
-	"sync"
 	"unsafe"
 )
 
-var mutx sync.Mutex
-var ctx *context
 
 // context ...
 type context struct {
 	fz_version *C.char
-
 	ctx *C.fz_context
 }
 
-func (self *context) release() {
+func (self *context) drop() {
 	if self.fz_version != nil {
-		C.free(unsafe.Pointer(ctx.fz_version))
-		ctx.fz_version = nil
+		C.free(unsafe.Pointer(self.fz_version))
+		self.fz_version = nil
 	}
 
 	if self.ctx != nil {
@@ -38,13 +34,7 @@ func (self *context) release() {
 
 // newCtx ... export function should have comment or un-exporteable
 func newCtx() *context {
-	mutx.Lock()
-	defer mutx.Unlock()
-	if ctx != nil {
-		return ctx
-	}
-
-	ctx = &context{}
+	ctx := &context{}
 	ctx.fz_version = C.CString(C.FZ_VERSION)
 	ctx.ctx = C.fz_new_context_imp(nil, nil, C.ulong(0), ctx.fz_version)
 

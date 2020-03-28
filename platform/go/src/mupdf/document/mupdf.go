@@ -28,7 +28,9 @@ func main() {
 
 	ctx := C.fz_new_context_imp(nil, nil, C.ulong(0), fz_version)
 
-	document, err := C.pdf_open_document(ctx, file)
+	var document *C.pdf_document
+	var err error
+	document, err = C.pdf_open_document(ctx, file)
 	if err!=nil {
 		fmt.Printf("%s\n", err.Error())
 		return
