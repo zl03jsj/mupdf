@@ -13,14 +13,12 @@ import (
 	"unsafe"
 )
 
-
-// context ...
 type context struct {
 	fz_version *C.char
-	ctx *C.fz_context
+	ctx        *C.fz_context
 }
 
-func (self *context) drop() {
+func (self *context) release() {
 	if self.fz_version != nil {
 		C.free(unsafe.Pointer(self.fz_version))
 		self.fz_version = nil

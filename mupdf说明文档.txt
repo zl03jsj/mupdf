@@ -36,8 +36,7 @@ ios 平台编译, 需要mac系统,安装xcode
 
 数字证书签名相关:
 header文件: 
-    mupdf/include/mupdf/z/z_sign.h
-    mupdf/include/mupdf/pdf/crypt.h
+    mupdf/include/mupdf/z/z_sign.h mupdf/include/mupdf/pdf/crypt.h
     mupdf/inlcude/mupdf/pdf/appearance.h
 source文件:
     mupdf/source/z/pdf/z_sign.c

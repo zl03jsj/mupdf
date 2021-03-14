@@ -1,4 +1,5 @@
 package mupdf
+
 //#cgo CFLAGS: -I../../../../include
 //#cgo LDFLAGS: -L../../../../build/release -lmupdf -lmupdfthird
 //#include "mupdf/pdf.h"
@@ -17,7 +18,7 @@ import (
 // Document ...
 type Document struct {
 	ctx *context
-	doc *C.pdf_document
+	doc *C.fz_document
 
 	page_count int64
 
@@ -26,24 +27,28 @@ type Document struct {
 	mutx sync.Mutex
 }
 
-func (self *Document) Release() {
-	if self.ctx != nil {
-		self.ctx.drop()
-		self.ctx = nil
+func (self *Document) Drop() {
+	if self.doc != nil {
+		C.fz_drop_document(self.ctx.ctx, self.doc)
 	}
+	self.ctx.release()
+	self.ctx = nil
 }
 
 func (self *Document) PageCount() int64 {
 	if self.is_page_cached {
 		return self.page_count
 	}
+	pdf_doc := C.pdf_specifics(self.ctx.ctx, self.doc)
+	self.page_count = int64(C.pdf_count_pages(self.ctx.ctx, pdf_doc))
+	self.is_page_cached = true
 	return self.page_count
 }
 
 func (self *Document) Page(pageno int) (*Page, error) {
-	var page = &Page{ }
+	var page = &Page{}
 	var err error
-	if page.page, err = C.pdf_load_page(self.ctx.ctx ,self.doc, C.int(pageno)); err!=nil {
+	if page.page, err = C.fz_load_page(self.ctx.ctx, self.doc, C.int(pageno)); err != nil {
 		return nil, err
 	}
 	return page, nil
@@ -53,10 +58,15 @@ func (self *Document) OpenDocument(file string) (*Document, error) {
 	var err error
 	cfile := C.CString(file)
 	defer C.free(unsafe.Pointer(cfile))
-	if self.doc = C.pdf_open_document(self.ctx.ctx, cfile); err!=nil {
+	if self.doc, err = C.fz_open_document(self.ctx.ctx, cfile); err != nil {
 		return nil, err
 	}
 	return self, nil
+}
+
+func (self *Document) DrawPage(page *Page) {
+	page.Size()
+
 }
 
 func OpenDocument(file string) (*Document, error) {

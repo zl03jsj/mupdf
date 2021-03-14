@@ -127,3 +127,23 @@ int main(int argc, char **argv)
 	fz_drop_context(ctx);
 	return EXIT_SUCCESS;
 }
+
+void xxx(fz_context *ctx) {
+
+int x = 0;
+	
+	{
+		 if (fz_push_try(ctx)) { 
+			if (fz_setjmp((ctx)->error->top->buffer) == 0)
+				do { x = 1; } while (0); 
+		} 
+		if (ctx->error->top->code < 3) { 
+			ctx->error->top->code++; 
+			do { x = 2; } while (0); 
+		} 
+	} 
+	if ((ctx->error->top--)->code > 1) { x = 3; }
+	
+
+
+}
