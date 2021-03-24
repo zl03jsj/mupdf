@@ -261,6 +261,10 @@ $(THREAD_LIB) : $(THREAD_OBJ)
 $(PKCS7_LIB) : $(PKCS7_OBJ)
 endif
 
+ifeq ($(USE_SYSTEM_GLUT), yes)
+  THIRD_GLUT_LIB =
+endif
+
 $(MUPDF_LIB) : $(MUPDF_OBJ)
 $(THIRD_LIB) : $(THIRD_OBJ)
 $(THREAD_LIB) : $(THREAD_OBJ)
@@ -286,6 +290,14 @@ MURASTER_EXE := $(OUT)/muraster
 $(MURASTER_EXE) : $(MURASTER_OBJ) $(MUPDF_LIB) $(THIRD_LIB) $(PKCS7_LIB) $(THREAD_LIB)
 	$(LINK_CMD) $(THIRD_LIBS) $(THREADING_LIBS) $(LIBCRYPTO_LIBS)
 TOOL_APPS += $(MURASTER_EXE)
+
+$(info cflags='$(CFLAGS)', libs='$(LIBS)')
+$(info have_glut=$(HAVE_GLUT), use_system_glut=$(USE_SYSTEM_GLUT), have_x11=$(HAVE_X11))
+$(info sys_gl_libs='$(SYS_GLUT_LIBS)', sys_glut_cflags=$(SYS_GLUT_CFLAGS), third_glut_libs='$(THIRD_GLUT_LIBS)')
+$(info third_glut_lib=$(THIRD_GLUT_LIB), third_glut_libs=$(THIRD_GLUT_LIBS))
+#$(info third_src=$(THIRD_SRC))
+#$(info glut_src=$(GLUT_SRC))
+#$(info third_glut_src=$(THIRD_GLUT_SRC))
 
 ifeq ($(HAVE_GLUT),yes)
   MUVIEW_GLUT_SRC += $(sort $(wildcard platform/gl/*.c))

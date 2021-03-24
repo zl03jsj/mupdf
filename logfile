@@ -1,0 +1,30 @@
+2021-03-30 13:56:58.711 CST [41265] LOG:  starting PostgreSQL 12.3 on x86_64-apple-darwin18.7.0, compiled by Apple clang version 11.0.0 (clang-1100.0.33.17), 64-bit
+2021-03-30 13:56:58.713 CST [41265] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2021-03-30 13:56:58.713 CST [41265] LOG:  listening on IPv6 address "::1", port 5432
+2021-03-30 13:56:58.713 CST [41265] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2021-03-30 13:56:58.745 CST [41266] LOG:  database system was interrupted; last known up at 2021-03-26 18:08:05 CST
+2021-03-30 13:56:58.923 CST [41266] LOG:  database system was not properly shut down; automatic recovery in progress
+2021-03-30 13:56:58.928 CST [41266] LOG:  redo starts at 97/F135C168
+2021-03-30 13:56:58.928 CST [41266] LOG:  invalid record length at 97/F135C250: wanted 24, got 0
+2021-03-30 13:56:58.928 CST [41266] LOG:  redo done at 97/F135C218
+2021-03-30 13:56:58.940 CST [41265] LOG:  database system is ready to accept connections
+2021-03-30 19:22:15.646 CST [71983] ERROR:  invalid input syntax for type json at character 433
+2021-03-30 19:22:15.646 CST [71983] DETAIL:  The input string ended unexpectedly.
+2021-03-30 19:22:15.646 CST [71983] CONTEXT:  JSON data, line 1: 
+2021-03-30 19:22:15.646 CST [71983] STATEMENT:  create table actors_msg_count
+	(
+	    id               serial primary key,
+	    actor            varchar not null,
+	    "in"             integer          default 0,
+	    "out"            integer          default 0,
+	    "total"          integer          default 0,
+	    epoch            bigint  not null,
+	    time_seq         bigint  not null default 0,
+	    block_time       bigint  not null,
+	    method_msg_count jsonb            default ''
+	);
+2021-03-30 19:22:15.651 CST [71983] ERROR:  relation "actors_msg_count" does not exist
+2021-03-30 19:22:15.651 CST [71983] STATEMENT:  create unique index on actors_msg_count (actor, time_seq desc);
+2021-03-30 19:22:15.652 CST [71983] ERROR:  relation "actors_msg_count" does not exist
+2021-03-30 19:22:15.652 CST [71983] STATEMENT:  create index on actors_msg_count (actor, block_time desc);
+2021-03-30 19:23:13.066 CST [72195] LOG:  could not receive data from client: Connection reset by peer

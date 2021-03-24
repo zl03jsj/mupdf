@@ -189,6 +189,7 @@ endif
 
 # --- FreeGLUT ---
 
+$(info: gult_src:$(GLUT_SRC))
 ifeq ($(USE_SYSTEM_GLUT),yes)
   THIRD_GLUT_CFLAGS := $(SYS_GLUT_CFLAGS)
   THIRD_GLUT_LIBS += $(SYS_GLUT_LIBS)
